@@ -1,0 +1,85 @@
+{
+  "description": "Real database guests for multi-checkin testing",
+  "scenarios": {
+    "valid_three_guests": {
+      "guests": [
+        {
+          "e": "Kiley18@hotmail.com",
+          "n": "Fred Sanford"
+        },
+        {
+          "e": "Kaley52@gmail.com",
+          "n": "Josh Denesik"
+        },
+        {
+          "e": "Mallie_Zieme21@yahoo.com",
+          "n": "Erma McCullough"
+        }
+      ]
+    },
+    "large_group": {
+      "guests": [
+        {
+          "e": "Kiley18@hotmail.com",
+          "n": "Fred Sanford"
+        },
+        {
+          "e": "Kaley52@gmail.com",
+          "n": "Josh Denesik"
+        },
+        {
+          "e": "Mallie_Zieme21@yahoo.com",
+          "n": "Erma McCullough"
+        },
+        {
+          "e": "miss.patsy prohaska+1@gmail.com",
+          "n": "Miss Patsy Prohaska"
+        },
+        {
+          "e": "miss.patsy prohaska+2@gmail.com",
+          "n": "Miss Patsy Prohaska"
+        },
+        {
+          "e": "Yvonne96@hotmail.com",
+          "n": "Jose Schamberger"
+        },
+        {
+          "e": "Rasheed_Mante@hotmail.com",
+          "n": "Dr. Mitchell Collins"
+        },
+        {
+          "e": "Elliot56@yahoo.com",
+          "n": "Benjamin Fritsch"
+        },
+        {
+          "e": "Eleonore.Ratke@gmail.com",
+          "n": "Gregg Keeling"
+        },
+        {
+          "e": "Will_Veum@yahoo.com",
+          "n": "Georgia Rowe"
+        }
+      ]
+    },
+    "duplicate_person_different_emails": {
+      "guests": [
+        {
+          "e": "miss.patsy prohaska+1@gmail.com",
+          "n": "Miss Patsy Prohaska"
+        },
+        {
+          "e": "miss.patsy prohaska+2@gmail.com",
+          "n": "Miss Patsy Prohaska"
+        }
+      ]
+    },
+    "stress_test_50": {
+      "generate": true,
+      "count": 50,
+      "template": {
+        "e": "stress.test.user.{index}@frontier.test",
+        "n": "Stress Test User {index}"
+      }
+    }
+  }
+}

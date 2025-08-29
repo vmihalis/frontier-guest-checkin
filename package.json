@@ -12,7 +12,11 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test:multi": "tsx test/test-runner.ts",
+    "test:scenarios": "tsx test/test-runner.ts scenarios",
+    "test:generate": "tsx test/test-runner.ts generate",
+    "test:all": "tsx test/test-runner.ts all"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
