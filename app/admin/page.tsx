@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
@@ -19,7 +20,20 @@ import {
   CheckCircle,
   Search,
   Ban,
-  RotateCcw
+  RotateCcw,
+  Activity,
+  FileText,
+  Globe,
+  Filter,
+  RefreshCw,
+  Mail,
+  QrCode,
+  UserPlus,
+  ShieldAlert,
+  Gift,
+  FileCheck,
+  UserX,
+  Eye
 } from 'lucide-react';
 
 interface AdminStats {
@@ -63,6 +77,85 @@ interface AdminStats {
   }>;
 }
 
+interface Activity {
+  type: string;
+  timestamp: string;
+  title: string;
+  description: string;
+  icon: string;
+  severity: 'info' | 'success' | 'warning' | 'error';
+  data: Record<string, unknown>;
+}
+
+interface SearchResult {
+  type: 'guest' | 'host' | 'visit';
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  data: Record<string, unknown>;
+  relevanceScore: number;
+}
+
+interface GuestJourney {
+  guest: {
+    id: string;
+    name: string;
+    email: string;
+    country?: string;
+    contactMethod?: string;
+    contactValue?: string;
+    createdAt: string;
+    blacklistedAt?: string;
+  };
+  timeline: Activity[];
+  summary: {
+    totalVisits: number;
+    totalInvitations: number;
+    discountsEarned: number;
+    isBlacklisted: boolean;
+    lastVisit?: string;
+    firstVisit?: string;
+    averageVisitsPerMonth: number;
+    mostFrequentHost?: { name: string; count: number };
+  };
+}
+
+interface ExecutiveReport {
+  period: {
+    type: string;
+    startDate: string;
+    endDate: string;
+    label: string;
+  };
+  metrics: {
+    totalVisits: { value: number; change: number; previous: number };
+    uniqueGuests: { value: number; change: number; previous: number };
+    newGuests: { value: number; change: number; previous: number };
+    totalInvitations: { value: number; change: number; previous: number };
+    qrActivations: { value: number; change: number; previous: number };
+    overrideCount: number;
+    blacklistAdditions: number;
+    discountsSent: number;
+  };
+  conversions: {
+    invitationToActivation: number;
+    activationToVisit: number;
+    overallConversion: number;
+  };
+  topHosts: Array<{ id: string; name: string; email: string; visitCount: number }>;
+  demographics: {
+    countries: Array<{ country: string; count: number }>;
+    contactMethods: Array<{ method: string; count: number }>;
+  };
+  systemHealth: {
+    overrideRate: number;
+    blacklistGrowth: number;
+    emailDeliveryRate: number;
+  };
+  generatedAt: string;
+}
+
 interface Policies {
   id: number;
   guestMonthlyLimit: number;
@@ -87,9 +180,18 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [policies, setPolicies] = useState<Policies | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [selectedGuest, setSelectedGuest] = useState<GuestJourney | null>(null);
+  const [executiveReport, setExecutiveReport] = useState<ExecutiveReport | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('');
   const [showBlacklisted, setShowBlacklisted] = useState(false);
+  const [reportPeriod, setReportPeriod] = useState('weekly');
+  const [quickFilter, setQuickFilter] = useState('all');
+  
   const { toast } = useToast();
 
   // Policy form state
@@ -97,6 +199,9 @@ export default function AdminPage() {
     guestMonthlyLimit: 3,
     hostConcurrentLimit: 3
   });
+
+  // Activity feed auto-refresh
+  const [, setActivityRefresh] = useState(0);
 
   const loadData = useCallback(async () => {
     try {
@@ -137,9 +242,83 @@ export default function AdminPage() {
     }
   }, [searchTerm, showBlacklisted, toast]);
 
+  const loadActivities = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/activity');
+      if (response.ok) {
+        const data = await response.json();
+        setActivities(data.activities || []);
+      }
+    } catch (error) {
+      console.error('Error loading activities:', error);
+    }
+  }, []);
+
+  const loadExecutiveReport = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/admin/reports?period=${reportPeriod}`);
+      if (response.ok) {
+        const data = await response.json();
+        setExecutiveReport(data);
+      }
+    } catch (error) {
+      console.error('Error loading executive report:', error);
+    }
+  }, [reportPeriod]);
+
+  const performGlobalSearch = useCallback(async () => {
+    if (!globalSearchTerm || globalSearchTerm.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/search?q=${encodeURIComponent(globalSearchTerm)}&limit=20`);
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.results || []);
+      }
+    } catch (error) {
+      console.error('Error performing global search:', error);
+    }
+  }, [globalSearchTerm]);
+
+  const loadGuestJourney = useCallback(async (guestId: string) => {
+    try {
+      const response = await fetch(`/api/admin/guests/${guestId}/journey`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedGuest(data);
+      }
+    } catch (error) {
+      console.error('Error loading guest journey:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    loadActivities();
+    const interval = setInterval(() => {
+      setActivityRefresh(prev => prev + 1);
+      loadActivities();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [loadActivities]);
+
+  useEffect(() => {
+    loadExecutiveReport();
+  }, [loadExecutiveReport]);
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      performGlobalSearch();
+    }, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [performGlobalSearch]);
 
   const handlePolicyUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,6 +382,54 @@ export default function AdminPage() {
     }
   };
 
+  const getIconComponent = (iconName: string) => {
+    const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
+      'user-check': UserCheck,
+      'qr-code': QrCode,
+      'user-plus': UserPlus,
+      'ban': Ban,
+      'shield-alert': ShieldAlert,
+      'gift': Gift,
+      'file-check': FileCheck,
+      'user-x': UserX,
+      'mail': Mail,
+    };
+    
+    const IconComponent = iconMap[iconName] || Activity;
+    return <IconComponent className="h-4 w-4" />;
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'success': return 'text-green-600 bg-green-50';
+      case 'warning': return 'text-yellow-600 bg-yellow-50';
+      case 'error': return 'text-red-600 bg-red-50';
+      default: return 'text-blue-600 bg-blue-50';
+    }
+  };
+
+  const getFilteredGuests = () => {
+    let filtered = guests;
+    
+    switch (quickFilter) {
+      case 'frequent':
+        filtered = guests.filter(g => g.lifetimeVisits >= 3);
+        break;
+      case 'new':
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        filtered = guests.filter(g => new Date(g.createdAt) >= sevenDaysAgo);
+        break;
+      case 'blacklisted':
+        filtered = guests.filter(g => g.isBlacklisted);
+        break;
+      default:
+        break;
+    }
+    
+    return filtered;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -223,18 +450,77 @@ export default function AdminPage() {
             <h1 className="text-3xl font-bold">Frontier Tower - Admin Dashboard</h1>
             <p className="text-muted-foreground">System administration and analytics</p>
           </div>
-          <Badge variant="default" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Admin Access
-          </Badge>
+          <div className="flex items-center gap-4">
+            <Badge variant="default" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Admin Access
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                loadData();
+                loadActivities();
+                loadExecutiveReport();
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
+        {/* Global Search */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Global Search
+            </CardTitle>
+            <CardDescription>Search across guests, hosts, and visits</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search guests, hosts, visits..."
+                  value={globalSearchTerm}
+                  onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            {searchResults.length > 0 && (
+              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                {searchResults.map((result) => (
+                  <div key={`${result.type}-${result.id}`} className="p-3 border rounded-lg hover:bg-muted cursor-pointer"
+                       onClick={() => result.type === 'guest' && loadGuestJourney(result.id)}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{result.title}</p>
+                        <p className="text-sm text-muted-foreground">{result.subtitle}</p>
+                        <p className="text-xs text-muted-foreground">{result.description}</p>
+                      </div>
+                      <Badge variant="outline">{result.type}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="activity">Live Activity</TabsTrigger>
             <TabsTrigger value="guests">Guest Management</TabsTrigger>
+            <TabsTrigger value="reports">Executive Reports</TabsTrigger>
             <TabsTrigger value="policies">System Policies</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
+            <TabsTrigger value="journey">Guest Journey</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -354,14 +640,66 @@ export default function AdminPage() {
             )}
           </TabsContent>
 
+          {/* Live Activity Tab */}
+          <TabsContent value="activity" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Live Activity Feed
+                    </CardTitle>
+                    <CardDescription>Recent system events and activities</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Auto-refresh: 30s
+                    </Badge>
+                    <Button variant="outline" size="sm" onClick={loadActivities}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {activities.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No recent activity found.
+                    </p>
+                  ) : (
+                    activities.map((activity, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted">
+                        <div className={`p-2 rounded-full ${getSeverityColor(activity.severity)}`}>
+                          {getIconComponent(activity.icon)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium">{activity.title}</h4>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(activity.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{activity.description}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Guest Management Tab */}
           <TabsContent value="guests" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Guest Management</CardTitle>
                 <CardDescription>Search and manage guest accounts</CardDescription>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
+                <div className="flex flex-wrap gap-2">
+                  <div className="relative flex-1 min-w-64">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search guests by name or email..."
@@ -370,6 +708,20 @@ export default function AdminPage() {
                       className="pl-10"
                     />
                   </div>
+                  
+                  <Select value={quickFilter} onValueChange={setQuickFilter}>
+                    <SelectTrigger className="w-40">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Guests</SelectItem>
+                      <SelectItem value="frequent">Frequent Visitors</SelectItem>
+                      <SelectItem value="new">New (7 days)</SelectItem>
+                      <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <Button
                     variant={showBlacklisted ? "default" : "outline"}
                     onClick={() => setShowBlacklisted(!showBlacklisted)}
@@ -379,7 +731,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                {guests.length === 0 ? (
+                {getFilteredGuests().length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
                     {searchTerm ? 'No guests found matching your search.' : 'No guests found.'}
                   </p>
@@ -397,7 +749,7 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {guests.map((guest) => (
+                      {getFilteredGuests().map((guest) => (
                         <TableRow key={guest.id}>
                           <TableCell className="font-medium">{guest.name}</TableCell>
                           <TableCell>{guest.email}</TableCell>
@@ -410,11 +762,19 @@ export default function AdminPage() {
                                 <Badge variant="destructive">Blacklisted</Badge>
                               )}
                               {guest.hasDiscount && (
-                                <Badge variant="success">Discount</Badge>
+                                <Badge variant="default">Discount</Badge>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => loadGuestJourney(guest.id)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Journey
+                            </Button>
                             {guest.isBlacklisted ? (
                               <Button
                                 size="sm"
@@ -439,6 +799,116 @@ export default function AdminPage() {
                       ))}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Executive Reports Tab */}
+          <TabsContent value="reports" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Executive Summary Reports
+                    </CardTitle>
+                    <CardDescription>Comprehensive analytics and business insights</CardDescription>
+                  </div>
+                  <Select value={reportPeriod} onValueChange={setReportPeriod}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {executiveReport ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Total Visits</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{executiveReport.metrics.totalVisits.value}</div>
+                          <p className={`text-xs ${executiveReport.metrics.totalVisits.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {executiveReport.metrics.totalVisits.change >= 0 ? '+' : ''}{executiveReport.metrics.totalVisits.change}% from previous period
+                          </p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Unique Guests</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{executiveReport.metrics.uniqueGuests.value}</div>
+                          <p className={`text-xs ${executiveReport.metrics.uniqueGuests.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {executiveReport.metrics.uniqueGuests.change >= 0 ? '+' : ''}{executiveReport.metrics.uniqueGuests.change}% from previous period
+                          </p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Conversion Rate</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{executiveReport.conversions.overallConversion}%</div>
+                          <p className="text-xs text-muted-foreground">Invitation to visit</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Top Countries</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            {executiveReport.demographics.countries.slice(0, 5).map((country) => (
+                              <div key={country.country} className="flex items-center justify-between">
+                                <span className="text-sm">{country.country}</span>
+                                <Badge variant="outline">{country.count} visitors</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>System Health</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Override Rate</span>
+                              <Badge variant={executiveReport.systemHealth.overrideRate > 10 ? "destructive" : "default"}>
+                                {executiveReport.systemHealth.overrideRate}%
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">New Blacklists</span>
+                              <Badge variant="outline">{executiveReport.systemHealth.blacklistGrowth}</Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    Loading executive report...
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -564,6 +1034,96 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Guest Journey Tab */}
+          <TabsContent value="journey" className="space-y-6">
+            {selectedGuest ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <UserCheck className="h-5 w-5" />
+                        Guest Journey: {selectedGuest.guest.name}
+                      </CardTitle>
+                      <CardDescription>
+                        Complete visit history and timeline for {selectedGuest.guest.email}
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" onClick={() => setSelectedGuest(null)}>
+                      Close
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div className="lg:col-span-1">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm">Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Total Visits</span>
+                            <Badge variant="outline">{selectedGuest.summary.totalVisits}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Invitations</span>
+                            <Badge variant="outline">{selectedGuest.summary.totalInvitations}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Discounts</span>
+                            <Badge variant="outline">{selectedGuest.summary.discountsEarned}</Badge>
+                          </div>
+                          {selectedGuest.summary.mostFrequentHost && (
+                            <div>
+                              <span className="text-sm">Most Frequent Host</span>
+                              <p className="text-xs text-muted-foreground">
+                                {selectedGuest.summary.mostFrequentHost.name} ({selectedGuest.summary.mostFrequentHost.count} visits)
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div className="lg:col-span-3">
+                      <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {selectedGuest.timeline.map((event, index) => (
+                          <div key={index} className="flex items-start gap-3 p-3 border rounded-lg">
+                            <div className={`p-2 rounded-full ${getSeverityColor(event.severity)}`}>
+                              {getIconComponent(event.icon)}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium">{event.title}</h4>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(event.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{event.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Guest Journey</CardTitle>
+                  <CardDescription>Select a guest from the search results or guest management to view their journey</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-center text-muted-foreground py-8">
+                    Use the global search above or click &quot;Journey&quot; button in Guest Management to view a guest&apos;s complete timeline.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
