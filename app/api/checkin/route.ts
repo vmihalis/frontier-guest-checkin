@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { validateQRToken } from '@/lib/qr-token';
-import { validateAdmitGuest, shouldTriggerDiscount, checkExistingActiveVisit } from '@/lib/validations';
-import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
-import { sendDiscountEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
+  // DEPRECATED: Single-guest API is deprecated in favor of unified multi-guest API
+  // Convert single-guest token to multi-guest format and redirect
   try {
     const { token } = await request.json();
 
@@ -16,162 +14,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate and decode QR token
+    // Validate and decode QR token to extract guest info
     const tokenValidation = validateQRToken(token);
     if (!tokenValidation.isValid || !tokenValidation.data) {
       return NextResponse.json(
-        { error: tokenValidation.error || 'Invalid QR token' },
+        { error: tokenValidation.error || 'Invalid QR token format. Please use multi-guest API at /api/checkin/multi-guest' },
         { status: 400 }
       );
     }
 
-    const { inviteId, guestEmail, hostId } = tokenValidation.data;
+    const { guestEmail } = tokenValidation.data;
 
-    // Find the invitation
-    const invitation = await prisma.invitation.findUnique({
-      where: { id: inviteId },
-      include: { guest: true },
+    // Find guest name from database
+    const { prisma } = await import('@/lib/prisma');
+    const guest = await prisma.guest.findUnique({
+      where: { email: guestEmail },
+      select: { name: true, email: true }
     });
 
-    if (!invitation) {
+    if (!guest) {
       return NextResponse.json(
-        { error: 'Invitation not found' },
+        { error: 'Guest not found' },
         { status: 404 }
       );
     }
 
-    if (invitation.guest.email !== guestEmail) {
-      return NextResponse.json(
-        { error: 'Token does not match guest email' },
-        { status: 400 }
-      );
-    }
-
-    // Check if invitation is activated
-    if (invitation.status !== 'ACTIVATED') {
-      const statusMessages = {
-        'PENDING': 'QR code has not been activated.',
-        'CHECKED_IN': 'QR code has already been used for check-in.',
-        'EXPIRED': 'QR code has expired. Please regenerate.'
-      };
-      
-      return NextResponse.json(
-        { error: statusMessages[invitation.status as keyof typeof statusMessages] || 'Invalid invitation status.' },
-        { status: 400 }
-      );
-    }
-
-    // Check for existing active visit (re-entry)
-    const { hasActiveVisit, activeVisit } = await checkExistingActiveVisit(
-      hostId,
-      guestEmail
-    );
-
-    if (hasActiveVisit) {
-      return NextResponse.json({
-        success: true,
-        reEntry: true,
-        visit: activeVisit,
-        guest: invitation.guest,
-        message: 'Welcome back! Your existing visit is still active.',
-      });
-    }
-
-    // Validate business rules for new visit
-    const validation = await validateAdmitGuest(
-      hostId,
-      invitation.guestId,
-      guestEmail,
-      invitation.qrExpiresAt
-    );
-
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
-    }
-
-    const now = nowInLA();
-    const expiresAt = calculateVisitExpiration(now);
-
-    // Create new visit
-    const visit = await prisma.visit.create({
-      data: {
-        guestId: invitation.guestId,
-        hostId,
-        invitationId: inviteId,
-        checkedInAt: now,
-        expiresAt,
-      },
-      include: {
-        guest: true,
-        host: true,
-      },
-    });
-
-    // Update invitation status
-    await prisma.invitation.update({
-      where: { id: inviteId },
-      data: { status: 'CHECKED_IN' },
-    });
-
-    // Check if discount should be triggered and send email
-    const shouldDiscount = await shouldTriggerDiscount(invitation.guestId);
-    let discountEmailSent = false;
-    
-    if (shouldDiscount) {
-      // Create discount record first (for idempotency)
-      const discount = await prisma.discount.create({
-        data: {
-          guestId: invitation.guestId,
-          emailSent: false,
-        },
-      });
-
-      // Send discount email (non-blocking - don't fail check-in if email fails)
-      try {
-        const emailResult = await sendDiscountEmail(
-          invitation.guest.email,
-          invitation.guest.name
-        );
-        
-        if (emailResult.success) {
-          // Update discount record to mark email as sent
-          await prisma.discount.update({
-            where: { id: discount.id },
-            data: {
-              emailSent: true,
-              sentAt: nowInLA(),
-            },
-          });
-          discountEmailSent = true;
-          console.log(`Discount email sent successfully: ${emailResult.messageId}`);
-        } else {
-          console.error('Failed to send discount email:', emailResult.error);
-          // TODO: Queue for retry in background job system
-        }
-      } catch {
-        console.error('Email service error during discount trigger:');
-        // TODO: Queue for retry in background job system
+    // Convert to multi-guest format and forward to multi-guest API
+    const multiGuestPayload = {
+      guest: {
+        e: guest.email,
+        n: guest.name
       }
-    }
+    };
 
-    return NextResponse.json({
-      success: true,
-      visit,
-      guest: invitation.guest,
-      host: visit.host,
-      discountTriggered: shouldDiscount,
-      discountEmailSent,
-      message: shouldDiscount 
-        ? `Check-in successful! Discount earned (3rd lifetime visit).${discountEmailSent ? ' Check your email!' : ''}` 
-        : 'Check-in successful! Welcome to Frontier Tower.',
+    // Forward to multi-guest API
+    const multiGuestResponse = await fetch(`${request.nextUrl.origin}/api/checkin/multi-guest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': request.headers.get('Authorization') || '',
+        'Cookie': request.headers.get('Cookie') || ''
+      },
+      body: JSON.stringify(multiGuestPayload)
     });
-  } catch {
-    console.error('Error processing check-in:');
+
+    const result = await multiGuestResponse.json();
+    return NextResponse.json(result, { status: multiGuestResponse.status });
+
+  } catch (error) {
+    console.error('Error in deprecated single-guest API:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Single-guest API is deprecated. Please use multi-guest API at /api/checkin/multi-guest' },
       { status: 500 }
     );
   }

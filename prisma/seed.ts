@@ -1,24 +1,6 @@
 import { PrismaClient, UserRole, InvitationStatus, ContactMethod, Prisma } from '@prisma/client'
 import { faker } from '@faker-js/faker'
 
-// QR Token generation (copied from qr-token.ts to avoid import issues)
-function generateQRToken(inviteId: string, guestEmail: string, hostId: string): string {
-  const now = new Date();
-  const expires = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 hours from now
-  
-  const tokenData = {
-    inviteId,
-    guestEmail,
-    hostId,
-    iat: Math.floor(now.getTime() / 1000),
-    exp: Math.floor(expires.getTime() / 1000),
-  };
-  
-  // Mock token - in production, use JWT signing with a secret
-  const mockToken = btoa(JSON.stringify(tokenData));
-  return mockToken;
-}
-
 const prisma = new PrismaClient()
 
 // Edge case scenarios for comprehensive testing
@@ -549,22 +531,18 @@ async function seed() {
   })
   console.log(`Blocked blacklist invitation attempts: ${blacklistAttempts}`)
   
-  // 🔥 BATTLE TEST INVITATIONS - Using multi-checkin-real.json fixture data
-  console.log('\n🎯 Creating battle test invitations from fixture data...')
-  
-  const battleHost = hosts[0] // Use first host for all battle tests
-  const qrExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours from now
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday for expired QR
+  // 🔥 BATTLE TEST QR CODES - Multi-guest format for unified scanning
+  console.log('\n🎯 Creating battle test QR codes (multi-guest format)...')
   
   // Battle test guests from multi-checkin-real.json fixture
   const battleTestGuests = [
     { email: 'Shaun79@gmail.com', name: 'Ms. Vicki Bruen', shouldSucceed: true },
     { email: 'Javonte.Feil-Koelpin@hotmail.com', name: 'Jorge Aufderhar', shouldSucceed: true },
-    { email: 'Alexanne19@suspicious', name: 'Alexis Thiel', shouldSucceed: false } // This one will be expired
+    { email: 'Alexanne19@suspicious', name: 'Alexis Thiel', shouldSucceed: false } // This one will be blacklisted
   ]
   
   // Create or find these specific guests
-  const battleInvitations = []
+  const battleQRs = []
   for (const guestData of battleTestGuests) {
     // Create the guest if they don't exist
     const guest = await prisma.guest.upsert({
@@ -576,51 +554,37 @@ async function seed() {
         phone: faker.phone.number({ style: 'international' }),
         country: faker.location.countryCode(),
         termsAcceptedAt: new Date(),
-        blacklistedAt: null,
-      }
-    })
-    
-    // Create invitation first without QR token
-    const invitation = await prisma.invitation.create({
-      data: {
-        guestId: guest.id,
-        hostId: battleHost.id,
-        status: guestData.shouldSucceed ? InvitationStatus.ACTIVATED : InvitationStatus.EXPIRED,
-        inviteDate: new Date(),
-        qrToken: null, // Will be set after creation
-        qrIssuedAt: new Date(),
-        qrExpiresAt: guestData.shouldSucceed ? qrExpiry : yesterday
+        blacklistedAt: guestData.shouldSucceed ? null : new Date(), // Blacklist the failing one
       }
     })
 
-    // Generate proper QR token now that we have the invitation ID
-    const properQRToken = guestData.shouldSucceed 
-      ? generateQRToken(invitation.id, guest.email, battleHost.id)
-      : null; // Expired invitations don't need valid tokens
-
-    // Update invitation with proper QR token
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: { 
-        qrToken: properQRToken || `EXPIRED-${Date.now()}-${guestData.email.split('@')[0]}`
-      }
+    // Generate multi-guest QR payload (single guest in the array)
+    const qrPayload = JSON.stringify({
+      guests: [{
+        e: guest.email,
+        n: guest.name
+      }]
     })
     
-    battleInvitations.push({ guest, invitation, shouldSucceed: guestData.shouldSucceed })
+    battleQRs.push({ 
+      guest, 
+      qrPayload, 
+      shouldSucceed: guestData.shouldSucceed,
+      failReason: guestData.shouldSucceed ? null : 'BLACKLISTED'
+    })
   }
 
-  console.log('\n🎯 BATTLE TEST DATA CREATED (fixture-based):')
-  console.log('===========================================')
-  battleInvitations.forEach(({ guest, invitation, shouldSucceed }) => {
-    const status = shouldSucceed ? '✅ SUCCESS (VALID QR)' : '❌ FAIL (EXPIRED QR)'
+  console.log('\n🎯 BATTLE TEST QR CODES CREATED (multi-guest format):')
+  console.log('====================================================')
+  battleQRs.forEach(({ guest, qrPayload, shouldSucceed, failReason }) => {
+    const status = shouldSucceed ? '✅ SUCCESS' : `❌ FAIL (${failReason})`
     console.log(`${status}: ${guest.email} - ${guest.name}`)
-    console.log(`   QR Token: ${invitation.qrToken}`)
-    console.log(`   Expires: ${invitation.qrExpiresAt?.toLocaleString()}`)
+    console.log(`   QR Payload: ${qrPayload}`)
   })
-  console.log('\n🔥 Ready for battle testing!')
+  console.log('\n🔥 Ready for unified battle testing!')
   console.log('- Enable demo mode: DEMO_MODE=true npm run dev')
-  console.log('- Navigate to /checkin')
-  console.log('- First two QRs should succeed, third should fail with expired error')
+  console.log('- Navigate to /checkin (uses multi-guest API)')
+  console.log('- First two QRs should succeed, third should fail with blacklist error')
 
   console.log('\n✨ Seeding complete! Database ready for interplanetary frontier operations.')
 }

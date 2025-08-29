@@ -103,13 +103,12 @@ export async function validateGuestAcceptance(guestId: string): Promise<Validati
 
 /**
  * Check if QR token is valid and not expired
+ * For multi-guest QRs, qrExpiresAt can be null (no expiration check needed)
  */
 export function validateQRToken(qrExpiresAt: Date | null): ValidationResult {
+  // Multi-guest QRs don't have expiration dates - allow null
   if (!qrExpiresAt) {
-    return {
-      isValid: false,
-      error: "QR code has not been activated.",
-    };
+    return { isValid: true };
   }
 
   const now = nowInLA();
