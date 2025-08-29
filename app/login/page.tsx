@@ -63,7 +63,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-semibold">BerlinHouse Members</CardTitle>
+          <CardTitle className="text-2xl font-semibold">Frontier Tower</CardTitle>
           <CardDescription className="text-muted-foreground">Sign in to invite guests</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
