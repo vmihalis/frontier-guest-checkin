@@ -22,14 +22,32 @@ npm run db:push      # Push schema changes to database
 npm run db:migrate   # Create and run migrations
 npm run db:reset     # Reset database and run all migrations
 npm run db:studio    # Open Prisma Studio GUI
+npm run db:seed      # Populate database with test data
+```
+
+### Testing & Development
+```bash
+# Development Testing
+npm run test:multi      # Multi-guest checkin scenarios
+npm run test:scenarios  # Business logic scenarios  
+npm run test:generate   # Generate test data
+npm run test:all        # Run all development tests
+
+# Integration Testing (requires staging DB)
+npm run test:staging        # Basic staging environment tests
+npm run test:staging:verify # Database connectivity verification
+npm run test:staging:qr     # QR code workflow testing
+npm run test:staging:full   # Complete integration test suite
 ```
 
 ## Tech Stack
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript
 - **Styling**: Tailwind CSS 4, shadcn/ui components
 - **Database**: Prisma ORM with PostgreSQL
+- **Email**: Resend API with React Email templates
 - **QR Scanning**: qr-scanner library with iPad Safari optimization
 - **Authentication**: Supabase Auth (integration in progress)
+- **Testing**: Multi-environment test suite with Faker.js
 
 ## Database Architecture
 
@@ -60,26 +78,42 @@ npm run db:studio    # Open Prisma Studio GUI
 - `/` - Landing page (placeholder)
 - `/login` - Host authentication with form validation
 - `/checkin` - QR code scanner with camera selection and iPad optimization
+- `/invites` - Host invitation management interface
+
+### API Routes
+- `POST /api/invitations` - Create guest invitations with email notifications
+- `POST /api/invitations/[id]/accept` - Guest acceptance flow
+- `POST /api/invitations/[id]/activate` - QR code activation
+- `POST /api/invitations/[id]/admit` - Check-in processing
+- `GET /api/guests/history` - Guest visit history and analytics
+- `POST /api/checkin` - QR code check-in with email notifications
 
 ### Key Directories
-- `lib/` - Database (Prisma) client configuration
-- `src/components/ui/` - shadcn/ui components (Button, Card, Input, Label)
-- `prisma/` - Database schema and migrations
-- `api/` - Empty directory for future API routes
+- `src/lib/` - Core utilities (Prisma, email, QR, validation, timezone)
+- `src/lib/email-templates/` - React Email components (InvitationEmail, DiscountEmail)
+- `src/components/ui/` - shadcn/ui components (Button, Card, Input, Dialog, Table, etc.)
+- `prisma/` - Database schema, migrations, and seed data
+- `test/` - Development test suite with scenarios and utilities
+- `test/integration/` - Staging environment integration tests
 
 ## Current Implementation Status
 
-### ✅ Completed Foundation
-- Prisma schema with proper relationships and indexing
-- QR scanning with multi-camera support and iPad Safari compatibility
-- Login form with validation and error handling
-- UI component library setup with shadcn/ui
+### ✅ Production-Ready Features
+- **Database Foundation**: Prisma schema with relationships and indexing
+- **QR Code System**: Multi-camera scanning with iPad Safari optimization  
+- **Host Invitation App**: Complete invitation management at `/invites`
+- **Email Integration**: Resend API with React Email templates
+- **API Layer**: Full REST endpoints for invitations and check-in workflow
+- **Testing Framework**: Multi-environment test suite with staging integration
+- **UI Components**: Comprehensive shadcn/ui component library
+- **Authentication Forms**: Login with validation and error handling
+- **Guest Management**: History tracking, capacity limits, discount system
 
 ### 🚧 Planned Implementation
-- **Locations table**: Multiple tower buildings support
-- **Host App**: Invite guests, generate QR codes, view capacity
+- **Locations table**: Multiple tower buildings support  
 - **Kiosk Interface**: Manual lookup, override mode, badge printing
 - **Admin Dashboard**: Analytics, policy settings, blacklist management
+- **Production Auth**: Complete Supabase integration replacing mock auth
 
 ### Core Queries Pattern
 All operations map to simple SQL patterns:
@@ -113,10 +147,19 @@ GROUP BY l.id, l.name;
 - Handles camera permissions gracefully with retry mechanism
 - Optimized for iPad Safari (primary deployment target)
 
+### Email System
+- **Resend API Integration**: Production-ready email service with React Email templates
+- **Template Components**: InvitationEmail and DiscountEmail with responsive design
+- **Non-blocking Architecture**: Emails sent asynchronously with comprehensive error handling
+- **Error Recovery**: Graceful fallbacks when email service unavailable
+- **Template Features**: QR code display, countdown timers, branded styling
+
 ### Environment Setup
 Required environment variables:
 - `DATABASE_URL` - PostgreSQL database connection
 - `DIRECT_URL` - Direct database connection for migrations
+- `RESEND_API_KEY` - Resend API key for email notifications
+- `EMAIL_FROM` - From address for system emails (e.g., noreply@yourdomain.com)
 
 ## Key Design Decisions
 - **Prisma-first approach**: No Next.js built-in DB tools, pure Prisma workflow
@@ -127,8 +170,10 @@ Required environment variables:
 - **Role-based access**: Security through database-level permissions
 
 ## Immediate Next Steps
-1. Implement locations table for multi-tower support
-2. Build host invitation flow with QR code generation
-3. Complete check-in logic with comprehensive limit enforcement
-4. Add admin dashboard for policy and blacklist management
-5. Create comprehensive mock data covering all edge cases
+1. **Locations Table Implementation**: Add multi-tower building support to database schema
+2. **Production Authentication**: Complete Supabase integration to replace mock auth system
+3. **Kiosk Interface**: Build manual lookup and override functionality for security staff
+4. **Admin Dashboard**: Create analytics, policy management, and blacklist administration
+5. **Mobile Optimization**: Enhance responsive design for various device sizes
+6. **Performance Optimization**: Implement caching and database query optimization
+7. **Monitoring & Logging**: Add comprehensive error tracking and performance monitoring
