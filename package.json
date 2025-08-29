@@ -16,7 +16,11 @@
     "test:multi": "tsx test/test-runner.ts",
     "test:scenarios": "tsx test/test-runner.ts scenarios",
     "test:generate": "tsx test/test-runner.ts generate",
-    "test:all": "tsx test/test-runner.ts all"
+    "test:all": "tsx test/test-runner.ts all",
+    "test:staging": "tsx test/integration/integration-runner.ts",
+    "test:staging:verify": "tsx test/integration/integration-runner.ts verify",
+    "test:staging:qr": "tsx test/integration/integration-runner.ts qr-flow",
+    "test:staging:full": "tsx test/integration/integration-runner.ts full"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
