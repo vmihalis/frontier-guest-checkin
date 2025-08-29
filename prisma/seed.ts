@@ -574,6 +574,23 @@ async function seed() {
     })
   }
 
+  // Create acceptance records for battle test guests (required for validation)
+  console.log('\n🎯 Creating acceptance records for battle test guests...')
+  for (const battleQR of battleQRs) {
+    // Only create acceptance records for non-blacklisted guests
+    if (battleQR.shouldSucceed) {
+      await prisma.acceptance.create({
+        data: {
+          guestId: battleQR.guest.id,
+          termsVersion: '1.0.0',
+          visitorAgreementVersion: '1.0.0',
+          acceptedAt: new Date()
+        }
+      });
+      console.log(`✅ Created acceptance record for ${battleQR.guest.email}`);
+    }
+  }
+
   console.log('\n🎯 BATTLE TEST QR CODES CREATED (multi-guest format):')
   console.log('====================================================')
   battleQRs.forEach(({ guest, qrPayload, shouldSucceed, failReason }) => {
