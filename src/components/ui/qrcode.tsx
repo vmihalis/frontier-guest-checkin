@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import Image from 'next/image';
 
 interface QRCodeComponentProps {
   value: string;
@@ -82,11 +83,13 @@ export function QRCodeComponent({
 
   return (
     <div className={`flex items-center justify-center ${className}`}>
-      <img
+      <Image
         src={qrDataUrl}
         alt="QR Code"
+        width={size}
+        height={size}
         className="max-w-full h-auto rounded-lg"
-        style={{ width: size, height: size }}
+        unoptimized={true}
       />
     </div>
   );

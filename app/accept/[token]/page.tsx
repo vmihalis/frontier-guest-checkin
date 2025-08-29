@@ -92,7 +92,7 @@ export default function AcceptTermsPage() {
       } else {
         setError(data.error || 'Failed to process acceptance');
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setSubmitting(false);

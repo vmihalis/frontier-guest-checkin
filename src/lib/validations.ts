@@ -15,10 +15,27 @@ export interface ValidationResult {
 }
 
 /**
- * Check if host has reached concurrent active guest limit (3)
+ * Get current policies from database
+ */
+async function getPolicies() {
+  const policies = await prisma.policy.findFirst({
+    where: { id: 1 }
+  });
+  
+  // Return defaults if no policies exist
+  return policies || {
+    guestMonthlyLimit: 3,
+    hostConcurrentLimit: 3
+  };
+}
+
+/**
+ * Check if host has reached concurrent active guest limit (configurable)
  */
 export async function validateHostConcurrentLimit(hostId: string): Promise<ValidationResult> {
   const now = nowInLA();
+  const policies = await getPolicies();
+  const limit = policies.hostConcurrentLimit;
   
   const activeVisitsCount = await prisma.visit.count({
     where: {
@@ -28,12 +45,12 @@ export async function validateHostConcurrentLimit(hostId: string): Promise<Valid
     },
   });
 
-  if (activeVisitsCount >= 3) {
+  if (activeVisitsCount >= limit) {
     return {
       isValid: false,
-      error: "Host concurrent limit reached (3).",
+      error: `Host concurrent limit reached (${limit}).`,
       currentCount: activeVisitsCount,
-      maxCount: 3,
+      maxCount: limit,
     };
   }
 
@@ -41,10 +58,12 @@ export async function validateHostConcurrentLimit(hostId: string): Promise<Valid
 }
 
 /**
- * Check if guest has reached 30-day rolling limit (3 visits)
+ * Check if guest has reached 30-day rolling limit (configurable)
  */
 export async function validateGuestRollingLimit(guestEmail: string): Promise<ValidationResult> {
   const thirtyDaysAgo = thirtyDaysAgoInLA();
+  const policies = await getPolicies();
+  const limit = policies.guestMonthlyLimit;
   
   const recentVisits = await prisma.visit.findMany({
     where: {
@@ -55,16 +74,16 @@ export async function validateGuestRollingLimit(guestEmail: string): Promise<Val
       },
     },
     orderBy: { checkedInAt: 'desc' },
-    take: 3,
+    take: limit,
   });
 
-  if (recentVisits.length >= 3) {
+  if (recentVisits.length >= limit) {
     const oldestRecentVisit = recentVisits[recentVisits.length - 1];
     const nextEligibleDate = calculateNextEligibleDate(oldestRecentVisit.checkedInAt!);
     
     return {
       isValid: false,
-      error: `Guest reached 3 visits in last 30 days. Next eligible on ${nextEligibleDate.toLocaleDateString()}.`,
+      error: `Guest reached ${limit} visits in last 30 days. Next eligible on ${nextEligibleDate.toLocaleDateString()}.`,
       nextEligibleDate,
     };
   }

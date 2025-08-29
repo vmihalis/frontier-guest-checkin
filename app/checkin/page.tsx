@@ -14,7 +14,7 @@ interface CameraDevice {
 }
 
 export default function CheckInPage() {
-  const { user } = useAuth();
+  useAuth();
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [parsedQRData, setParsedQRData] = useState<ParsedQRData | null>(null);
   const [selectedGuest, setSelectedGuest] = useState<MultiGuestData | null>(null);
