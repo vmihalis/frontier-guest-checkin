@@ -51,6 +51,6 @@ async function runTests() {
   process.exit(0);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   runTests();
 }

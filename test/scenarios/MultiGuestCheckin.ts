@@ -110,11 +110,12 @@ export class MultiGuestCheckinScenario {
           status: 'CHECKED_IN',
           visitId: visit.id,
         })
-      } catch {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
         results.push({
           email: guestData.e,
           status: 'ERROR',
-          error: error.message,
+          error: errorMessage,
         })
       }
     }

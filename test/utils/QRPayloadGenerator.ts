@@ -28,11 +28,11 @@ export class QRPayloadGenerator {
 
   static createSingleGuestPayload(guest: Record<string, unknown>, options: { includeHost?: boolean; includeToken?: boolean } = {}): string {
     const payload: GuestPayload = {
-      e: guest.email,
-      n: guest.name,
+      e: guest.email as string,
+      n: guest.name as string,
     }
 
-    if (guest.phone) payload.p = guest.phone
+    if (guest.phone) payload.p = guest.phone as string
     if (options.includeHost) payload.h = TestDataFactory.generateId()
     if (options.includeToken) payload.t = crypto.randomBytes(16).toString('hex')
 
@@ -47,9 +47,9 @@ export class QRPayloadGenerator {
   } = {}): string {
     const payload: MultiGuestPayload = {
       guests: guests.map(g => ({
-        e: g.email,
-        n: g.name,
-        ...(g.phone && { p: g.phone }),
+        e: g.email as string,
+        n: g.name as string,
+        ...(g.phone ? { p: g.phone as string } : {}),
       })),
     }
 

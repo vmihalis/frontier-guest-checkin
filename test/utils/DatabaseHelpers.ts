@@ -213,7 +213,7 @@ export class DatabaseHelpers {
       }
       acc[key].count++
       return acc
-    }, {} as Record<string, { guestName: string; hostName: string; count: number }>)
+    }, {} as Record<string, { hostId: string; hostName: string; count: number }>)
 
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
     const longStayers = activeVisits.filter(

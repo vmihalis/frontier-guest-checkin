@@ -18,10 +18,10 @@ export class TestDataFactory {
       id: this.generateId(),
       email: faker.internet.email(),
       name: faker.person.fullName(),
-      phone: faker.phone.number('+1##########'),
+      phone: faker.phone.number({ style: 'national' }),
       country: 'US',
       contactMethod: faker.helpers.arrayElement([ContactMethod.PHONE, ContactMethod.TELEGRAM, null]),
-      contactValue: null,
+      contactValue: null as string | null,
       termsAcceptedAt: faker.date.recent({ days: 30 }),
       blacklistedAt: null,
       createdAt: new Date(),
@@ -30,7 +30,7 @@ export class TestDataFactory {
     if (base.contactMethod === ContactMethod.TELEGRAM) {
       base.contactValue = `@${faker.internet.username()}`
     } else if (base.contactMethod === ContactMethod.PHONE) {
-      base.contactValue = base.phone
+      base.contactValue = base.phone as string
     }
 
     return { ...base, ...overrides }
@@ -84,10 +84,10 @@ export class TestDataFactory {
 
   static createVisit(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
     const now = new Date()
-    const checkedIn = overrides.checkedInAt || now
+    const checkedIn = overrides.checkedInAt as Date || now
     const stayHours = faker.number.float({ min: 0.5, max: 8 })
     
-    return {
+    const base = {
       id: this.generateId(),
       guestId,
       hostId,
@@ -95,14 +95,15 @@ export class TestDataFactory {
       invitedAt: now,
       checkedInAt: checkedIn,
       checkedOutAt: overrides.checkedOutAt !== undefined 
-        ? overrides.checkedOutAt 
-        : new Date(checkedIn.getTime() + stayHours * 60 * 60 * 1000),
+        ? overrides.checkedOutAt as Date | null
+        : new Date((checkedIn as Date).getTime() + stayHours * 60 * 60 * 1000),
       expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
       overrideReason: null,
       overrideBy: null,
       createdAt: now,
-      ...overrides,
     }
+    
+    return { ...base, ...overrides }
   }
 
   static createPolicy(overrides: Partial<Record<string, unknown>> = {}) {
@@ -168,7 +169,7 @@ export class TestDataFactory {
 
     const count = limits[type]
     for (let i = 0; i < count; i++) {
-      visits.push(this.createVisit(guest.id, host.id, {
+      visits.push(this.createVisit(guest.id as string, host.id as string, {
         checkedInAt: faker.date.recent({ days: 20 }),
         checkedOutAt: faker.date.recent({ days: 19 }),
       }))

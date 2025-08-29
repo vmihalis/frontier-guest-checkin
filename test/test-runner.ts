@@ -8,6 +8,10 @@ interface TestScenarioConfig {
   generate?: boolean;
   count?: number;
   guests?: Record<string, unknown>[];
+  template?: {
+    e: string;
+    n: string;
+  };
 }
 
 interface TestFixtures {
@@ -30,11 +34,16 @@ class TestRunner {
 
     let guests = scenario.guests
 
-    if (scenario.generate) {
+    if (scenario.generate && scenario.template && scenario.count) {
       guests = Array.from({ length: scenario.count }, (_, i) => ({
-        e: scenario.template.e.replace('{index}', (i + 1).toString()),
-        n: scenario.template.n.replace('{index}', (i + 1).toString()),
+        e: scenario.template!.e.replace('{index}', (i + 1).toString()),
+        n: scenario.template!.n.replace('{index}', (i + 1).toString()),
       }))
+    }
+
+    if (!guests) {
+      console.error(`❌ No guests found for scenario '${fixtureName}'`)
+      return
     }
 
     const qrPayload = JSON.stringify({ emails: guests })
@@ -47,8 +56,11 @@ class TestRunner {
     const results = []
     
     for (const guest of guests) {
+      const guestEmail = (guest as { e: string }).e
+      const guestName = (guest as { n: string }).n
+      
       const dbGuest = await prisma.guest.findUnique({
-        where: { email: guest.e },
+        where: { email: guestEmail },
         include: {
           visits: {
             where: {
@@ -62,9 +74,9 @@ class TestRunner {
       })
 
       if (!dbGuest) {
-        console.log(`⚠️  Guest not found: ${guest.e} - would need to be created`)
+        console.log(`⚠️  Guest not found: ${guestEmail} - would need to be created`)
         results.push({
-          email: guest.e,
+          email: guestEmail,
           status: 'NOT_FOUND',
           action: 'CREATE_REQUIRED'
         })
@@ -91,8 +103,8 @@ class TestRunner {
       }
 
       results.push({
-        email: guest.e,
-        name: guest.n,
+        email: guestEmail,
+        name: guestName,
         status,
         issues,
         recentVisits,
@@ -174,7 +186,7 @@ class TestRunner {
     console.log('=' .repeat(40))
     
     Object.entries(fixtures.scenarios).forEach(([name, config]: [string, TestScenarioConfig]) => {
-      const guestCount = config.generate ? config.count : config.guests.length
+      const guestCount = config.generate ? config.count : config.guests?.length || 0
       console.log(`• ${name}: ${guestCount} guests`)
     })
     
@@ -230,7 +242,7 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main()
 }
 

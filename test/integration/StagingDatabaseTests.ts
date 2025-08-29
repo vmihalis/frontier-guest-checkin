@@ -378,15 +378,15 @@ export class StagingDatabaseTests {
       
       console.log('\n🎯 STAGING TEST SUITE COMPLETE')
       console.log('=' .repeat(60))
-      console.log(`Multi-guest test: ${multiGuestResult.success ? '✅ PASSED' : '❌ FAILED'}`)
-      console.log(`Invitation test: ${invitationResult.success ? '✅ PASSED' : '❌ FAILED'}`)
+      console.log(`Multi-guest test: ${multiGuestResult && typeof multiGuestResult === 'object' && multiGuestResult.success ? '✅ PASSED' : '❌ FAILED'}`)
+      console.log(`Invitation test: ${invitationResult && typeof invitationResult === 'object' && invitationResult.success ? '✅ PASSED' : '❌ FAILED'}`)
       
-      const overallSuccess = multiGuestResult.success && invitationResult.success
+      const overallSuccess = (multiGuestResult && typeof multiGuestResult === 'object' && multiGuestResult.success) && (invitationResult && typeof invitationResult === 'object' && invitationResult.success)
       console.log(`\n🏆 OVERALL RESULT: ${overallSuccess ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`)
       
       return overallSuccess
-    } catch {
-      console.error('❌ STAGING TESTS FAILED:', error.message)
+    } catch (error: unknown) {
+      console.error('❌ STAGING TESTS FAILED:', error instanceof Error ? error.message : String(error))
       return false
     } finally {
       await this.cleanup()

@@ -235,7 +235,7 @@ export class InvitationQRFlow {
     }
 
     // Get or create valid guests
-    const guests: any[] = []
+    const guests: Array<{ id: string; email: string; name: string }> = []
     const existingGuests = await prisma.guest.findMany({
       where: {
         blacklistedAt: null,
