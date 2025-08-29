@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-BerlinHouse Members visitor management system - a Next.js application for managing guest check-ins across multiple tower locations with QR code scanning, role-based access, and comprehensive visit tracking.
+Frontier Tower visitor management system - a Next.js application for managing guest check-ins across multiple tower locations with QR code scanning, role-based access, and comprehensive visit tracking.
 
 ## Development Commands
 
