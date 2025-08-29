@@ -531,66 +531,65 @@ async function seed() {
   })
   console.log(`Blocked blacklist invitation attempts: ${blacklistAttempts}`)
   
-  // 🔥 BATTLE TEST INVITATIONS - Ready-to-scan QR codes for testing
-  console.log('\n🎯 Creating battle test invitations...')
+  // 🔥 BATTLE TEST INVITATIONS - Using multi-checkin-real.json fixture data
+  console.log('\n🎯 Creating battle test invitations from fixture data...')
   
-  const battleHosts = hosts.slice(0, 3) // Use first 3 hosts
+  const battleHost = hosts[0] // Use first host for all battle tests
   const qrExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours from now
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000) // Yesterday for expired QR
   
-  // SUCCESS CASE 1: Clean guest with active QR
-  const successGuest1 = activeGuests[0]
-  const battleInv1 = await prisma.invitation.create({
-    data: {
-      guestId: successGuest1.id,
-      hostId: battleHosts[0].id,
-      status: InvitationStatus.ACTIVATED,
-      inviteDate: new Date(),
-      qrToken: `BATTLE-SUCCESS-1-${Date.now()}`,
-      qrIssuedAt: new Date(),
-      qrExpiresAt: qrExpiry
-    }
-  })
+  // Battle test guests from multi-checkin-real.json fixture
+  const battleTestGuests = [
+    { email: 'Shaun79@gmail.com', name: 'Ms. Vicki Bruen', shouldSucceed: true },
+    { email: 'Javonte.Feil-Koelpin@hotmail.com', name: 'Jorge Aufderhar', shouldSucceed: true },
+    { email: 'Alexanne19@suspicious', name: 'Alexis Thiel', shouldSucceed: false } // This one will be expired
+  ]
   
-  // SUCCESS CASE 2: Clean guest with active QR
-  const successGuest2 = activeGuests[1]
-  const battleInv2 = await prisma.invitation.create({
-    data: {
-      guestId: successGuest2.id,
-      hostId: battleHosts[1].id,
-      status: InvitationStatus.ACTIVATED,
-      inviteDate: new Date(),
-      qrToken: `BATTLE-SUCCESS-2-${Date.now()}`,
-      qrIssuedAt: new Date(),
-      qrExpiresAt: qrExpiry
-    }
-  })
+  // Create or find these specific guests
+  const battleInvitations = []
+  for (const guestData of battleTestGuests) {
+    // Create the guest if they don't exist
+    const guest = await prisma.guest.upsert({
+      where: { email: guestData.email },
+      update: {},
+      create: {
+        email: guestData.email,
+        name: guestData.name,
+        phone: faker.phone.number({ style: 'international' }),
+        country: faker.location.countryCode(),
+        termsAcceptedAt: new Date(),
+        blacklistedAt: null,
+      }
+    })
+    
+    // Create invitation - valid for first two, expired for third
+    const invitation = await prisma.invitation.create({
+      data: {
+        guestId: guest.id,
+        hostId: battleHost.id,
+        status: guestData.shouldSucceed ? InvitationStatus.ACTIVATED : InvitationStatus.EXPIRED,
+        inviteDate: new Date(),
+        qrToken: `BATTLE-${guestData.shouldSucceed ? 'SUCCESS' : 'EXPIRED'}-${Date.now()}-${guestData.email.split('@')[0]}`,
+        qrIssuedAt: new Date(),
+        qrExpiresAt: guestData.shouldSucceed ? qrExpiry : yesterday
+      }
+    })
+    
+    battleInvitations.push({ guest, invitation, shouldSucceed: guestData.shouldSucceed })
+  }
 
-  // FAILURE CASE: Blacklisted guest with QR (should fail at check-in)
-  const blacklistedGuest = blacklistedGuests[0]
-  const battleInv3 = await prisma.invitation.create({
-    data: {
-      guestId: blacklistedGuest.id,
-      hostId: battleHosts[2].id,
-      status: InvitationStatus.ACTIVATED,
-      inviteDate: new Date(),
-      qrToken: `BATTLE-FAIL-BLACKLISTED-${Date.now()}`,
-      qrIssuedAt: new Date(),
-      qrExpiresAt: qrExpiry
-    }
+  console.log('\n🎯 BATTLE TEST DATA CREATED (fixture-based):')
+  console.log('===========================================')
+  battleInvitations.forEach(({ guest, invitation, shouldSucceed }) => {
+    const status = shouldSucceed ? '✅ SUCCESS (VALID QR)' : '❌ FAIL (EXPIRED QR)'
+    console.log(`${status}: ${guest.email} - ${guest.name}`)
+    console.log(`   QR Token: ${invitation.qrToken}`)
+    console.log(`   Expires: ${invitation.qrExpiresAt?.toLocaleString()}`)
   })
-
-  console.log('\n🎯 BATTLE TEST DATA CREATED:')
-  console.log('============================')
-  console.log(`✅ SUCCESS 1: ${successGuest1.email} - ${successGuest1.name}`)
-  console.log(`   QR Token: ${battleInv1.qrToken}`)
-  console.log(`✅ SUCCESS 2: ${successGuest2.email} - ${successGuest2.name}`)
-  console.log(`   QR Token: ${battleInv2.qrToken}`)
-  console.log(`❌ FAIL (BLACKLISTED): ${blacklistedGuest.email} - ${blacklistedGuest.name}`)
-  console.log(`   QR Token: ${battleInv3.qrToken}`)
   console.log('\n🔥 Ready for battle testing!')
   console.log('- Enable demo mode: DEMO_MODE=true npm run dev')
   console.log('- Navigate to /checkin')
-  console.log('- First two QRs should succeed, third should fail with blacklist error')
+  console.log('- First two QRs should succeed, third should fail with expired error')
 
   console.log('\n✨ Seeding complete! Database ready for interplanetary frontier operations.')
 }
