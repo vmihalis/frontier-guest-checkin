@@ -47,6 +47,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if invitation is activated
+    if (invitation.status !== 'ACTIVATED') {
+      const statusMessages = {
+        'PENDING': 'QR code has not been activated.',
+        'CHECKED_IN': 'QR code has already been used for check-in.',
+        'EXPIRED': 'QR code has expired. Please regenerate.'
+      };
+      
+      return NextResponse.json(
+        { error: statusMessages[invitation.status as keyof typeof statusMessages] || 'Invalid invitation status.' },
+        { status: 400 }
+      );
+    }
+
     // Check for existing active visit (re-entry)
     const { hasActiveVisit, activeVisit } = await checkExistingActiveVisit(
       hostId,
