@@ -15,7 +15,6 @@ export class TestDataFactory {
 
   static createGuest(overrides: Partial<Record<string, unknown>> = {}) {
     const base = {
-      id: this.generateId(),
       email: faker.internet.email(),
       name: faker.person.fullName(),
       phone: faker.phone.number({ style: 'national' }),
@@ -38,7 +37,6 @@ export class TestDataFactory {
 
   static createHost(overrides: Partial<Record<string, unknown>> = {}) {
     return {
-      id: this.generateId(),
       email: faker.internet.email(),
       name: faker.person.fullName(),
       role: UserRole.host,
@@ -68,7 +66,6 @@ export class TestDataFactory {
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
 
     return {
-      id: this.generateId(),
       guestId,
       hostId,
       status: InvitationStatus.PENDING,
@@ -88,7 +85,6 @@ export class TestDataFactory {
     const stayHours = faker.number.float({ min: 0.5, max: 8 })
     
     const base = {
-      id: this.generateId(),
       guestId,
       hostId,
       invitationId: null,

@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { StagingDatabaseTests } from './StagingDatabaseTests'
+import { IntegrationDatabaseTests } from './IntegrationDatabaseTests'
 import { InvitationQRFlow } from './InvitationQRFlow'
 
 async function main() {
@@ -17,49 +17,49 @@ async function main() {
     process.exit(1)
   }
 
-  if (!process.env.STAGING_DATABASE_URL) {
-    console.error('❌ STAGING_DATABASE_URL not configured')
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL not configured')
     console.error('\nSet environment variable:')
-    console.error('export STAGING_DATABASE_URL="postgresql://user:pass@staging-host:5432/db"')
-    console.error('\nOr create .env.local file with staging database URL')
+    console.error('export DATABASE_URL="postgresql://user:pass@host:5432/db"')
+    console.error('\nOr create .env.local file with database URL')
     process.exit(1)
   }
 
   try {
     switch (command) {
       case 'verify':
-        console.log('\n🔍 Verifying staging environment...')
-        await StagingDatabaseTests.verifyEnvironment()
+        console.log('\n🔍 Verifying integration environment...')
+        await IntegrationDatabaseTests.verifyEnvironment()
         break
 
       case 'multi-checkin':
-        console.log('\n🎯 Testing multi-guest check-in against staging...')
-        await StagingDatabaseTests.verifyEnvironment()
-        const result = await StagingDatabaseTests.testRealMultiGuestCheckin()
+        console.log('\n🎯 Testing multi-guest check-in...')
+        await IntegrationDatabaseTests.verifyEnvironment()
+        const result = await IntegrationDatabaseTests.testRealMultiGuestCheckin()
         process.exit(result && typeof result === 'object' && result.success ? 0 : 1)
 
       case 'invitation':
-        console.log('\n📋 Testing guest invitation flow against staging...')
-        await StagingDatabaseTests.verifyEnvironment()
-        const inviteResult = await StagingDatabaseTests.testGuestInvitationFlow()
+        console.log('\n📋 Testing guest invitation flow...')
+        await IntegrationDatabaseTests.verifyEnvironment()
+        const inviteResult = await IntegrationDatabaseTests.testGuestInvitationFlow()
         process.exit(inviteResult && typeof inviteResult === 'object' && inviteResult.success ? 0 : 1)
 
       case 'qr-flow':
-        console.log('\n📱 Testing QR invitation flow against staging...')
-        await StagingDatabaseTests.verifyEnvironment()
-        const prisma = StagingDatabaseTests.getStagingPrisma()
+        console.log('\n📱 Testing QR invitation flow...')
+        await IntegrationDatabaseTests.verifyEnvironment()
+        const prisma = IntegrationDatabaseTests.getIntegrationPrisma()
         const qrResult = await InvitationQRFlow.runCompleteInvitationFlow(prisma)
         process.exit(qrResult.success ? 0 : 1)
 
       case 'full':
       case 'all':
-        console.log('\n🚀 Running full staging test suite...')
-        const fullResult = await StagingDatabaseTests.runFullStagingTestSuite()
+        console.log('\n🚀 Running full integration test suite...')
+        const fullResult = await IntegrationDatabaseTests.runFullIntegrationTestSuite()
         process.exit(fullResult ? 0 : 1)
 
       default:
         console.log('\nAvailable commands:')
-        console.log('  verify        - Check staging database connection')
+        console.log('  verify        - Check database connection')
         console.log('  multi-checkin - Test multi-guest check-in flow')
         console.log('  invitation    - Test guest invitation flow')
         console.log('  qr-flow       - Test QR invitation flow (CORRECT approach)')
@@ -70,8 +70,8 @@ async function main() {
         console.log('  npm run test:staging qr-flow')
         console.log('  npm run test:staging full')
         console.log('')
-        console.log('⚠️  WARNING: These tests run against STAGING database!')
-        console.log('⚠️  Ensure STAGING_DATABASE_URL is set correctly.')
+        console.log('⚠️  WARNING: These tests run against the configured DATABASE_URL!')
+        console.log('⚠️  Ensure DATABASE_URL points to a non-production database.')
     }
   } catch (error: unknown) {
     console.error('❌ Integration test failed:', error instanceof Error ? error.message : String(error))
