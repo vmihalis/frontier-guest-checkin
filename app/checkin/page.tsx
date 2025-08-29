@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QrScanner from 'qr-scanner';
 import Image from 'next/image';
+import { parseQRData, MultiGuestData, type ParsedQRData } from '@/lib/qr-token';
+import { GuestSelection } from '@/components/GuestSelection';
 
 interface CameraDevice {
   deviceId: string;
@@ -11,11 +13,25 @@ interface CameraDevice {
 
 export default function CheckInPage() {
   const [scannedData, setScannedData] = useState<string | null>(null);
+  const [parsedQRData, setParsedQRData] = useState<ParsedQRData | null>(null);
+  const [selectedGuest, setSelectedGuest] = useState<MultiGuestData | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState(true);
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [checkInState, setCheckInState] = useState<'scanning' | 'guest-selection' | 'processing' | 'success' | 'error'>('scanning');
+  const [checkInResult, setCheckInResult] = useState<{
+    success: boolean;
+    guest?: { name: string; email: string };
+    message?: string;
+    reEntry?: boolean;
+    visit?: Record<string, unknown>;
+    host?: Record<string, unknown>;
+    discountTriggered?: boolean;
+    discountEmailSent?: boolean;
+  } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
 
@@ -63,11 +79,28 @@ export default function CheckInPage() {
   }, []);
 
 
-  const handleScanSuccess = (result: QrScanner.ScanResult) => {
-    setScannedData(result.data);
-    setIsScanning(false);
-    qrScannerRef.current?.stop();
-  };
+  const handleScanSuccess = useCallback((result: QrScanner.ScanResult) => {
+    try {
+      const parsed = parseQRData(result.data);
+      setScannedData(result.data);
+      setParsedQRData(parsed);
+      setIsScanning(false);
+      qrScannerRef.current?.stop();
+      
+      if (parsed.type === 'multi') {
+        setCheckInState('guest-selection');
+      } else {
+        setCheckInState('processing');
+        processCheckIn(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to parse QR data:', error);
+      setErrorMessage('Invalid QR code format');
+      setCheckInState('error');
+      setIsScanning(false);
+      qrScannerRef.current?.stop();
+    }
+  }, []);
 
   const handleScanError = (error: string | Error) => {
     // Only log actual errors, not "No QR code found" messages
@@ -79,8 +112,68 @@ export default function CheckInPage() {
 
   const resetScanner = () => {
     setScannedData(null);
+    setParsedQRData(null);
+    setSelectedGuest(null);
+    setCheckInResult(null);
+    setErrorMessage(null);
+    setCheckInState('scanning');
     setIsScanning(true);
     startScanner();
+  };
+
+  const handleGuestSelection = (guest: MultiGuestData) => {
+    setSelectedGuest(guest);
+    setCheckInState('processing');
+    // TODO: Process check-in for selected guest
+    processMultiGuestCheckIn(guest);
+  };
+
+  const processCheckIn = async (qrData: string) => {
+    try {
+      const response = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: qrData })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setCheckInResult(result);
+        setCheckInState('success');
+      } else {
+        setErrorMessage(result.error || 'Check-in failed');
+        setCheckInState('error');
+      }
+    } catch (error) {
+      console.error('Check-in error:', error);
+      setErrorMessage('Network error during check-in');
+      setCheckInState('error');
+    }
+  };
+
+  const processMultiGuestCheckIn = async (guest: MultiGuestData) => {
+    try {
+      const response = await fetch('/api/checkin/multi-guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guest })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setCheckInResult(result);
+        setCheckInState('success');
+      } else {
+        setErrorMessage(result.error || 'Multi-guest check-in failed');
+        setCheckInState('error');
+      }
+    } catch (error) {
+      console.error('Multi-guest check-in error:', error);
+      setErrorMessage('Network error during check-in');
+      setCheckInState('error');
+    }
   };
 
   const startScanner = useCallback(async () => {
@@ -109,7 +202,7 @@ export default function CheckInPage() {
       console.error('Failed to start scanner:', error);
       setHasPermission(false);
     }
-  }, [selectedCamera]);
+  }, [selectedCamera, handleScanSuccess]);
 
   const stopScanner = () => {
     if (qrScannerRef.current) {
@@ -198,7 +291,7 @@ export default function CheckInPage() {
         </div>
 
         <div className="w-full max-w-lg mx-auto">
-          {isScanning ? (
+          {checkInState === 'scanning' ? (
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
               <div className="mb-4">
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Scan QR Code</h2>
@@ -253,6 +346,75 @@ export default function CheckInPage() {
                 </button>
               </div>
             </div>
+          ) : checkInState === 'guest-selection' && parsedQRData?.multiGuest ? (
+            <GuestSelection
+              guests={parsedQRData.multiGuest.guests}
+              onSelectGuest={handleGuestSelection}
+              onCancel={resetScanner}
+            />
+          ) : checkInState === 'processing' ? (
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Processing Check-In</h2>
+                <p className="text-sm text-gray-600">
+                  {selectedGuest ? `Checking in ${selectedGuest.n}...` : 'Processing your check-in...'}
+                </p>
+              </div>
+            </div>
+          ) : checkInState === 'success' ? (
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+              <div className="text-center mb-6">
+                <div className="text-green-500 text-6xl mb-4">✅</div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Check-In Successful!</h2>
+                {checkInResult?.guest && (
+                  <p className="text-sm text-gray-600">
+                    Welcome, {checkInResult.guest.name}!
+                  </p>
+                )}
+              </div>
+
+              {checkInResult?.message && (
+                <div className="mb-6">
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                    <p className="text-sm text-green-800">{checkInResult.message}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={resetScanner}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                >
+                  Check In Another Guest
+                </button>
+              </div>
+            </div>
+          ) : checkInState === 'error' ? (
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+              <div className="text-center mb-6">
+                <div className="text-red-500 text-6xl mb-4">❌</div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Check-In Failed</h2>
+              </div>
+
+              {errorMessage && (
+                <div className="mb-6">
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                    <p className="text-sm text-red-800">{errorMessage}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={resetScanner}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center mb-6">
@@ -277,15 +439,6 @@ export default function CheckInPage() {
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
                 >
                   Scan Another
-                </button>
-                <button
-                  onClick={() => {
-                    // TODO: Process check-in logic here
-                    alert(`Processing check-in for: ${scannedData}`);
-                  }}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-                >
-                  Check In
                 </button>
               </div>
             </div>

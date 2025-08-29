@@ -7,7 +7,7 @@ import { TestDataFactory } from '../utils/TestDataFactory'
  * 
  * CRITICAL: These tests run against real staging data
  * - DO NOT run against production
- * - Uses STAGING_DATABASE_URL environment variable
+ * - Uses DATABASE_URL environment variable
  * - Tests real multi-guest check-in flows
  */
 export class StagingDatabaseTests {
@@ -15,10 +15,10 @@ export class StagingDatabaseTests {
 
   static getStagingPrisma(): PrismaClient {
     if (!this.stagingPrisma) {
-      const stagingUrl = process.env.STAGING_DATABASE_URL
+      const stagingUrl = process.env.DATABASE_URL
       
       if (!stagingUrl) {
-        throw new Error('STAGING_DATABASE_URL not configured. Set environment variable.')
+        throw new Error('DATABASE_URL not configured. Set environment variable.')
       }
 
       if (stagingUrl.includes('prod') || stagingUrl.includes('production')) {
@@ -37,9 +37,9 @@ export class StagingDatabaseTests {
     console.log('\n🔍 Verifying Staging Environment')
     console.log('=' .repeat(50))
 
-    const stagingUrl = process.env.STAGING_DATABASE_URL
+    const stagingUrl = process.env.DATABASE_URL
     if (!stagingUrl) {
-      throw new Error('❌ STAGING_DATABASE_URL not set')
+      throw new Error('❌ DATABASE_URL not set')
     }
 
     if (stagingUrl.includes('prod')) {

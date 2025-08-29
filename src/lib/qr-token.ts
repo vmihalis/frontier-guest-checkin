@@ -13,6 +13,21 @@ export interface QRTokenData {
   exp: number;
 }
 
+export interface MultiGuestData {
+  e: string; // email
+  n: string; // name
+}
+
+export interface MultiGuestQRData {
+  guests: MultiGuestData[];
+}
+
+export interface ParsedQRData {
+  type: 'single' | 'multi';
+  singleGuest?: QRTokenData;
+  multiGuest?: MultiGuestQRData;
+}
+
 /**
  * Generate a mock QR token (in production, use proper JWT with signing)
  */
@@ -54,6 +69,46 @@ export function validateQRToken(token: string): { isValid: boolean; data?: QRTok
     return { isValid: true, data: decoded };
   } catch {
     return { isValid: false, error: "Invalid token format" };
+  }
+}
+
+/**
+ * Parse QR code data to determine if it's single-guest or multi-guest format
+ */
+export function parseQRData(qrData: string): ParsedQRData {
+  try {
+    const parsed = JSON.parse(qrData);
+    
+    // Check if it's multi-guest format
+    if (parsed.guests && Array.isArray(parsed.guests)) {
+      return {
+        type: 'multi',
+        multiGuest: parsed as MultiGuestQRData
+      };
+    }
+    
+    // Check if it's single-guest token format (base64 encoded)
+    try {
+      const decoded = JSON.parse(atob(qrData)) as QRTokenData;
+      if (decoded.inviteId && decoded.guestEmail && decoded.hostId) {
+        return {
+          type: 'single',
+          singleGuest: decoded
+        };
+      }
+    } catch {
+      // If not base64, might be direct JSON single-guest format
+      if (parsed.inviteId && parsed.guestEmail && parsed.hostId) {
+        return {
+          type: 'single',
+          singleGuest: parsed as QRTokenData
+        };
+      }
+    }
+    
+    throw new Error('Unknown QR format');
+  } catch {
+    throw new Error('Invalid QR data format');
   }
 }
 
