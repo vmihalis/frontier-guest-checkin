@@ -69,9 +69,9 @@ export class GuestCreationFlow {
         invitation,
         flow: 'CREATE_GUEST_FIRST'
       }
-    } catch (_error: unknown) {
-      console.log(`❌ Current approach failed: ${error.message}`)
-      return { success: false, error: error.message }
+    } catch (error: unknown) {
+      console.log(`❌ Current approach failed: ${error instanceof Error ? error.message : String(error)}`)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   }
 
@@ -213,7 +213,7 @@ BENEFITS:
         const host = await prisma.user.findFirst({ where: { role: 'host' } })
         
         // Try to invite existing guest again
-        const invitation = await prisma.invitation.create({
+        await prisma.invitation.create({
           data: TestDataFactory.createInvitation(existingGuest.id, host!.id)
         })
         
@@ -223,11 +223,11 @@ BENEFITS:
           note: 'System allows multiple invitations to same guest'
         })
       }
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
       results.push({
         case: 'DUPLICATE_EMAIL_INVITE', 
         status: 'BLOCKED',
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       })
     }
 
@@ -241,7 +241,7 @@ BENEFITS:
       
       const host = await prisma.user.findFirst({ where: { role: 'host' } })
       
-      const visit = await prisma.visit.create({
+      await prisma.visit.create({
         data: TestDataFactory.createVisit(guestWithoutTerms.id, host!.id, {
           checkedInAt: new Date(),
         })
@@ -252,7 +252,7 @@ BENEFITS:
         status: 'ALLOWED',
         warning: 'System allows visits without terms - THIS IS A PROBLEM!'
       })
-    } catch (_error: unknown) {
+    } catch {
       results.push({
         case: 'VISIT_WITHOUT_TERMS',
         status: 'BLOCKED', 
@@ -270,7 +270,7 @@ BENEFITS:
       
       const host = await prisma.user.findFirst({ where: { role: 'host' } })
       
-      const invitation = await prisma.invitation.create({
+      await prisma.invitation.create({
         data: TestDataFactory.createInvitation(blacklistedGuest.id, host!.id)
       })
       
@@ -279,7 +279,7 @@ BENEFITS:
         status: 'ALLOWED',
         warning: 'System allows inviting blacklisted guests!'
       })
-    } catch (_error: unknown) {
+    } catch {
       results.push({
         case: 'BLACKLISTED_INVITATION',
         status: 'BLOCKED',
@@ -328,9 +328,9 @@ BENEFITS:
       console.log('⚠️  Schema improvements needed for better UX')
 
       return { success: true }
-    } catch (_error: unknown) {
-      console.error(`❌ Flow test failed: ${error.message}`)
-      return { success: false, error: error.message }
+    } catch (error: unknown) {
+      console.error(`❌ Flow test failed: ${error instanceof Error ? error.message : String(error)}`)
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
     }
   }
 }

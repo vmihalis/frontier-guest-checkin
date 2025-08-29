@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client'
-import { DatabaseHelpers } from '../utils/DatabaseHelpers'
 import { QRPayloadGenerator } from '../utils/QRPayloadGenerator'
 import { TestDataFactory } from '../utils/TestDataFactory'
 
@@ -63,7 +62,7 @@ export class StagingDatabaseTests {
       ])
       
       console.log(`✅ Staging data: ${stats[0]} users, ${stats[1]} guests, ${stats[2]} visits`)
-    } catch (_error: unknown) {
+    } catch {
       throw new Error(`❌ Failed to connect to staging: ${error.message}`)
     }
   }
@@ -186,7 +185,7 @@ export class StagingDatabaseTests {
         })
 
         // Create visit in staging
-        const visit = await prisma.visit.create({
+        await prisma.visit.create({
           data: TestDataFactory.createVisit(guest.id, host.id, {
             invitationId: invitation.id,
             checkedInAt: new Date(),
@@ -202,7 +201,7 @@ export class StagingDatabaseTests {
         })
 
         console.log(`✅ ${guest.name} checked in successfully`)
-      } catch (_error: unknown) {
+      } catch {
         results.push({
           email: guest.email,
           status: 'ERROR',
@@ -302,7 +301,7 @@ export class StagingDatabaseTests {
 
     // Test terms acceptance requirement
     try {
-      const visit = await prisma.visit.create({
+      await prisma.visit.create({
         data: TestDataFactory.createVisit(newGuest.id, host.id, {
           invitationId: invitation.id,
           checkedInAt: new Date(),
@@ -310,7 +309,7 @@ export class StagingDatabaseTests {
       })
       console.log(`❌ ERROR: Visit created without terms acceptance!`)
       return false
-    } catch (error) {
+    } catch {
       console.log(`✅ Correctly blocked visit without terms acceptance`)
     }
 
@@ -331,7 +330,7 @@ export class StagingDatabaseTests {
     console.log(`✅ Terms accepted for guest`)
 
     // Now create visit
-    const visit = await prisma.visit.create({
+    await prisma.visit.create({
       data: TestDataFactory.createVisit(newGuest.id, host.id, {
         invitationId: invitation.id,
         checkedInAt: new Date(),
@@ -379,7 +378,7 @@ export class StagingDatabaseTests {
       console.log(`\n🏆 OVERALL RESULT: ${overallSuccess ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`)
       
       return overallSuccess
-    } catch (_error: unknown) {
+    } catch {
       console.error('❌ STAGING TESTS FAILED:', error.message)
       return false
     } finally {

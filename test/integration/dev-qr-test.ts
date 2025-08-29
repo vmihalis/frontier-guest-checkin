@@ -30,8 +30,8 @@ async function main() {
     }
     
     await DatabaseHelpers.disconnect()
-  } catch (_error: unknown) {
-    console.error('❌ Test failed:', error.message)
+  } catch (error: unknown) {
+    console.error('❌ Test failed:', error instanceof Error ? error.message : String(error))
     await DatabaseHelpers.disconnect()
     process.exit(1)
   }

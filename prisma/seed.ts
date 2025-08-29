@@ -80,10 +80,10 @@ async function seed() {
     guests.push({
       email: faker.internet.email(),
       name: faker.person.fullName(),
-      phone: faker.phone.number('+###########'),
+      phone: faker.phone.number({ style: 'international' }),
       country: faker.location.countryCode(),
       contactMethod,
-      contactValue: contactMethod === ContactMethod.TELEGRAM ? `@${faker.internet.username()}` : faker.phone.number('+###########'),
+      contactValue: contactMethod === ContactMethod.TELEGRAM ? `@${faker.internet.username()}` : faker.phone.number({ style: 'international' }),
       termsAcceptedAt: faker.date.recent({ days: 30 }),
       blacklistedAt: null,
     })
@@ -94,7 +94,7 @@ async function seed() {
     guests.push({
       email: faker.internet.email({ provider: 'suspicious' }),
       name: faker.person.fullName(),
-      phone: faker.phone.number('+###########'),
+      phone: faker.phone.number({ style: 'international' }),
       country: faker.location.countryCode(),
       contactMethod: null,
       contactValue: null,
@@ -108,7 +108,7 @@ async function seed() {
     guests.push({
       email: faker.internet.email(),
       name: faker.person.fullName(),
-      phone: faker.phone.number('+###########'),
+      phone: faker.phone.number({ style: 'international' }),
       country: faker.location.countryCode(),
       contactMethod: null,
       contactValue: null,
@@ -119,7 +119,7 @@ async function seed() {
   
   // Edge case: Same person, multiple emails (attempting to bypass limits)
   const duplicatePerson = faker.person.fullName()
-  const duplicatePhone = faker.phone.number('+1555555####')
+  const duplicatePhone = faker.phone.number({ style: 'national' })
   for (let i = 0; i < 5; i++) {
     guests.push({
       email: `${duplicatePerson.toLowerCase().replace(' ', '.')}+${i}@gmail.com`,

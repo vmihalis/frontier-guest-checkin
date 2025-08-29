@@ -110,7 +110,7 @@ export class MultiGuestCheckinScenario {
           status: 'CHECKED_IN',
           visitId: visit.id,
         })
-      } catch (_error: unknown) {
+      } catch {
         results.push({
           email: guestData.e,
           status: 'ERROR',
@@ -165,24 +165,23 @@ export class MultiGuestCheckinScenario {
     await DatabaseHelpers.cleanup()
     const prisma = DatabaseHelpers.getPrisma()
 
-    const host = await prisma.user.create({
+    await prisma.user.create({
       data: TestDataFactory.createHost(),
     })
 
-    const edgeCaseGuests = [
-      await prisma.guest.create({
-        data: TestDataFactory.createGuest(),
-      }),
-      await prisma.guest.create({
-        data: TestDataFactory.createBlacklistedGuest(),
-      }),
-      await prisma.guest.create({
-        data: TestDataFactory.createGuestWithoutTerms(),
-      }),
-      await prisma.guest.create({
-        data: TestDataFactory.createGuest(),
-      }),
-    ]
+    // Create some edge case guests for testing  
+    await prisma.guest.create({
+      data: TestDataFactory.createGuest(),
+    })
+    await prisma.guest.create({
+      data: TestDataFactory.createBlacklistedGuest(),
+    })
+    await prisma.guest.create({
+      data: TestDataFactory.createGuestWithoutTerms(),
+    })
+    await prisma.guest.create({
+      data: TestDataFactory.createGuest(),
+    })
 
     const scenarios = QRPayloadGenerator.createTestScenarios()
 

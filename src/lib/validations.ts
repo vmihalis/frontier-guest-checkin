@@ -155,7 +155,7 @@ export async function checkExistingActiveVisit(hostId: string, guestEmail: strin
 
   return {
     hasActiveVisit: !!activeVisit,
-    activeVisit,
+    activeVisit: activeVisit || undefined,
   };
 }
 

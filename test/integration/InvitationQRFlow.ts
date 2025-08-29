@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
 import { TestDataFactory } from '../utils/TestDataFactory'
-import { QRPayloadGenerator } from '../utils/QRPayloadGenerator'
 
 /**
  * CORRECT FLOW: QR Scans originate from INVITATIONS table
@@ -211,7 +210,7 @@ export class InvitationQRFlow {
         host: invitation.host,
       }
 
-    } catch (_error: unknown) {
+    } catch {
       console.log(`❌ QR scan failed: ${error.message}`)
       return {
         success: false,
@@ -418,7 +417,7 @@ export class InvitationQRFlow {
       console.log('\n🏆 ALL INVITATION-BASED TESTS PASSED')
 
       return { success: true }
-    } catch (_error: unknown) {
+    } catch {
       console.error(`❌ Invitation flow test failed: ${error.message}`)
       return { success: false, error: error.message }
     }

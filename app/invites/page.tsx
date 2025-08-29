@@ -133,7 +133,7 @@ export default function InvitesPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [qrModalData.isOpen, qrModalData.invitation?.qrExpiresAt]);
+  }, [qrModalData.isOpen, qrModalData.invitation]);
 
   const handleCreateInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,7 +168,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to create invitation' });
       }
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };
@@ -192,7 +192,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to activate QR code' });
       }
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };
@@ -214,7 +214,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to admit guest' });
       }
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };
@@ -233,7 +233,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to record acceptance' });
       }
-    } catch (_error) {
+    } catch {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };

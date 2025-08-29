@@ -4,17 +4,28 @@ import { validateAdmitGuest, shouldTriggerDiscount, checkExistingActiveVisit } f
 import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
 
 // TODO: Replace with actual auth middleware
-function getCurrentUserId(request: NextRequest): string {
-  return 'mock-host-id';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function getCurrentUserId(_request: NextRequest): Promise<string> {
+  // Mock implementation - get the first host user from the database
+  const hostUser = await prisma.user.findFirst({
+    where: { role: 'host' },
+    select: { id: true }
+  });
+  
+  if (!hostUser) {
+    throw new Error('No host user found in database');
+  }
+  
+  return hostUser.id;
 }
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const hostId = getCurrentUserId(request);
-    const invitationId = params.id;
+    const hostId = await getCurrentUserId(_request);
+    const { id: invitationId } = await params;
 
     const invitation = await prisma.invitation.findUnique({
       where: { id: invitationId },
