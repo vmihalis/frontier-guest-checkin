@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Frontier Tower visitor management system - a Next.js application for managing guest check-ins across multiple tower locations with QR code scanning, role-based access, and comprehensive visit tracking.
+Frontier Tower visitor management system - a Next.js application for QR code guest check-ins with business rule validation, override system for security staff, and comprehensive email notifications.
 
 ## Development Commands
 
@@ -42,138 +42,179 @@ npm run test:staging:full   # Complete integration test suite
 
 ## Tech Stack
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript
-- **Styling**: Tailwind CSS 4, shadcn/ui components
-- **Database**: Prisma ORM with PostgreSQL
+- **Styling**: Tailwind CSS 4, shadcn/ui components with custom design system
+- **Database**: Prisma ORM with PostgreSQL (no migrations, uses db:push)
 - **Email**: Resend API with React Email templates
 - **QR Scanning**: qr-scanner library with iPad Safari optimization
-- **Authentication**: Supabase Auth (integration in progress)
+- **Authentication**: DEMO_MODE toggle system (see DEMO-MODE.md)
 - **Testing**: Multi-environment test suite with Faker.js
 
 ## Database Architecture
 
-### Current Schema (Production-Ready Foundation)
-- **users** - Hosts, admins, security staff with role-based permissions (UserRole enum)
-- **guests** - Visitors with terms acceptance tracking and blacklist status
-- **visits** - Core relationship linking guest + host with timestamps for state tracking
-- **policies** - Global configuration for limits (guest monthly, host concurrent)
-
-### Planned Expansion
-- **locations** - Tower buildings (A, B, Main Lobby, etc.) for multi-location support
+### Production Schema
+- **users** - Hosts, admins, security staff with role-based permissions (host/admin/security)
+- **guests** - Visitors with blacklist status, contact methods, terms acceptance tracking
+- **visits** - Core relationship linking guest + host with override tracking and expiration
+- **invitations** - QR-enabled invitations with status tracking (PENDING/ACTIVATED/CHECKED_IN/EXPIRED)
+- **acceptances** - Terms and visitor agreement acceptance records
+- **discounts** - Third-visit discount tracking with email confirmation
+- **policies** - Global configuration (guest monthly: 3, host concurrent: 3)
 
 ### Key Design Principles
 - **Simple state tracking**: NULL timestamps indicate state (not checked in/out)
 - **Clean joins**: Natural relationships without complex state machines
-- **24/7 operation**: No artificial midnight cutoffs or expiry logic
+- **12-hour visit expiration**: Automatic expiry without manual checkout
 - **UUID primary keys**: Database-generated with proper indexing
+- **Override system**: Security staff can bypass capacity limits with reason/password
 
 ### Business Rules
-- Guest monthly limit: Max visits per rolling 30 days (default: 3)
-- Host concurrent limit: Max active guests per host (default: 3)
+- Guest monthly limit: Max 3 visits per rolling 30 days
+- Host concurrent limit: Max 3 active guests per host (can be overridden)
 - Terms acceptance required before any visit creation
-- Blacklist enforcement at both invitation and check-in levels
+- Blacklist enforcement at check-in level
+- Third lifetime visit triggers discount email
 
 ## Project Structure
 
 ### App Router Pages
 - `/` - Landing page (placeholder)
 - `/login` - Host authentication with form validation
-- `/checkin` - QR code scanner with camera selection and iPad optimization
-- `/invites` - Host invitation management interface
+- `/checkin` - **QR CODE SCANNER** - Multi-camera QR scanning with override system for security staff
+- `/invites` - **HOST DASHBOARD** - Complete invitation management interface for hosts
+- **PLANNED**: Admin console for analytics, policy management, blacklist administration
 
-### API Routes
+### API Routes (Current)
+- `POST /api/checkin` - **DEPRECATED** - Legacy single-guest API (forwards to multi-guest)
+- `POST /api/checkin/multi-guest` - **MAIN API** - Unified check-in processing with overrides
 - `POST /api/invitations` - Create guest invitations with email notifications
 - `POST /api/invitations/[id]/accept` - Guest acceptance flow
 - `POST /api/invitations/[id]/activate` - QR code activation
 - `POST /api/invitations/[id]/admit` - Check-in processing
 - `GET /api/guests/history` - Guest visit history and analytics
-- `POST /api/checkin` - QR code check-in with email notifications
+- `GET /api/auth/me` - Current user info
+- `POST /api/auth/login` - Authentication
+- `POST /api/auth/logout` - Sign out
 
-### Key Directories
-- `src/lib/` - Core utilities (Prisma, email, QR, validation, timezone)
-- `src/lib/email-templates/` - React Email components (InvitationEmail, DiscountEmail)
-- `src/components/ui/` - shadcn/ui components (Button, Card, Input, Dialog, Table, etc.)
-- `prisma/` - Database schema, migrations, and seed data
-- `test/` - Development test suite with scenarios and utilities
-- `test/integration/` - Staging environment integration tests
+### Key Components
+- **OverrideDialog** - Security override UI for capacity limits with password validation
+- **GuestSelection** - Multi-guest QR code selection interface
+- **QR Scanner** - Camera-optimized scanning with device selection
+- **Design System** - Comprehensive UI kit documented in DESIGN_SYSTEM.md
+
+### Core Libraries
+- `src/lib/validations.ts` - **CRITICAL** - All business rule validation logic
+- `src/lib/qr-token.ts` - QR code parsing and multi-guest data handling
+- `src/lib/email.ts` - Resend integration with React Email templates
+- `src/lib/auth.ts` - Authentication with DEMO_MODE bypass capability
+- `src/lib/demo-config.ts` - Hackathon/demo mode configuration
+- `src/lib/timezone.ts` - LA timezone utilities and visit expiration calculation
+- `src/lib/prisma.ts` - Database client
 
 ## Current Implementation Status
 
 ### ✅ Production-Ready Features
-- **Database Foundation**: Prisma schema with relationships and indexing
-- **QR Code System**: Multi-camera scanning with iPad Safari optimization  
-- **Host Invitation App**: Complete invitation management at `/invites`
-- **Email Integration**: Resend API with React Email templates
-- **API Layer**: Full REST endpoints for invitations and check-in workflow
-- **Testing Framework**: Multi-environment test suite with staging integration
-- **UI Components**: Comprehensive shadcn/ui component library
-- **Authentication Forms**: Login with validation and error handling
-- **Guest Management**: History tracking, capacity limits, discount system
+- **QR Code Check-in System**: Multi-camera scanning optimized for iPad Safari
+- **Business Rule Validation**: Rolling limits, capacity checks, blacklist enforcement
+- **Security Override System**: Password-protected capacity limit bypasses with audit trail
+- **Email Integration**: Invitation emails and discount notifications via Resend API
+- **Demo Mode Toggle**: Hackathon-ready authentication bypass (see DEMO-MODE.md)
+- **Multi-guest QR Support**: Single QR codes for multiple visitors
+- **12-hour Visit Expiry**: Automatic visit expiration without manual checkout
+- **Discount System**: Third-visit discount emails with tracking
+- **Design System**: Comprehensive UI components with Frontier Tower branding
+
+### 🚧 API Route Status
+- **Multi-guest API is the primary endpoint** - Use `/api/checkin/multi-guest` for all check-ins
+- **Single-guest API is deprecated** - `/api/checkin` forwards to multi-guest for compatibility
+- **Note**: Multi-guest route is considered redundant by maintainer but currently in use
+
+### 🔧 Demo/Hackathon Mode
+- **DEMO_MODE Environment Variable**: Bypasses authentication for demonstrations
+- **Production Safety**: Build fails if DEMO_MODE=true in production
+- **Surgical Bypass**: No API route changes, only auth library modifications
+- **Real Database Users**: Uses actual seeded host users, not mock data
+
+### 📋 Testing Infrastructure
+- **Battle-tested QR Codes**: 3 demo QR codes with realistic success/failure scenarios
+- **Multi-environment**: Development and staging integration tests
+- **Comprehensive Coverage**: Business logic, API endpoints, database operations
 
 ### 🚧 Planned Implementation
-- **Locations table**: Multiple tower buildings support  
-- **Kiosk Interface**: Manual lookup, override mode, badge printing
-- **Admin Dashboard**: Analytics, policy settings, blacklist management
-- **Production Auth**: Complete Supabase integration replacing mock auth
-
-### Core Queries Pattern
-All operations map to simple SQL patterns:
-```sql
--- Monthly limit check
-SELECT COUNT(*) FROM visits 
-WHERE guest_id = $1 AND checked_in_at >= now() - interval '30 days';
-
--- Active guests per host
-SELECT COUNT(*) FROM visits
-WHERE host_id = $1 AND checked_in_at IS NOT NULL AND checked_out_at IS NULL;
-
--- Tower occupancy
-SELECT l.name, COUNT(*) FROM visits v
-JOIN locations l ON v.location_id = l.id
-WHERE checked_in_at IS NOT NULL AND checked_out_at IS NULL
-GROUP BY l.id, l.name;
-```
+- **Admin Console**: Analytics dashboard, policy management, blacklist administration, user management
+- **Locations Table**: Multiple tower buildings support for multi-location deployments  
+- **Kiosk Interface**: Manual guest lookup, walk-in registration, badge printing capabilities
+- **Advanced Features**: Visit analytics, capacity reporting, guest history search
+- **Production Auth**: Enhanced authentication system to replace DEMO_MODE (Prisma-based)
 
 ## Development Guidelines
 
 ### Database Operations
-- Always use Prisma client from `lib/prisma.ts`
-- UUID primary keys with `@default(dbgenerated("gen_random_uuid()"))` 
-- Use `@map` directives for snake_case database columns
-- Proper indexing on frequently queried fields (guestId, hostId, checkedInAt)
+- **No migrations**: Uses `npm run db:push` for schema changes
+- **UUID primary keys**: Database-generated with `@default(dbgenerated("gen_random_uuid("))` 
+- **Snake_case mapping**: Use `@map` directives for database columns
+- **Proper indexing**: On guestId, hostId, checkedInAt, qrToken fields
 
 ### QR Scanner Implementation
-- Uses qr-scanner library for broad device compatibility
-- Prefers back/rear/environment cameras for better scanning
-- Handles camera permissions gracefully with retry mechanism
-- Optimized for iPad Safari (primary deployment target)
+- **Primary deployment target**: iPad Safari
+- **Camera selection**: Prefers back/rear/environment cameras
+- **Permission handling**: Graceful retry mechanism for camera access
+- **Multi-format support**: QR codes, barcodes, and major code formats
+
+### Business Logic Validation
+- **Central validation**: All rules in `src/lib/validations.ts`
+- **Override system**: Security/admin roles can bypass capacity limits
+- **Audit trail**: All overrides logged with reason, password, and user
+- **Time cutoff**: 11:59 PM entry cutoff (configurable)
 
 ### Email System
-- **Resend API Integration**: Production-ready email service with React Email templates
-- **Template Components**: InvitationEmail and DiscountEmail with responsive design
-- **Non-blocking Architecture**: Emails sent asynchronously with comprehensive error handling
-- **Error Recovery**: Graceful fallbacks when email service unavailable
-- **Template Features**: QR code display, countdown timers, branded styling
+- **Resend API**: Production-ready email service
+- **React Email Templates**: InvitationEmail and DiscountEmail
+- **Non-blocking**: Email failures don't block check-ins
+- **Discount trigger**: Automatic on third lifetime visit
 
 ### Environment Setup
 Required environment variables:
 - `DATABASE_URL` - PostgreSQL database connection
 - `DIRECT_URL` - Direct database connection for migrations
 - `RESEND_API_KEY` - Resend API key for email notifications
-- `EMAIL_FROM` - From address for system emails (e.g., noreply@yourdomain.com)
+- `EMAIL_FROM` - From address for system emails
+- `DEMO_MODE` - Set to "true" for hackathon/demo mode (optional)
+- `OVERRIDE_PASSWORD` - Security override password (defaults to "meow")
 
-## Key Design Decisions
-- **Prisma-first approach**: No Next.js built-in DB tools, pure Prisma workflow
-- **Simple state management**: Timestamp-based state tracking, no complex state machines
-- **24/7 building operation**: No overnight blocking logic
-- **Clean data model**: Natural relationships, intuitive queries
-- **Touch-optimized**: Designed for kiosk and iPad deployment
-- **Role-based access**: Security through database-level permissions
+## Architectural Notes
 
-## Immediate Next Steps
-1. **Locations Table Implementation**: Add multi-tower building support to database schema
-2. **Production Authentication**: Complete Supabase integration to replace mock auth system
-3. **Kiosk Interface**: Build manual lookup and override functionality for security staff
-4. **Admin Dashboard**: Create analytics, policy management, and blacklist administration
-5. **Mobile Optimization**: Enhance responsive design for various device sizes
-6. **Performance Optimization**: Implement caching and database query optimization
-7. **Monitoring & Logging**: Add comprehensive error tracking and performance monitoring
+### Application Architecture
+1. **QR Check-in Flow**: `/checkin` page with scanner → `/api/checkin/multi-guest` → database
+2. **Host Invitation Flow**: `/invites` dashboard → invitation APIs → email notifications
+3. **Admin Management**: Planned admin console for analytics and policy management
+4. **Legacy Compatibility**: Single-guest API maintained for backward compatibility
+
+### Override System
+- **Capacity limits** can be overridden by security/admin staff
+- **Password required** for override approval
+- **Reason required** for audit compliance
+- **All overrides logged** with user, timestamp, and justification
+
+### Design Philosophy
+- **Touch-optimized interfaces** for kiosk deployment
+- **iPad Safari primary target** for QR scanning
+- **Clean, professional aesthetic** suitable for office environments
+- **Comprehensive design system** documented in DESIGN_SYSTEM.md
+
+## Key Files Modified Recently
+- Modified files per git status: multi-guest route, main check-in route, QR scanner page, validations
+- New files: OverrideDialog component, DESIGN_SYSTEM.md documentation
+
+## Core Application Features
+1. **QR Code Check-in** (`/checkin`) - Multi-camera scanner with security override system
+2. **Host Dashboard** (`/invites`) - Complete invitation management for hosts 
+3. **Admin Console** (planned) - Analytics, policy management, blacklist administration
+4. **API Layer** - Comprehensive REST endpoints for all workflows
+5. **Email System** - Automated invitations and discount notifications
+
+## Immediate Development Priorities
+1. **Admin Console Implementation** - Analytics dashboard, user management, policy settings
+2. **API Architecture Cleanup** - Address multi-guest route redundancy concerns
+3. **Enhanced Security Features** - Improved override workflows and audit trails
+4. **Performance Optimization** - Database query optimization and UI responsiveness
+5. **Design System Adoption** - Apply comprehensive UI standards across all interfaces

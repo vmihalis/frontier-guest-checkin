@@ -303,7 +303,7 @@ export default function InvitesPage() {
               Create Invitation
             </CardTitle>
             <CardDescription>
-              Invite a guest to visit BerlinHouse
+              Send an invitation email to a guest. They must accept terms via email before QR activation.
             </CardDescription>
           </CardHeader>
           <CardContent>

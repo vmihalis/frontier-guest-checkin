@@ -10,6 +10,8 @@ export interface ValidationResult {
   isValid: boolean;
   error?: string;
   nextEligibleDate?: Date;
+  currentCount?: number;
+  maxCount?: number;
 }
 
 /**
@@ -30,6 +32,8 @@ export async function validateHostConcurrentLimit(hostId: string): Promise<Valid
     return {
       isValid: false,
       error: "Host concurrent limit reached (3).",
+      currentCount: activeVisitsCount,
+      maxCount: 3,
     };
   }
 
@@ -214,6 +218,13 @@ export async function validateActivateQR(
   }
 
   return { isValid: true };
+}
+
+/**
+ * Check if user can override capacity limits
+ */
+export function canUserOverride(userRole?: string): boolean {
+  return userRole === 'security' || userRole === 'admin';
 }
 
 /**

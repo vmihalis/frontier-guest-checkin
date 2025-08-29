@@ -8,7 +8,7 @@ import type { MultiGuestData } from '@/lib/qr-token';
 
 export async function POST(request: NextRequest) {
   try {
-    const { guest }: { guest: MultiGuestData } = await request.json();
+    const { guest, overrideReason, overridePassword }: { guest: MultiGuestData; overrideReason?: string; overridePassword?: string } = await request.json();
 
     if (!guest || !guest.e || !guest.n) {
       return NextResponse.json(
@@ -100,14 +100,71 @@ export async function POST(request: NextRequest) {
     );
 
     if (!validation.isValid) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
+      // Check if this is a capacity limit error
+      if (validation.error?.includes('concurrent limit')) {
+        // Get current count for UI display
+        const activeVisitsCount = await prisma.visit.count({
+          where: {
+            hostId,
+            checkedInAt: { not: null },
+            expiresAt: { gt: nowInLA() },
+          },
+        });
+
+        // If override reason provided, validate password first
+        if (overrideReason) {
+          // Validate override password
+          const expectedPassword = process.env.OVERRIDE_PASSWORD || 'meow';
+          if (overridePassword !== expectedPassword) {
+            return NextResponse.json(
+              { 
+                error: 'Incorrect password',
+                passwordError: true
+              },
+              { status: 401 }
+            );
+          }
+          // Password correct, proceed with check-in despite limit
+          // Continue to create visit with override data
+        } else {
+          // Always allow override - security will decide at their discretion
+          return NextResponse.json(
+            { 
+              error: validation.error,
+              requiresOverride: true,
+              canOverride: true, // Always allow override
+              currentCount: activeVisitsCount,
+              maxCount: 3
+            },
+            { status: 409 } // Conflict status
+          );
+        }
+      } else {
+        // Other validation errors cannot be overridden
+        return NextResponse.json(
+          { error: validation.error },
+          { status: 400 }
+        );
+      }
     }
 
     const now = nowInLA();
     const expiresAt = calculateVisitExpiration(now);
+
+    // Get override user ID if override is being applied
+    let overrideUserId: string | null = null;
+    if (overrideReason) {
+      try {
+        overrideUserId = await getCurrentUserId(request);
+      } catch {
+        // In QR scanner mode without auth, we'll track as system override
+        const securityUser = await prisma.user.findFirst({
+          where: { role: 'security' },
+          select: { id: true }
+        });
+        overrideUserId = securityUser?.id || null;
+      }
+    }
 
     // Create new visit
     const visit = await prisma.visit.create({
@@ -117,6 +174,8 @@ export async function POST(request: NextRequest) {
         invitationId: null, // Multi-guest QRs don't have specific invitation IDs
         checkedInAt: now,
         expiresAt,
+        overrideReason,
+        overrideBy: overrideUserId,
       },
       include: {
         guest: true,
@@ -174,6 +233,8 @@ export async function POST(request: NextRequest) {
       discountEmailSent,
       message: shouldDiscount 
         ? `Check-in successful! Discount earned (3rd lifetime visit).${discountEmailSent ? ' Check your email!' : ''}` 
+        : overrideReason
+        ? 'Check-in successful with override! Welcome to Frontier Tower.'
         : 'Check-in successful! Welcome to Frontier Tower.',
     });
   } catch (error) {

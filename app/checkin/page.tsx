@@ -5,6 +5,8 @@ import QrScanner from 'qr-scanner';
 import Image from 'next/image';
 import { parseQRData, MultiGuestData, type ParsedQRData } from '@/lib/qr-token';
 import { GuestSelection } from '@/components/GuestSelection';
+import { OverrideDialog } from '@/components/OverrideDialog';
+import { useAuth } from '@/hooks/use-auth';
 
 interface CameraDevice {
   deviceId: string;
@@ -12,6 +14,7 @@ interface CameraDevice {
 }
 
 export default function CheckInPage() {
+  const { user } = useAuth();
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [parsedQRData, setParsedQRData] = useState<ParsedQRData | null>(null);
   const [selectedGuest, setSelectedGuest] = useState<MultiGuestData | null>(null);
@@ -20,7 +23,13 @@ export default function CheckInPage() {
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [checkInState, setCheckInState] = useState<'scanning' | 'guest-selection' | 'processing' | 'success' | 'error'>('scanning');
+  const [checkInState, setCheckInState] = useState<'scanning' | 'guest-selection' | 'processing' | 'success' | 'error' | 'override-required'>('scanning');
+  const [overrideData, setOverrideData] = useState<{
+    guestData?: MultiGuestData | string;
+    currentCount: number;
+    maxCount: number;
+    errorMessage: string;
+  } | null>(null);
   const [checkInResult, setCheckInResult] = useState<{
     success: boolean;
     guest?: { name: string; email: string };
@@ -116,9 +125,27 @@ export default function CheckInPage() {
     setSelectedGuest(null);
     setCheckInResult(null);
     setErrorMessage(null);
+    setOverrideData(null);
     setCheckInState('scanning');
     setIsScanning(true);
     startScanner();
+  };
+
+  const handleOverrideConfirm = (reason: string, password: string) => {
+    if (overrideData?.guestData) {
+      if (typeof overrideData.guestData === 'string') {
+        // Regular QR token
+        processCheckIn(overrideData.guestData, reason, password);
+      } else {
+        // Multi-guest data
+        processMultiGuestCheckIn(overrideData.guestData, reason, password);
+      }
+    }
+  };
+
+  const handleOverrideCancel = () => {
+    setOverrideData(null);
+    resetScanner();
   };
 
   const handleGuestSelection = (guest: MultiGuestData) => {
@@ -128,12 +155,16 @@ export default function CheckInPage() {
     processMultiGuestCheckIn(guest);
   };
 
-  const processCheckIn = async (qrData: string) => {
+  const processCheckIn = async (qrData: string, overrideReason?: string, overridePassword?: string) => {
     try {
       const response = await fetch('/api/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: qrData })
+        body: JSON.stringify({ 
+          token: qrData,
+          overrideReason,
+          overridePassword 
+        })
       });
       
       const result = await response.json();
@@ -141,6 +172,19 @@ export default function CheckInPage() {
       if (response.ok) {
         setCheckInResult(result);
         setCheckInState('success');
+        setOverrideData(null);
+      } else if (response.status === 401 && result.passwordError) {
+        // Wrong password - keep dialog open with error
+        setOverrideData(prev => prev ? {...prev, errorMessage: 'Incorrect password. Please try again.'} : null);
+      } else if (response.status === 409 && result.requiresOverride) {
+        // Capacity exceeded - always show override option
+        setOverrideData({
+          guestData: qrData,
+          currentCount: result.currentCount || 3,
+          maxCount: result.maxCount || 3,
+          errorMessage: result.error
+        });
+        setCheckInState('override-required');
       } else {
         setErrorMessage(result.error || 'Check-in failed');
         setCheckInState('error');
@@ -152,12 +196,16 @@ export default function CheckInPage() {
     }
   };
 
-  const processMultiGuestCheckIn = async (guest: MultiGuestData) => {
+  const processMultiGuestCheckIn = async (guest: MultiGuestData, overrideReason?: string, overridePassword?: string) => {
     try {
       const response = await fetch('/api/checkin/multi-guest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guest })
+        body: JSON.stringify({ 
+          guest,
+          overrideReason,
+          overridePassword 
+        })
       });
       
       const result = await response.json();
@@ -165,6 +213,19 @@ export default function CheckInPage() {
       if (response.ok) {
         setCheckInResult(result);
         setCheckInState('success');
+        setOverrideData(null);
+      } else if (response.status === 401 && result.passwordError) {
+        // Wrong password - keep dialog open with error
+        setOverrideData(prev => prev ? {...prev, errorMessage: 'Incorrect password. Please try again.'} : null);
+      } else if (response.status === 409 && result.requiresOverride) {
+        // Capacity exceeded - always show override option
+        setOverrideData({
+          guestData: guest,
+          currentCount: result.currentCount || 3,
+          maxCount: result.maxCount || 3,
+          errorMessage: result.error
+        });
+        setCheckInState('override-required');
       } else {
         setErrorMessage(result.error || 'Multi-guest check-in failed');
         setCheckInState('error');
@@ -454,6 +515,18 @@ export default function CheckInPage() {
           </p>
         </div>
       </div>
+
+      {checkInState === 'override-required' && overrideData && (
+        <OverrideDialog
+          open={true}
+          onConfirm={handleOverrideConfirm}
+          onCancel={handleOverrideCancel}
+          currentCount={overrideData.currentCount}
+          maxCount={overrideData.maxCount}
+          guestName={typeof overrideData.guestData === 'object' ? overrideData.guestData.n : undefined}
+          errorMessage={overrideData.errorMessage}
+        />
+      )}
     </div>
   );
 }

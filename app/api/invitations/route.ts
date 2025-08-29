@@ -26,9 +26,7 @@ export async function POST(request: NextRequest) {
       country, 
       contactMethod, 
       contactValue,
-      inviteDate,
-      termsAccepted,
-      visitorAgreementAccepted 
+      inviteDate
     } = body;
 
     // Validate required fields
@@ -39,12 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!termsAccepted || !visitorAgreementAccepted) {
-      return NextResponse.json(
-        { error: 'Terms and Visitor Agreement must be accepted' },
-        { status: 400 }
-      );
-    }
+    // Terms acceptance will be handled via email link
 
     // Validate business rules
     const validation = await validateCreateInvitation(hostId, email);

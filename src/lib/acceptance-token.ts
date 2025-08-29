@@ -15,6 +15,7 @@ export interface AcceptanceTokenPayload {
   invitationId: string;
   guestEmail: string;
   hostId: string;
+  [key: string]: string | number | boolean | undefined; // Index signature for JWT compatibility
 }
 
 /**

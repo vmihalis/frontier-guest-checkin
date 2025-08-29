@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   // DEPRECATED: Single-guest API is deprecated in favor of unified multi-guest API
   // Convert single-guest token to multi-guest format and redirect
   try {
-    const { token } = await request.json();
+    const { token, overrideReason, overridePassword } = await request.json();
 
     if (!token) {
       return NextResponse.json(
@@ -44,7 +44,9 @@ export async function POST(request: NextRequest) {
       guest: {
         e: guest.email,
         n: guest.name
-      }
+      },
+      overrideReason,
+      overridePassword
     };
 
     // Forward to multi-guest API
