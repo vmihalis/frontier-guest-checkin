@@ -87,14 +87,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create acceptance record (mock - in production this would be done by guest)
-    await prisma.acceptance.create({
-      data: {
-        guestId: guest.id,
-        termsVersion: '1.0',
-        visitorAgreementVersion: '1.0',
-      },
-    });
+    // Note: Guest acceptance will be handled by separate acceptance flow
 
     // Send invitation email (non-blocking - don't fail creation if email fails)
     // TODO: Get actual host name from user record when auth is implemented
@@ -105,7 +98,8 @@ export async function POST(request: NextRequest) {
         guest.email,
         guest.name,
         hostName,
-        invitation.id
+        invitation.id,
+        hostId
       );
       
       if (!emailResult.success) {

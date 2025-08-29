@@ -102,19 +102,20 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
 }
 
 /**
- * Send invitation email to guest
- * TODO: Replace mock QR token with actual JWT-signed token
+ * Send invitation email to guest with acceptance link
  */
 export async function sendInvitationEmail(
   guestEmail: string,
   guestName: string,
   hostName: string,
-  invitationId: string
+  invitationId: string,
+  hostId: string
 ): Promise<EmailResult> {
-  // TODO: Generate secure JWT token for QR code activation
-  const mockQrToken = `mock-qr-${invitationId}`;
+  // Generate secure JWT token for terms acceptance
+  const { generateAcceptanceToken } = await import('./acceptance-token');
+  const acceptanceToken = await generateAcceptanceToken(invitationId, guestEmail, hostId);
   
-  const activationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontiertower.com'}/activate?token=${mockQrToken}`;
+  const acceptanceUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontiertower.com'}/accept/${acceptanceToken}`;
 
   // Dynamically import the React Email template
   const { default: InvitationEmail } = await import('./email-templates/InvitationEmail');
@@ -126,7 +127,7 @@ export async function sendInvitationEmail(
     react: React.createElement(InvitationEmail, {
       guestName,
       hostName,
-      activationUrl
+      acceptanceUrl
     })
   });
 }

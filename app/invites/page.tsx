@@ -30,7 +30,9 @@ interface Invitation {
   qrToken?: string;
   qrIssuedAt?: string;
   qrExpiresAt?: string;
-  guest: Guest;
+  guest: Guest & {
+    termsAcceptedAt?: string;
+  };
   createdAt: string;
 }
 
@@ -67,8 +69,6 @@ export default function InvitesPage() {
     contactMethod: 'TELEGRAM' as 'TELEGRAM' | 'PHONE',
     contactValue: '',
     inviteDate: new Date().toISOString().split('T')[0],
-    termsAccepted: false,
-    visitorAgreementAccepted: false,
   });
 
   // QR Modal state
@@ -137,23 +137,25 @@ export default function InvitesPage() {
 
   const handleCreateInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.termsAccepted || !formData.visitorAgreementAccepted) {
-      toast({ title: 'Error', description: 'Both Terms and Visitor Agreement must be accepted.' });
-      return;
-    }
 
     try {
       const response = await fetch('/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          termsAccepted: true, // Host acknowledges they will send terms to guest
+          visitorAgreementAccepted: true,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast({ title: 'Success', description: 'Invitation created successfully!' });
+        toast({ 
+          title: 'Invitation Sent!', 
+          description: 'Guest will receive an email to accept terms before QR generation.' 
+        });
         setFormData({
           name: '',
           email: '',
@@ -161,8 +163,6 @@ export default function InvitesPage() {
           contactMethod: 'TELEGRAM',
           contactValue: '',
           inviteDate: new Date().toISOString().split('T')[0],
-          termsAccepted: false,
-          visitorAgreementAccepted: false,
         });
         loadData();
       } else {
@@ -219,24 +219,6 @@ export default function InvitesPage() {
     }
   };
 
-  const handleMarkAccepted = async (invitationId: string) => {
-    try {
-      const response = await fetch(`/api/invitations/${invitationId}/accept`, {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({ title: 'Success', description: 'Guest acceptance recorded!' });
-        loadData();
-      } else {
-        toast({ title: 'Error', description: data.error || 'Failed to record acceptance' });
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Network error. Please try again.' });
-    }
-  };
 
   const copyQRToken = () => {
     if (qrModalData.invitation?.qrToken) {
@@ -269,7 +251,11 @@ export default function InvitesPage() {
   };
 
   const canActivate = (invitation: Invitation) => {
-    return invitation.status === 'PENDING';
+    return invitation.status === 'PENDING' && invitation.guest.termsAcceptedAt;
+  };
+
+  const hasAcceptedTerms = (invitation: Invitation) => {
+    return !!invitation.guest.termsAcceptedAt;
   };
 
   const canAdmit = (invitation: Invitation) => {
@@ -391,31 +377,12 @@ export default function InvitesPage() {
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="termsAccepted"
-                    checked={formData.termsAccepted}
-                    onChange={(e) => setFormData({ ...formData, termsAccepted: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="termsAccepted" className="text-sm">
-                    Guest agrees to Terms & Conditions *
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="visitorAgreementAccepted"
-                    checked={formData.visitorAgreementAccepted}
-                    onChange={(e) => setFormData({ ...formData, visitorAgreementAccepted: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="visitorAgreementAccepted" className="text-sm">
-                    Guest agrees to Visitor Agreement *
-                  </Label>
+              <div className="pt-4 border-t">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>📧 Email Workflow:</strong> After creating the invitation, your guest will receive 
+                    an email to accept the Terms & Conditions and Visitor Agreement before you can generate their QR code.
+                  </p>
                 </div>
               </div>
 
@@ -460,39 +427,54 @@ export default function InvitesPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium">{invitation.guest.name}</h3>
                         {getStatusBadge(invitation)}
+                        {hasAcceptedTerms(invitation) && (
+                          <Badge variant="success" className="text-xs">Terms Accepted</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">{invitation.guest.email}</p>
+                      
+                      {!hasAcceptedTerms(invitation) && invitation.status === 'PENDING' && (
+                        <p className="text-sm text-amber-600 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Waiting for guest to accept terms via email
+                        </p>
+                      )}
+                      
                       {invitation.status === 'ACTIVATED' && invitation.qrExpiresAt && (
                         <p className="text-sm text-amber-600 flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          Expires: {formatTimeInLA(new Date(invitation.qrExpiresAt))}
+                          QR Expires: {formatTimeInLA(new Date(invitation.qrExpiresAt))}
                         </p>
                       )}
+                      
                       {invitation.status === 'CHECKED_IN' && (
                         <p className="text-sm text-green-600">
-                          Checked in at {invitation.guest.name}
+                          Checked in successfully
                         </p>
                       )}
                     </div>
                     
                     <div className="flex gap-2">
+                      {invitation.status === 'PENDING' && !hasAcceptedTerms(invitation) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled
+                          className="opacity-50"
+                        >
+                          <QrCode className="h-4 w-4 mr-1" />
+                          Awaiting Terms
+                        </Button>
+                      )}
+                      
                       {canActivate(invitation) && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleMarkAccepted(invitation.id)}
-                          >
-                            Mark Accepted
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleActivateQR(invitation.id)}
-                          >
-                            <QrCode className="h-4 w-4 mr-1" />
-                            Activate QR
-                          </Button>
-                        </>
+                        <Button
+                          size="sm"
+                          onClick={() => handleActivateQR(invitation.id)}
+                        >
+                          <QrCode className="h-4 w-4 mr-1" />
+                          Generate QR
+                        </Button>
                       )}
                       
                       {invitation.status === 'ACTIVATED' && (

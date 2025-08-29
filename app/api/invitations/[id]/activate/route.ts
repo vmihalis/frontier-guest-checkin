@@ -41,6 +41,19 @@ export async function POST(
       );
     }
 
+    // Check if guest has accepted terms and conditions
+    const acceptance = await prisma.acceptance.findFirst({
+      where: { guestId: invitation.guestId },
+      orderBy: { acceptedAt: 'desc' },
+    });
+
+    if (!acceptance) {
+      return NextResponse.json(
+        { error: 'Guest must accept Terms and Conditions before QR code can be generated' },
+        { status: 400 }
+      );
+    }
+
     // Validate business rules
     const validation = await validateActivateQR(
       hostId,

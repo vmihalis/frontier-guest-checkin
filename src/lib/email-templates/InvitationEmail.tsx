@@ -18,13 +18,13 @@ import {
 interface InvitationEmailProps {
   guestName: string;
   hostName: string;
-  activationUrl: string;
+  acceptanceUrl: string;
 }
 
 export default function InvitationEmail({
   guestName,
   hostName,
-  activationUrl,
+  acceptanceUrl,
 }: InvitationEmailProps) {
   return (
     <Html>
@@ -66,15 +66,15 @@ export default function InvitationEmail({
                 Next Steps:
               </Heading>
               <Text style={{ margin: '10px 0', color: '#333' }}>
-                1. Click the activation link below to generate your QR code<br />
-                2. Save the QR code to your phone<br />
+                1. Click the link below to accept our Terms and Visitor Agreement<br />
+                2. Once accepted, your host will generate your QR code<br />
                 3. Present the QR code at the Frontier Tower check-in kiosk
               </Text>
             </Section>
             
             <Section style={{ textAlign: 'center', margin: '30px 0' }}>
               <Button
-                href={activationUrl}
+                href={acceptanceUrl}
                 style={{
                   background: '#007bff',
                   color: 'white',
@@ -85,7 +85,7 @@ export default function InvitationEmail({
                   fontWeight: 'bold',
                 }}
               >
-                Activate Your Invitation
+                Accept Terms & Continue
               </Button>
             </Section>
             
@@ -99,8 +99,8 @@ export default function InvitationEmail({
                 border: '1px solid #ffeaa7',
               }}
             >
-              <strong>Important:</strong> This invitation must be activated before your visit. 
-              QR codes expire 24 hours after activation for security purposes.
+              <strong>Important:</strong> You must accept the Terms and Visitor Agreement before your visit. 
+              Your host will generate the QR code once you have completed the acceptance process.
             </Text>
             
             <Hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '30px 0' }} />
