@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateInLA, formatTimeInLA, formatCountdown, TIMEZONE_DISPLAY } from '@/lib/timezone';
-import { generateQRDisplayData } from '@/lib/qr-token';
+import { QRCodeComponent } from '@/components/ui/qrcode';
 import { Search, QrCode, Copy, RotateCcw, UserCheck, Clock, Users, Calendar } from 'lucide-react';
 
 interface Guest {
@@ -240,9 +240,8 @@ export default function InvitesPage() {
 
   const copyQRToken = () => {
     if (qrModalData.invitation?.qrToken) {
-      const qrData = generateQRDisplayData(qrModalData.invitation.qrToken);
-      navigator.clipboard.writeText(qrData);
-      toast({ title: 'Copied', description: 'QR code data copied to clipboard!' });
+      navigator.clipboard.writeText(qrModalData.invitation.qrToken);
+      toast({ title: 'Copied', description: 'QR code token copied to clipboard!' });
     }
   };
 
@@ -604,13 +603,27 @@ export default function InvitesPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-center p-8 bg-white rounded-lg border">
                   <div className="text-center">
-                    <div className="text-6xl mb-4">📱</div>
-                    <p className="text-sm text-muted-foreground">QR Code Placeholder</p>
+                    {qrModalData.invitation.qrToken ? (
+                      <QRCodeComponent 
+                        value={qrModalData.invitation.qrToken}
+                        size={256}
+                        className="mb-4"
+                        onError={(error) => {
+                          console.error('QR Code generation failed:', error);
+                          toast({ 
+                            title: 'QR Code Error', 
+                            description: 'Failed to generate QR code. Please try regenerating.' 
+                          });
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-6xl mb-4">❌</div>
+                        <p className="text-sm text-muted-foreground">No QR token available</p>
+                      </div>
+                    )}
                     <p className="text-xs font-mono bg-gray-100 p-2 rounded mt-2 break-all">
-                      {qrModalData.invitation.qrToken ? 
-                        generateQRDisplayData(qrModalData.invitation.qrToken) : 
-                        'No token available'
-                      }
+                      {qrModalData.invitation.qrToken || 'No token available'}
                     </p>
                   </div>
                 </div>

@@ -76,6 +76,7 @@ export function validateQRToken(token: string): { isValid: boolean; data?: QRTok
  * Parse QR code data to determine if it's single-guest or multi-guest format
  */
 export function parseQRData(qrData: string): ParsedQRData {
+  // First, try to parse as direct JSON (multi-guest or direct single-guest format)
   try {
     const parsed = JSON.parse(qrData);
     
@@ -87,7 +88,18 @@ export function parseQRData(qrData: string): ParsedQRData {
       };
     }
     
-    // Check if it's single-guest token format (base64 encoded)
+    // Check if it's direct JSON single-guest format
+    if (parsed.inviteId && parsed.guestEmail && parsed.hostId) {
+      return {
+        type: 'single',
+        singleGuest: parsed as QRTokenData
+      };
+    }
+    
+    // If JSON parsed but doesn't match expected formats
+    throw new Error('Unknown JSON QR format');
+  } catch (jsonError) {
+    // If JSON parsing failed, try base64 decoding (single-guest token format)
     try {
       const decoded = JSON.parse(atob(qrData)) as QRTokenData;
       if (decoded.inviteId && decoded.guestEmail && decoded.hostId) {
@@ -96,19 +108,13 @@ export function parseQRData(qrData: string): ParsedQRData {
           singleGuest: decoded
         };
       }
-    } catch {
-      // If not base64, might be direct JSON single-guest format
-      if (parsed.inviteId && parsed.guestEmail && parsed.hostId) {
-        return {
-          type: 'single',
-          singleGuest: parsed as QRTokenData
-        };
-      }
+      throw new Error('Base64 decoded but missing required fields');
+    } catch (base64Error) {
+      // Both JSON and base64 parsing failed
+      console.error('QR parsing failed - JSON error:', jsonError instanceof Error ? jsonError.message : 'Unknown');
+      console.error('QR parsing failed - Base64 error:', base64Error instanceof Error ? base64Error.message : 'Unknown');
+      throw new Error('Invalid QR data format - neither valid JSON nor base64 token');
     }
-    
-    throw new Error('Unknown QR format');
-  } catch {
-    throw new Error('Invalid QR data format');
   }
 }
 
