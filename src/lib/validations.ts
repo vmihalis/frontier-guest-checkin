@@ -83,6 +83,25 @@ export function validateTimeCutoff(): ValidationResult {
 }
 
 /**
+ * Check if guest is blacklisted
+ */
+export async function validateGuestBlacklist(guestEmail: string): Promise<ValidationResult> {
+  const guest = await prisma.guest.findUnique({
+    where: { email: guestEmail },
+    select: { blacklistedAt: true }
+  });
+
+  if (guest?.blacklistedAt) {
+    return {
+      isValid: false,
+      error: "Guest is blacklisted and cannot be admitted.",
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
  * Check if guest has accepted terms and visitor agreement
  */
 export async function validateGuestAcceptance(guestId: string): Promise<ValidationResult> {
@@ -206,6 +225,12 @@ export async function validateAdmitGuest(
   guestEmail: string,
   qrExpiresAt: Date | null
 ): Promise<ValidationResult> {
+  // Check if guest is blacklisted (early check)
+  const blacklistResult = await validateGuestBlacklist(guestEmail);
+  if (!blacklistResult.isValid) {
+    return blacklistResult;
+  }
+
   // Check time cutoff
   const timeCutoffResult = validateTimeCutoff();
   if (!timeCutoffResult.isValid) {
