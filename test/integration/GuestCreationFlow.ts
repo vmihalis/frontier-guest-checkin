@@ -113,11 +113,13 @@ export class GuestCreationFlow {
 
     // Step 3: Create the actual visit
     const visit = await prisma.visit.create({
-      data: TestDataFactory.createVisit(guest!.id, host.id, {
+      data: {
+        guestId: guest!.id,
+        hostId: host!.id,
         invitationId: invitation!.id,
         checkedInAt: new Date(),
         checkedOutAt: null,
-      })
+      }
     })
 
     // Update invitation status
@@ -242,9 +244,11 @@ BENEFITS:
       const host = await prisma.user.findFirst({ where: { role: 'host' } })
       
       await prisma.visit.create({
-        data: TestDataFactory.createVisit(guestWithoutTerms.id, host!.id, {
+        data: {
+          guestId: guestWithoutTerms.id,
+          hostId: host!.id,
           checkedInAt: new Date(),
-        })
+        }
       })
       
       results.push({

@@ -34,7 +34,7 @@ export default function LoginPage() {
     setIsFormValid(emailValid && passwordValid)
   }, [email, password])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Basic validation
@@ -48,15 +48,41 @@ export default function LoginPage() {
       return
     }
 
-    // TODO: Replace with actual API call to authenticate user
-    // Example: const response = await fetch('/api/auth/signin', { method: 'POST', body: JSON.stringify({ email, password }) })
+    try {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-    console.log({ email, password })
+      const data = await response.json();
 
-    toast({
-      title: "Mock sign-in successful",
-      description: "You would now be redirected to the dashboard.",
-    })
+      if (!response.ok) {
+        toast({
+          title: "Sign-in failed",
+          description: data.error || "Please check your credentials.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Sign-in successful",
+        description: `Welcome, ${data.user.name}!`,
+      });
+
+      // Redirect to invites page
+      window.location.href = '/invites';
+    } catch (error) {
+      console.error('Sign-in error:', error);
+      toast({
+        title: "Sign-in failed",
+        description: "Network error. Please try again.",
+        variant: "destructive"
+      });
+    }
   }
 
   return (

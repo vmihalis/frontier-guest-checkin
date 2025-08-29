@@ -1,26 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUserId } from '@/lib/auth';
 import { validateCreateInvitation } from '@/lib/validations';
 import { todayInLA } from '@/lib/timezone';
 import { sendInvitationEmail } from '@/lib/email';
 import type { ContactMethod } from '@prisma/client';
-
-// TODO: Replace with actual auth middleware
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function getCurrentUserId(_request: NextRequest): Promise<string> {
-  // Mock implementation - in production, get from auth session
-  // For development, use the first host user from the database
-  const hostUser = await prisma.user.findFirst({
-    where: { role: 'host' },
-    select: { id: true }
-  });
-  
-  if (!hostUser) {
-    throw new Error('No host user found in database. Run npm run db:seed first.');
-  }
-  
-  return hostUser.id;
-}
 
 export async function POST(request: NextRequest) {
   try {

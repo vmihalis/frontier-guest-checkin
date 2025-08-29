@@ -210,11 +210,11 @@ export class InvitationQRFlow {
         host: invitation.host,
       }
 
-    } catch {
-      console.log(`❌ QR scan failed: ${error.message}`)
+    } catch (error) {
+      console.log(`❌ QR scan failed: ${error instanceof Error ? error.message : String(error)}`)
       return {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }
     }
   }
@@ -235,7 +235,7 @@ export class InvitationQRFlow {
     }
 
     // Get or create valid guests
-    const guests = []
+    const guests: any[] = []
     const existingGuests = await prisma.guest.findMany({
       where: {
         blacklistedAt: null,
@@ -417,9 +417,10 @@ export class InvitationQRFlow {
       console.log('\n🏆 ALL INVITATION-BASED TESTS PASSED')
 
       return { success: true }
-    } catch {
-      console.error(`❌ Invitation flow test failed: ${error.message}`)
-      return { success: false, error: error.message }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Invitation flow test failed: ${message}`)
+      return { success: false, error: message }
     }
   }
 }

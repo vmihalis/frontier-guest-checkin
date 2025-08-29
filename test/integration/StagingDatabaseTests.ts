@@ -62,8 +62,8 @@ export class StagingDatabaseTests {
       ])
       
       console.log(`✅ Staging data: ${stats[0]} users, ${stats[1]} guests, ${stats[2]} visits`)
-    } catch {
-      throw new Error(`❌ Failed to connect to staging: ${error.message}`)
+    } catch (error) {
+      throw new Error(`❌ Failed to connect to staging: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -185,12 +185,14 @@ export class StagingDatabaseTests {
         })
 
         // Create visit in staging
-        await prisma.visit.create({
-          data: TestDataFactory.createVisit(guest.id, host.id, {
+        const visit = await prisma.visit.create({
+          data: {
+            guestId: guest.id,
+            hostId: host.id,
             invitationId: invitation.id,
             checkedInAt: new Date(),
             checkedOutAt: null,
-          })
+          }
         })
 
         results.push({
@@ -201,13 +203,14 @@ export class StagingDatabaseTests {
         })
 
         console.log(`✅ ${guest.name} checked in successfully`)
-      } catch {
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         results.push({
           email: guest.email,
           status: 'ERROR',
-          error: error.message,
+          error: message,
         })
-        console.log(`❌ ${guest.name} failed: ${error.message}`)
+        console.log(`❌ ${guest.name} failed: ${message}`)
       }
     }
 
@@ -302,10 +305,12 @@ export class StagingDatabaseTests {
     // Test terms acceptance requirement
     try {
       await prisma.visit.create({
-        data: TestDataFactory.createVisit(newGuest.id, host.id, {
+        data: {
+          guestId: newGuest.id,
+          hostId: host.id,
           invitationId: invitation.id,
           checkedInAt: new Date(),
-        })
+        }
       })
       console.log(`❌ ERROR: Visit created without terms acceptance!`)
       return false
@@ -330,12 +335,14 @@ export class StagingDatabaseTests {
     console.log(`✅ Terms accepted for guest`)
 
     // Now create visit
-    await prisma.visit.create({
-      data: TestDataFactory.createVisit(newGuest.id, host.id, {
+    const visit = await prisma.visit.create({
+      data: {
+        guestId: newGuest.id,
+        hostId: host.id,
         invitationId: invitation.id,
         checkedInAt: new Date(),
         checkedOutAt: null,
-      })
+      }
     })
 
     console.log(`✅ Visit created successfully: ${visit.id}`)

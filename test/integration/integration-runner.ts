@@ -36,13 +36,13 @@ async function main() {
         console.log('\n🎯 Testing multi-guest check-in against staging...')
         await StagingDatabaseTests.verifyEnvironment()
         const result = await StagingDatabaseTests.testRealMultiGuestCheckin()
-        process.exit(result.success ? 0 : 1)
+        process.exit(result && typeof result === 'object' && result.success ? 0 : 1)
 
       case 'invitation':
         console.log('\n📋 Testing guest invitation flow against staging...')
         await StagingDatabaseTests.verifyEnvironment()
         const inviteResult = await StagingDatabaseTests.testGuestInvitationFlow()
-        process.exit(inviteResult.success ? 0 : 1)
+        process.exit(inviteResult && typeof inviteResult === 'object' && inviteResult.success ? 0 : 1)
 
       case 'qr-flow':
         console.log('\n📱 Testing QR invitation flow against staging...')

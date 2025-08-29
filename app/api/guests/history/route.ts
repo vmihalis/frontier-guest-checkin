@@ -1,22 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUserId } from '@/lib/auth';
 import { getGuestStats } from '@/lib/validations';
-
-// TODO: Replace with actual auth middleware
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function getCurrentUserId(_request: NextRequest): Promise<string> {
-  // Mock implementation - get the first host user from the database
-  const hostUser = await prisma.user.findFirst({
-    where: { role: 'host' },
-    select: { id: true }
-  });
-  
-  if (!hostUser) {
-    throw new Error('No host user found in database');
-  }
-  
-  return hostUser.id;
-}
 
 export async function GET(request: NextRequest) {
   try {

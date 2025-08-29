@@ -4,7 +4,7 @@ import { POST as multiGuestPOST } from '../../app/api/checkin/multi-guest/route'
 import { POST as singleGuestPOST } from '../../app/api/checkin/route';  // Assuming single guest route
 
 // Helper to create mock request
-function mockRequest(body: any): NextRequest {
+function mockRequest(body: Record<string, unknown>): NextRequest {
   return {
     json: async () => body,
   } as NextRequest;

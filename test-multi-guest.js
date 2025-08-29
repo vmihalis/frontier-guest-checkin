@@ -1,5 +1,5 @@
 // Simple test script to verify multi-guest QR parsing
-const { parseQRData } = require('./src/lib/qr-token.js');
+import { parseQRData } from './src/lib/qr-token.js';
 
 // Test multi-guest QR data (as provided by user)
 const multiGuestQR = JSON.stringify({
