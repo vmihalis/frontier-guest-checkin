@@ -211,7 +211,7 @@ export class InvitationQRFlow {
         host: invitation.host,
       }
 
-    } catch (error: any) {
+    } catch (_error: unknown) {
       console.log(`❌ QR scan failed: ${error.message}`)
       return {
         success: false,
@@ -418,7 +418,7 @@ export class InvitationQRFlow {
       console.log('\n🏆 ALL INVITATION-BASED TESTS PASSED')
 
       return { success: true }
-    } catch (error: any) {
+    } catch (_error: unknown) {
       console.error(`❌ Invitation flow test failed: ${error.message}`)
       return { success: false, error: error.message }
     }

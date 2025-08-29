@@ -110,7 +110,7 @@ export class MultiGuestCheckinScenario {
           status: 'CHECKED_IN',
           visitId: visit.id,
         })
-      } catch (error: any) {
+      } catch (_error: unknown) {
         results.push({
           email: guestData.e,
           status: 'ERROR',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,7 +79,7 @@ export default function InvitesPage() {
   }>({ isOpen: false });
 
   // Load data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -112,11 +112,11 @@ export default function InvitesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedDate, searchTerm, toast]);
 
   useEffect(() => {
     loadData();
-  }, [selectedDate, searchTerm]);
+  }, [loadData]);
 
   // Update countdown for QR modal
   useEffect(() => {
@@ -168,7 +168,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to create invitation' });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };
@@ -192,7 +192,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to activate QR code' });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };
@@ -214,7 +214,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to admit guest' });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };
@@ -233,7 +233,7 @@ export default function InvitesPage() {
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to record acceptance' });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({ title: 'Error', description: 'Network error. Please try again.' });
     }
   };

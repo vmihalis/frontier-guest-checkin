@@ -4,7 +4,7 @@ import { validateAdmitGuest, shouldTriggerDiscount, checkExistingActiveVisit } f
 import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
 
 // TODO: Replace with actual auth middleware
-function getCurrentUserId(_request: NextRequest): string {
+function getCurrentUserId(request: NextRequest): string {
   return 'mock-host-id';
 }
 

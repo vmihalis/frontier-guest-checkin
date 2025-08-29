@@ -69,7 +69,7 @@ export class GuestCreationFlow {
         invitation,
         flow: 'CREATE_GUEST_FIRST'
       }
-    } catch (error: any) {
+    } catch (_error: unknown) {
       console.log(`❌ Current approach failed: ${error.message}`)
       return { success: false, error: error.message }
     }
@@ -223,7 +223,7 @@ BENEFITS:
           note: 'System allows multiple invitations to same guest'
         })
       }
-    } catch (error: any) {
+    } catch (_error: unknown) {
       results.push({
         case: 'DUPLICATE_EMAIL_INVITE', 
         status: 'BLOCKED',
@@ -252,7 +252,7 @@ BENEFITS:
         status: 'ALLOWED',
         warning: 'System allows visits without terms - THIS IS A PROBLEM!'
       })
-    } catch (error: any) {
+    } catch (_error: unknown) {
       results.push({
         case: 'VISIT_WITHOUT_TERMS',
         status: 'BLOCKED', 
@@ -279,7 +279,7 @@ BENEFITS:
         status: 'ALLOWED',
         warning: 'System allows inviting blacklisted guests!'
       })
-    } catch (error: any) {
+    } catch (_error: unknown) {
       results.push({
         case: 'BLACKLISTED_INVITATION',
         status: 'BLOCKED',
@@ -328,7 +328,7 @@ BENEFITS:
       console.log('⚠️  Schema improvements needed for better UX')
 
       return { success: true }
-    } catch (error: any) {
+    } catch (_error: unknown) {
       console.error(`❌ Flow test failed: ${error.message}`)
       return { success: false, error: error.message }
     }

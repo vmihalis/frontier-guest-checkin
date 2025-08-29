@@ -20,13 +20,13 @@ export interface MultiGuestPayload {
 export class QRPayloadGenerator {
   private static SECRET_KEY = process.env.QR_SECRET || 'test-secret-key'
 
-  static generateSignature(payload: any): string {
+  static generateSignature(payload: unknown): string {
     const hmac = crypto.createHmac('sha256', this.SECRET_KEY)
     hmac.update(JSON.stringify(payload))
     return hmac.digest('hex')
   }
 
-  static createSingleGuestPayload(guest: any, options: { includeHost?: boolean; includeToken?: boolean } = {}): string {
+  static createSingleGuestPayload(guest: Record<string, unknown>, options: { includeHost?: boolean; includeToken?: boolean } = {}): string {
     const payload: GuestPayload = {
       e: guest.email,
       n: guest.name,
@@ -39,7 +39,7 @@ export class QRPayloadGenerator {
     return JSON.stringify(payload)
   }
 
-  static createMultiGuestPayload(guests: any[], options: { 
+  static createMultiGuestPayload(guests: Record<string, unknown>[], options: { 
     hostId?: string;
     eventId?: string;
     expiresIn?: number;
@@ -170,7 +170,7 @@ export class QRPayloadGenerator {
         return parsed as GuestPayload
       } else if ('emails' in parsed) {
         return {
-          guests: parsed.emails.map((item: any) => ({
+          guests: parsed.emails.map((item: Record<string, unknown>) => ({
             e: item.e,
             n: item.n,
             p: item.p,

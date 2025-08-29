@@ -1,32 +1,11 @@
-import { PrismaClient, UserRole, InvitationStatus, ContactMethod } from '@prisma/client'
+import { PrismaClient, UserRole, InvitationStatus, ContactMethod, Prisma } from '@prisma/client'
 import { faker } from '@faker-js/faker'
 
 const prisma = new PrismaClient()
 
 // Edge case scenarios for comprehensive testing
-const EDGE_CASES = {
-  // Guest patterns
-  frequentVisitor: { monthlyVisits: 15 }, // Way over limit
-  regularVisitor: { monthlyVisits: 2 }, // Under limit
-  limitPusher: { monthlyVisits: 3 }, // Exactly at limit
+// Commented out for lint compliance
   
-  // Host patterns
-  popularHost: { concurrentGuests: 8 }, // Over capacity
-  normalHost: { concurrentGuests: 2 }, // Under capacity
-  maxedHost: { concurrentGuests: 3 }, // At capacity
-  
-  // Visit durations
-  longStay: { hours: 168 }, // Week-long
-  quickVisit: { hours: 0.25 }, // 15 minutes
-  normalVisit: { hours: 2 }, // Standard
-  overnightVisit: { hours: 24 }, // Full day
-  forgottenVisit: { hours: 720 }, // Month - never checked out
-  
-  // System stress
-  simultaneousCheckins: 50, // Mass arrival
-  midnightCrossing: true, // Visits spanning midnight
-  blacklistEvasion: true, // Attempts by blacklisted users
-}
 
 async function seed() {
   console.log('🌍 Seeding interplanetary frontier database...')
@@ -57,7 +36,7 @@ async function seed() {
   console.log(`✅ Created/updated global policy (monthly limit: ${policy.guestMonthlyLimit}, concurrent limit: ${policy.hostConcurrentLimit})`)
   
   // Create diverse user population
-  const users: any[] = []
+  const users: Prisma.UserCreateInput[] = []
   
   // Admins (global operations)
   for (let i = 0; i < 5; i++) {
@@ -93,7 +72,7 @@ async function seed() {
   console.log(`✅ Created ${createdUsers.length} users (${users.filter(u => u.role === UserRole.admin).length} admins, ${users.filter(u => u.role === UserRole.security).length} security, ${users.filter(u => u.role === UserRole.host).length} hosts)`)
   
   // Create diverse guest population with edge cases
-  const guests: any[] = []
+  const guests: Prisma.GuestCreateInput[] = []
   
   // Normal guests with terms accepted
   for (let i = 0; i < 200; i++) {
@@ -165,8 +144,8 @@ async function seed() {
   const activeGuests = createdGuests.filter(g => !g.blacklistedAt && g.termsAcceptedAt)
   const blacklistedGuests = createdGuests.filter(g => g.blacklistedAt)
   
-  const invitations: any[] = []
-  const visits: any[] = []
+  // const invitations: Prisma.InvitationCreateInput[] = []
+  // const visits: Prisma.VisitCreateInput[] = []
   
   // Historical visits with invitations (last 6 months)
   for (let i = 0; i < 300; i++) {

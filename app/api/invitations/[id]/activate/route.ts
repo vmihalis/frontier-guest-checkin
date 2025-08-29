@@ -5,7 +5,7 @@ import { generateQRToken } from '@/lib/qr-token';
 import { nowInLA, getQRTokenExpiration } from '@/lib/timezone';
 
 // TODO: Replace with actual auth middleware
-function getCurrentUserId(_request: NextRequest): string {
+function getCurrentUserId(request: NextRequest): string {
   return 'mock-host-id';
 }
 

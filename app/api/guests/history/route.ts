@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getGuestStats } from '@/lib/validations';
 
 // TODO: Replace with actual auth middleware
-function getCurrentUserId(_request: NextRequest): string {
+function getCurrentUserId(request: NextRequest): string {
   return 'mock-host-id';
 }
 

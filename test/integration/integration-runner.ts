@@ -73,7 +73,7 @@ async function main() {
         console.log('⚠️  WARNING: These tests run against STAGING database!')
         console.log('⚠️  Ensure STAGING_DATABASE_URL is set correctly.')
     }
-  } catch (error: any) {
+  } catch (_error: unknown) {
     console.error('❌ Integration test failed:', error.message)
     process.exit(1)
   }

@@ -63,7 +63,7 @@ export class StagingDatabaseTests {
       ])
       
       console.log(`✅ Staging data: ${stats[0]} users, ${stats[1]} guests, ${stats[2]} visits`)
-    } catch (error: any) {
+    } catch (_error: unknown) {
       throw new Error(`❌ Failed to connect to staging: ${error.message}`)
     }
   }
@@ -202,7 +202,7 @@ export class StagingDatabaseTests {
         })
 
         console.log(`✅ ${guest.name} checked in successfully`)
-      } catch (error: any) {
+      } catch (_error: unknown) {
         results.push({
           email: guest.email,
           status: 'ERROR',
@@ -379,7 +379,7 @@ export class StagingDatabaseTests {
       console.log(`\n🏆 OVERALL RESULT: ${overallSuccess ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`)
       
       return overallSuccess
-    } catch (error: any) {
+    } catch (_error: unknown) {
       console.error('❌ STAGING TESTS FAILED:', error.message)
       return false
     } finally {

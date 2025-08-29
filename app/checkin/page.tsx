@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import QrScanner from 'qr-scanner';
+import Image from 'next/image';
 
 interface CameraDevice {
   deviceId: string;
@@ -61,12 +62,6 @@ export default function CheckInPage() {
     initializeScanner();
   }, []);
 
-  const handleScan = (result: any) => {
-    if (result) {
-      setScannedData(result[0]?.rawValue || result.text || JSON.stringify(result));
-      setIsScanning(false);
-    }
-  };
 
   const handleScanSuccess = (result: QrScanner.ScanResult) => {
     setScannedData(result.data);
@@ -88,7 +83,7 @@ export default function CheckInPage() {
     startScanner();
   };
 
-  const startScanner = async () => {
+  const startScanner = useCallback(async () => {
     if (!videoRef.current || !selectedCamera) return;
 
     try {
@@ -114,7 +109,7 @@ export default function CheckInPage() {
       console.error('Failed to start scanner:', error);
       setHasPermission(false);
     }
-  };
+  }, [selectedCamera]);
 
   const stopScanner = () => {
     if (qrScannerRef.current) {
@@ -133,7 +128,7 @@ export default function CheckInPage() {
     return () => {
       stopScanner();
     };
-  }, [isScanning, selectedCamera, hasPermission]);
+  }, [isScanning, selectedCamera, hasPermission, startScanner]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -189,9 +184,11 @@ export default function CheckInPage() {
         <div className="text-center mb-8">
           {/* Logo */}
           <div className="mb-6">
-            <img 
+            <Image 
               src="/logo.JPG" 
               alt="Frontier Tower Logo" 
+              width={96}
+              height={96}
               className="h-12 sm:h-16 md:h-20 lg:h-24 mx-auto mb-4 object-contain"
             />
           </div>

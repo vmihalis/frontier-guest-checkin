@@ -1,15 +1,17 @@
 #!/usr/bin/env tsx
 
 import { DatabaseHelpers } from './utils/DatabaseHelpers'
-import { QRPayloadGenerator } from './utils/QRPayloadGenerator'
-import { MultiGuestCheckinScenario } from './scenarios/MultiGuestCheckin'
 import fs from 'fs'
 import path from 'path'
 
-interface TestOptions {
-  scenario?: string
-  cleanup?: boolean
-  verbose?: boolean
+interface TestScenarioConfig {
+  generate?: boolean;
+  count?: number;
+  guests?: Record<string, unknown>[];
+}
+
+interface TestFixtures {
+  scenarios: Record<string, TestScenarioConfig>;
 }
 
 class TestRunner {
@@ -18,7 +20,7 @@ class TestRunner {
     console.log('=' .repeat(50))
 
     const fixturePath = path.join(__dirname, 'fixtures', 'multi-checkin-real.json')
-    const fixtures = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
+    const fixtures: TestFixtures = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
     
     const scenario = fixtures.scenarios[fixtureName]
     if (!scenario) {
@@ -70,7 +72,7 @@ class TestRunner {
       }
 
       let status = 'VALID'
-      let issues = []
+      const issues = []
 
       if (dbGuest.blacklistedAt) {
         status = 'BLACKLISTED'
@@ -166,12 +168,12 @@ class TestRunner {
 
   static async showAvailableScenarios() {
     const fixturePath = path.join(__dirname, 'fixtures', 'multi-checkin-real.json')
-    const fixtures = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
+    const fixtures: TestFixtures = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'))
     
     console.log('\n📋 Available Test Scenarios:')
     console.log('=' .repeat(40))
     
-    Object.entries(fixtures.scenarios).forEach(([name, config]: [string, any]) => {
+    Object.entries(fixtures.scenarios).forEach(([name, config]: [string, TestScenarioConfig]) => {
       const guestCount = config.generate ? config.count : config.guests.length
       console.log(`• ${name}: ${guestCount} guests`)
     })

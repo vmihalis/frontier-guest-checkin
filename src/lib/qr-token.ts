@@ -52,7 +52,7 @@ export function validateQRToken(token: string): { isValid: boolean; data?: QRTok
     }
     
     return { isValid: true, data: decoded };
-  } catch (error) {
+  } catch (_error) {
     return { isValid: false, error: "Invalid token format" };
   }
 }

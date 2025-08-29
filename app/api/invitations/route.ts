@@ -6,7 +6,7 @@ import { sendInvitationEmail } from '@/lib/email';
 import type { ContactMethod } from '@prisma/client';
 
 // TODO: Replace with actual auth middleware
-async function getCurrentUserId(_request: NextRequest): Promise<string> {
+async function getCurrentUserId(request: NextRequest): Promise<string> {
   // Mock implementation - in production, get from auth session
   // For development, use the first host user from the database
   const hostUser = await prisma.user.findFirst({
