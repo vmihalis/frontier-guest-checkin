@@ -4,11 +4,21 @@ import { getCurrentUserId } from '@/lib/auth';
 import { validateCreateInvitation } from '@/lib/validations';
 import { todayInLA } from '@/lib/timezone';
 import { sendInvitationEmail } from '@/lib/email';
+import { getCurrentUserId } from '@/lib/auth';
 import type { ContactMethod } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
-    const hostId = await getCurrentUserId(request);
+    // Check authentication
+    let hostId: string;
+    try {
+      hostId = await getCurrentUserId(request);
+    } catch {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
     const body = await request.json();
     
     const { 
@@ -105,8 +115,8 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`Invitation email sent successfully: ${emailResult.messageId}`);
       }
-    } catch (error) {
-      console.error('Email service error during invitation creation:', error);
+    } catch {
+      console.error('Email service error during invitation creation:');
       // TODO: Queue for retry in background job system
     }
 
@@ -114,8 +124,8 @@ export async function POST(request: NextRequest) {
       invitation,
       message: 'Invitation created successfully',
     });
-  } catch (error) {
-    console.error('Error creating invitation:', error);
+  } catch {
+    console.error('Error creating invitation:');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -125,7 +135,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const hostId = await getCurrentUserId(request);
+    // Check authentication
+    let hostId: string;
+    try {
+      hostId = await getCurrentUserId(request);
+    } catch {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date') || todayInLA();
 
@@ -143,8 +162,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ invitations });
-  } catch (error) {
-    console.error('Error fetching invitations:', error);
+  } catch {
+    console.error('Error fetching invitations:');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

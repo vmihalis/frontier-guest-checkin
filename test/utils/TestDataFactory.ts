@@ -84,7 +84,7 @@ export class TestDataFactory {
 
   static createVisit(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
     const now = new Date()
-    const checkedIn = overrides.checkedInAt as Date || now
+    const checkedIn = (overrides.checkedInAt as Date) || now
     const stayHours = faker.number.float({ min: 0.5, max: 8 })
     
     const base = {
@@ -95,7 +95,7 @@ export class TestDataFactory {
       invitedAt: now,
       checkedInAt: checkedIn,
       checkedOutAt: overrides.checkedOutAt !== undefined 
-        ? overrides.checkedOutAt as Date | null
+        ? (overrides.checkedOutAt as Date | null)
         : new Date((checkedIn as Date).getTime() + stayHours * 60 * 60 * 1000),
       expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
       overrideReason: null,

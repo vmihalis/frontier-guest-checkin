@@ -47,7 +47,7 @@ class TestRunner {
     }
 
     const qrPayload = JSON.stringify({ emails: guests })
-    console.log(`\n📱 QR Payload for ${guests.length} guests:`)
+    console.log(`\n📱 QR Payload for ${guests?.length || 0} guests:`)
     console.log(qrPayload.substring(0, 200) + '...')
 
     const prisma = DatabaseHelpers.getPrisma()

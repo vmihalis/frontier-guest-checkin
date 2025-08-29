@@ -1,179 +1,216 @@
-/**
- * Simple hackathon authentication - just check if email exists in database
- * Any password works, no real security (for demo only!)
- */
-
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from './prisma';
-import type { User as PrismaUser, UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
+import * as jose from 'jose';
+import { isDemoMode, getDemoUser, logDemo } from './demo-config';
 
-const SESSION_COOKIE = 'frontier-session';
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'default-dev-secret-change-in-production'
+);
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+}
+
+export interface AuthContext {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+}
 
 /**
- * Get the current authenticated user from the database
- * @param request - Next.js request object with cookies
- * @returns Prisma User object if authenticated, null otherwise
+ * Creates a JWT token for authenticated user
  */
-export async function getCurrentUser(request: NextRequest): Promise<PrismaUser | null> {
+export async function createAuthToken(user: AuthUser): Promise<string> {
+  const jwt = await new jose.SignJWT({
+    sub: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('24h')
+    .sign(JWT_SECRET);
+
+  return jwt;
+}
+
+/**
+ * Verifies and decodes a JWT token
+ */
+export async function verifyAuthToken(token: string): Promise<AuthUser | null> {
   try {
-    const sessionCookie = request.cookies.get(SESSION_COOKIE);
+    const { payload } = await jose.jwtVerify(token, JWT_SECRET);
     
-    if (!sessionCookie) {
+    if (!payload.sub || !payload.email || !payload.name || !payload.role) {
       return null;
     }
 
-    // For hackathon: session cookie just contains the user ID directly
-    const userId = sessionCookie.value;
-    
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    return user;
+    return {
+      id: payload.sub as string,
+      email: payload.email as string,
+      name: payload.name as string,
+      role: payload.role as UserRole,
+    };
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error('JWT verification failed:', error);
     return null;
   }
 }
 
 /**
- * Get the current user ID (replacement for getCurrentUserId mock functions)
- * @param request - Next.js request object with cookies
- * @returns User ID string if authenticated
- * @throws Error if user is not authenticated
+ * Authenticates a user with email and password
+ */
+export async function authenticateUser(
+  email: string, 
+  password: string
+): Promise<AuthUser | null> {
+  try {
+    // TODO: In production, implement proper password hashing with bcrypt
+    // For now, we'll use a simple check for development
+    
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    // TODO: Replace with actual password verification
+    // For development, accept any password for seeded users
+    console.log(`Mock authentication for user: ${email} with password: ${password}`);
+    
+    return user;
+  } catch (error) {
+    console.error('User authentication failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Extracts authentication context from request
+ * 🎭 DEMO MODE: Bypasses auth checks when enabled
+ */
+export async function getAuthContext(request: NextRequest): Promise<AuthContext> {
+  // 🎭 DEMO MODE: Return real seeded user if demo mode is enabled
+  if (isDemoMode()) {
+    const demoUser = await getDemoUser();
+    logDemo('Using real seeded user for auth context', demoUser);
+    return {
+      user: demoUser,
+      isAuthenticated: true,
+    };
+  }
+
+  // 🔒 PRODUCTION AUTH: Full authentication logic preserved
+  try {
+    // Try to get token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    let token: string | null = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+
+    // Fallback to cookie
+    if (!token) {
+      token = request.cookies.get('auth-token')?.value || null;
+    }
+
+    if (!token) {
+      return { user: null, isAuthenticated: false };
+    }
+
+    const user = await verifyAuthToken(token);
+    return {
+      user,
+      isAuthenticated: user !== null,
+    };
+  } catch (error) {
+    console.error('Failed to get auth context:', error);
+    return { user: null, isAuthenticated: false };
+  }
+}
+
+/**
+ * Gets the current authenticated user ID from request
+ * 🎭 DEMO MODE: Returns demo user ID when enabled
+ * Throws error if not authenticated in production mode
  */
 export async function getCurrentUserId(request: NextRequest): Promise<string> {
-  const user = await getCurrentUser(request);
+  // 🎭 DEMO MODE: Return real seeded user ID immediately
+  if (isDemoMode()) {
+    const demoUser = await getDemoUser();
+    logDemo('getCurrentUserId returning real seeded user ID', demoUser.id);
+    return demoUser.id;
+  }
+
+  // 🔒 PRODUCTION AUTH: Full authentication required
+  const { user, isAuthenticated } = await getAuthContext(request);
   
-  if (!user) {
-    throw new Error('User not authenticated');
+  if (!isAuthenticated || !user) {
+    throw new Error('Authentication required');
   }
   
   return user.id;
 }
 
 /**
- * Middleware helper to protect API routes
- * @param request - Next.js request object
- * @param allowedRoles - Optional array of roles allowed to access this route
- * @returns Object with user data if authorized, or error response
+ * Gets the current authenticated user from request
+ * 🎭 DEMO MODE: Returns demo user when enabled
+ * Throws error if not authenticated in production mode
  */
-export async function requireAuth(
-  request: NextRequest,
-  allowedRoles?: UserRole[]
-): Promise<{ user: PrismaUser } | { error: NextResponse }> {
-  try {
-    const user = await getCurrentUser(request);
-    
-    if (!user) {
-      return {
-        error: NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401 }
-        ),
-      };
-    }
-
-    // Check role permissions if specified
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-      return {
-        error: NextResponse.json(
-          { error: 'Insufficient permissions' },
-          { status: 403 }
-        ),
-      };
-    }
-
-    return { user };
-  } catch (error) {
-    console.error('Auth middleware error:', error);
-    return {
-      error: NextResponse.json(
-        { error: 'Authentication failed' },
-        { status: 401 }
-      ),
-    };
+export async function getCurrentUser(request: NextRequest): Promise<AuthUser> {
+  // 🎭 DEMO MODE: Return real seeded user immediately  
+  if (isDemoMode()) {
+    const demoUser = await getDemoUser();
+    logDemo('getCurrentUser returning real seeded user', demoUser);
+    return demoUser;
   }
-}
 
-/**
- * Sign in a user with email (password is ignored for hackathon)
- * @param email - User email
- * @param _password - Password (ignored)
- * @returns Success/error response with user data
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function signInUser(email: string, _password: string) {
-  try {
-    // Find user in database by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return { error: 'Email not found in database', user: null };
-    }
-
-    // For hackathon: any password works, just return the user
-    return { error: null, user };
-  } catch (error) {
-    console.error('Sign in error:', error);
-    return { error: 'Sign in failed', user: null };
+  // 🔒 PRODUCTION AUTH: Full authentication required
+  const { user, isAuthenticated } = await getAuthContext(request);
+  
+  if (!isAuthenticated || !user) {
+    throw new Error('Authentication required');
   }
+  
+  return user;
 }
 
 /**
- * Create a session response with cookie
- * @param user - User to create session for
- * @returns NextResponse with session cookie
+ * Checks if user has required role
  */
-export function createSessionResponse(user: PrismaUser): NextResponse {
-  const response = NextResponse.json({ 
-    success: true, 
-    user: { id: user.id, email: user.email, name: user.name, role: user.role }
-  });
-  
-  // Set session cookie (just the user ID for simplicity)
-  response.cookies.set(SESSION_COOKIE, user.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/',
-  });
-
-  return response;
-}
-
-/**
- * Clear session cookie
- * @returns NextResponse with cleared session cookie
- */
-export function clearSessionResponse(): NextResponse {
-  const response = NextResponse.json({ success: true, message: 'Signed out' });
-  
-  response.cookies.delete(SESSION_COOKIE);
-  
-  return response;
-}
-
-/**
- * Check if user has specific role
- * @param user - Prisma User object
- * @param role - Role to check
- * @returns boolean
- */
-export function hasRole(user: PrismaUser, role: UserRole): boolean {
+export function hasRole(user: AuthUser, role: UserRole): boolean {
   return user.role === role;
 }
 
 /**
- * Check if user has any of the specified roles
- * @param user - Prisma User object
- * @param roles - Array of roles to check
- * @returns boolean
+ * Checks if user has any of the required roles
  */
-export function hasAnyRole(user: PrismaUser, roles: UserRole[]): boolean {
+export function hasAnyRole(user: AuthUser, roles: UserRole[]): boolean {
   return roles.includes(user.role);
+}
+
+/**
+ * Role hierarchy: admin > security > host
+ */
+export function hasRoleOrHigher(user: AuthUser, minRole: UserRole): boolean {
+  const roleHierarchy: Record<UserRole, number> = {
+    host: 1,
+    security: 2,
+    admin: 3,
+  };
+  
+  return roleHierarchy[user.role] >= roleHierarchy[minRole];
 }

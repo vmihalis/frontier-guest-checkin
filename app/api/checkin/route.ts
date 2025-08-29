@@ -137,8 +137,8 @@ export async function POST(request: NextRequest) {
           console.error('Failed to send discount email:', emailResult.error);
           // TODO: Queue for retry in background job system
         }
-      } catch (error) {
-        console.error('Email service error during discount trigger:', error);
+      } catch {
+        console.error('Email service error during discount trigger:');
         // TODO: Queue for retry in background job system
       }
     }
@@ -154,8 +154,8 @@ export async function POST(request: NextRequest) {
         ? `Check-in successful! Discount earned (3rd lifetime visit).${discountEmailSent ? ' Check your email!' : ''}` 
         : 'Check-in successful! Welcome to Frontier Tower.',
     });
-  } catch (error) {
-    console.error('Error processing check-in:', error);
+  } catch {
+    console.error('Error processing check-in:');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

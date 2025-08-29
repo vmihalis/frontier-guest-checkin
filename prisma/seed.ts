@@ -531,6 +531,67 @@ async function seed() {
   })
   console.log(`Blocked blacklist invitation attempts: ${blacklistAttempts}`)
   
+  // 🔥 BATTLE TEST INVITATIONS - Ready-to-scan QR codes for testing
+  console.log('\n🎯 Creating battle test invitations...')
+  
+  const battleHosts = hosts.slice(0, 3) // Use first 3 hosts
+  const qrExpiry = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours from now
+  
+  // SUCCESS CASE 1: Clean guest with active QR
+  const successGuest1 = activeGuests[0]
+  const battleInv1 = await prisma.invitation.create({
+    data: {
+      guestId: successGuest1.id,
+      hostId: battleHosts[0].id,
+      status: InvitationStatus.ACTIVATED,
+      inviteDate: new Date(),
+      qrToken: `BATTLE-SUCCESS-1-${Date.now()}`,
+      qrIssuedAt: new Date(),
+      qrExpiresAt: qrExpiry
+    }
+  })
+  
+  // SUCCESS CASE 2: Clean guest with active QR
+  const successGuest2 = activeGuests[1]
+  const battleInv2 = await prisma.invitation.create({
+    data: {
+      guestId: successGuest2.id,
+      hostId: battleHosts[1].id,
+      status: InvitationStatus.ACTIVATED,
+      inviteDate: new Date(),
+      qrToken: `BATTLE-SUCCESS-2-${Date.now()}`,
+      qrIssuedAt: new Date(),
+      qrExpiresAt: qrExpiry
+    }
+  })
+
+  // FAILURE CASE: Blacklisted guest with QR (should fail at check-in)
+  const blacklistedGuest = blacklistedGuests[0]
+  const battleInv3 = await prisma.invitation.create({
+    data: {
+      guestId: blacklistedGuest.id,
+      hostId: battleHosts[2].id,
+      status: InvitationStatus.ACTIVATED,
+      inviteDate: new Date(),
+      qrToken: `BATTLE-FAIL-BLACKLISTED-${Date.now()}`,
+      qrIssuedAt: new Date(),
+      qrExpiresAt: qrExpiry
+    }
+  })
+
+  console.log('\n🎯 BATTLE TEST DATA CREATED:')
+  console.log('============================')
+  console.log(`✅ SUCCESS 1: ${successGuest1.email} - ${successGuest1.name}`)
+  console.log(`   QR Token: ${battleInv1.qrToken}`)
+  console.log(`✅ SUCCESS 2: ${successGuest2.email} - ${successGuest2.name}`)
+  console.log(`   QR Token: ${battleInv2.qrToken}`)
+  console.log(`❌ FAIL (BLACKLISTED): ${blacklistedGuest.email} - ${blacklistedGuest.name}`)
+  console.log(`   QR Token: ${battleInv3.qrToken}`)
+  console.log('\n🔥 Ready for battle testing!')
+  console.log('- Enable demo mode: DEMO_MODE=true npm run dev')
+  console.log('- Navigate to /checkin')
+  console.log('- First two QRs should succeed, third should fail with blacklist error')
+
   console.log('\n✨ Seeding complete! Database ready for interplanetary frontier operations.')
 }
 

@@ -3,29 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { validateActivateQR } from '@/lib/validations';
 import { generateQRToken } from '@/lib/qr-token';
 import { nowInLA, getQRTokenExpiration } from '@/lib/timezone';
-
-// TODO: Replace with actual auth middleware
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function getCurrentUserId(_request: NextRequest): Promise<string> {
-  // Mock implementation - get the first host user from the database
-  const hostUser = await prisma.user.findFirst({
-    where: { role: 'host' },
-    select: { id: true }
-  });
-  
-  if (!hostUser) {
-    throw new Error('No host user found in database');
-  }
-  
-  return hostUser.id;
-}
+import { getCurrentUserId } from '@/lib/auth';
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const hostId = await getCurrentUserId(_request);
+    // Check authentication
+    let hostId: string;
+    try {
+      hostId = await getCurrentUserId(request);
+    } catch {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
     const { id: invitationId } = await params;
 
     const invitation = await prisma.invitation.findUnique({
@@ -84,8 +78,8 @@ export async function POST(
       expiresAt,
       message: 'QR code activated successfully',
     });
-  } catch (error) {
-    console.error('Error activating QR code:', error);
+  } catch {
+    console.error('Error activating QR code:');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

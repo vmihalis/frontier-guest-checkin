@@ -1,6 +1,22 @@
 {
   "description": "Real database guests for multi-checkin testing",
   "scenarios": {
+    "battle_test": {
+      "guests": [
+        {
+          "e": "Shaun79@gmail.com",
+          "n": "Ms. Vicki Bruen"
+        },
+        {
+          "e": "Javonte.Feil-Koelpin@hotmail.com", 
+          "n": "Jorge Aufderhar"
+        },
+        {
+          "e": "Alexanne19@suspicious",
+          "n": "Alexis Thiel"
+        }
+      ]
+    },
     "valid_three_guests": {
       "guests": [
         {
