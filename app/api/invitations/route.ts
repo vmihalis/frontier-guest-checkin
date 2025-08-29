@@ -2,17 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateCreateInvitation } from '@/lib/validations';
 import { todayInLA } from '@/lib/timezone';
+import { sendInvitationEmail } from '@/lib/email';
 import type { ContactMethod } from '@prisma/client';
 
 // TODO: Replace with actual auth middleware
-function getCurrentUserId(_request: NextRequest): string {
+async function getCurrentUserId(_request: NextRequest): Promise<string> {
   // Mock implementation - in production, get from auth session
-  return 'mock-host-id';
+  // For development, use the first host user from the database
+  const hostUser = await prisma.user.findFirst({
+    where: { role: 'host' },
+    select: { id: true }
+  });
+  
+  if (!hostUser) {
+    throw new Error('No host user found in database. Run npm run db:seed first.');
+  }
+  
+  return hostUser.id;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const hostId = getCurrentUserId(request);
+    const hostId = await getCurrentUserId(request);
     const body = await request.json();
     
     const { 
@@ -91,6 +102,29 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Send invitation email (non-blocking - don't fail creation if email fails)
+    // TODO: Get actual host name from user record when auth is implemented
+    const hostName = 'Your Host'; // Mock - replace with actual host name
+    
+    try {
+      const emailResult = await sendInvitationEmail(
+        guest.email,
+        guest.name,
+        hostName,
+        invitation.id
+      );
+      
+      if (!emailResult.success) {
+        console.error('Failed to send invitation email:', emailResult.error);
+        // TODO: Queue for retry in background job system
+      } else {
+        console.log(`Invitation email sent successfully: ${emailResult.messageId}`);
+      }
+    } catch (error) {
+      console.error('Email service error during invitation creation:', error);
+      // TODO: Queue for retry in background job system
+    }
+
     return NextResponse.json({
       invitation,
       message: 'Invitation created successfully',
@@ -106,7 +140,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const hostId = getCurrentUserId(request);
+    const hostId = await getCurrentUserId(request);
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date') || todayInLA();
 

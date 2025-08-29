@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { validateQRToken } from '@/lib/qr-token';
 import { validateAdmitGuest, shouldTriggerDiscount, checkExistingActiveVisit } from '@/lib/validations';
 import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
+import { sendDiscountEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -101,15 +102,45 @@ export async function POST(request: NextRequest) {
       data: { status: 'CHECKED_IN' },
     });
 
-    // Check if discount should be triggered
+    // Check if discount should be triggered and send email
     const shouldDiscount = await shouldTriggerDiscount(invitation.guestId);
+    let discountEmailSent = false;
+    
     if (shouldDiscount) {
-      await prisma.discount.create({
+      // Create discount record first (for idempotency)
+      const discount = await prisma.discount.create({
         data: {
           guestId: invitation.guestId,
-          emailSent: false, // Mock implementation
+          emailSent: false,
         },
       });
+
+      // Send discount email (non-blocking - don't fail check-in if email fails)
+      try {
+        const emailResult = await sendDiscountEmail(
+          invitation.guest.email,
+          invitation.guest.name
+        );
+        
+        if (emailResult.success) {
+          // Update discount record to mark email as sent
+          await prisma.discount.update({
+            where: { id: discount.id },
+            data: {
+              emailSent: true,
+              sentAt: nowInLA(),
+            },
+          });
+          discountEmailSent = true;
+          console.log(`Discount email sent successfully: ${emailResult.messageId}`);
+        } else {
+          console.error('Failed to send discount email:', emailResult.error);
+          // TODO: Queue for retry in background job system
+        }
+      } catch (error) {
+        console.error('Email service error during discount trigger:', error);
+        // TODO: Queue for retry in background job system
+      }
     }
 
     return NextResponse.json({
@@ -118,9 +149,10 @@ export async function POST(request: NextRequest) {
       guest: invitation.guest,
       host: visit.host,
       discountTriggered: shouldDiscount,
+      discountEmailSent,
       message: shouldDiscount 
-        ? 'Check-in successful! Discount earned (3rd lifetime visit).' 
-        : 'Check-in successful! Welcome to BerlinHouse.',
+        ? `Check-in successful! Discount earned (3rd lifetime visit).${discountEmailSent ? ' Check your email!' : ''}` 
+        : 'Check-in successful! Welcome to Frontier Tower.',
     });
   } catch (error) {
     console.error('Error processing check-in:', error);
