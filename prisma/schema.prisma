@@ -9,49 +9,74 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  name      String
+  role      UserRole
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  hostedVisits    Visit[] @relation("HostVisits")
+  overrideVisits  Visit[] @relation("OverrideVisits")
+
+  @@map("users")
 }
 
 model Guest {
-  id        String   @id @default(cuid())
-  name      String
-  email     String?
-  phone     String?
-  company   String?
-  qrCode    String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Check-in records
-  checkIns  CheckIn[]
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email            String    @unique
+  name             String
+  phone            String?
+  termsAcceptedAt  DateTime? @map("terms_accepted_at") @db.Timestamptz
+  blacklistedAt    DateTime? @map("blacklisted_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  visits Visit[]
 
   @@map("guests")
 }
 
-model CheckIn {
-  id        String   @id @default(cuid())
-  guestId   String
-  timestamp DateTime @default(now())
-  location  String?
-  notes     String?
-  
-  // Relations
-  guest     Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+model Visit {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guestId        String    @map("guest_id") @db.Uuid
+  hostId         String    @map("host_id") @db.Uuid
+  invitedAt      DateTime  @default(now()) @map("invited_at") @db.Timestamptz
+  checkedInAt    DateTime? @map("checked_in_at") @db.Timestamptz
+  checkedOutAt   DateTime? @map("checked_out_at") @db.Timestamptz
+  overrideReason String?   @map("override_reason")
+  overrideBy     String?   @map("override_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
-  @@map("check_ins")
+  // Relations
+  guest     Guest  @relation(fields: [guestId], references: [id])
+  host      User   @relation("HostVisits", fields: [hostId], references: [id])
+  overrideUser User? @relation("OverrideVisits", fields: [overrideBy], references: [id])
+
+  // Indexes
+  @@index([guestId, checkedInAt])
+  @@index([hostId, checkedInAt])
+  @@index([checkedInAt])
+  @@map("visits")
 }
 
-model Event {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  location    String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Policy {
+  id                   Int      @id @default(1)
+  guestMonthlyLimit    Int      @default(3) @map("guest_monthly_limit")
+  hostConcurrentLimit  Int      @default(3) @map("host_concurrent_limit")
+  updatedAt           DateTime @default(now()) @map("updated_at") @db.Timestamptz
 
-  @@map("events")
+  @@map("policies")
+}
+
+enum UserRole {
+  host
+  admin
+  security
 }
