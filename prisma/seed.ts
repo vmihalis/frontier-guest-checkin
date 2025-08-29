@@ -1,6 +1,24 @@
 import { PrismaClient, UserRole, InvitationStatus, ContactMethod, Prisma } from '@prisma/client'
 import { faker } from '@faker-js/faker'
 
+// QR Token generation (copied from qr-token.ts to avoid import issues)
+function generateQRToken(inviteId: string, guestEmail: string, hostId: string): string {
+  const now = new Date();
+  const expires = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 hours from now
+  
+  const tokenData = {
+    inviteId,
+    guestEmail,
+    hostId,
+    iat: Math.floor(now.getTime() / 1000),
+    exp: Math.floor(expires.getTime() / 1000),
+  };
+  
+  // Mock token - in production, use JWT signing with a secret
+  const mockToken = btoa(JSON.stringify(tokenData));
+  return mockToken;
+}
+
 const prisma = new PrismaClient()
 
 // Edge case scenarios for comprehensive testing
@@ -562,16 +580,29 @@ async function seed() {
       }
     })
     
-    // Create invitation - valid for first two, expired for third
+    // Create invitation first without QR token
     const invitation = await prisma.invitation.create({
       data: {
         guestId: guest.id,
         hostId: battleHost.id,
         status: guestData.shouldSucceed ? InvitationStatus.ACTIVATED : InvitationStatus.EXPIRED,
         inviteDate: new Date(),
-        qrToken: `BATTLE-${guestData.shouldSucceed ? 'SUCCESS' : 'EXPIRED'}-${Date.now()}-${guestData.email.split('@')[0]}`,
+        qrToken: null, // Will be set after creation
         qrIssuedAt: new Date(),
         qrExpiresAt: guestData.shouldSucceed ? qrExpiry : yesterday
+      }
+    })
+
+    // Generate proper QR token now that we have the invitation ID
+    const properQRToken = guestData.shouldSucceed 
+      ? generateQRToken(invitation.id, guest.email, battleHost.id)
+      : null; // Expired invitations don't need valid tokens
+
+    // Update invitation with proper QR token
+    await prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { 
+        qrToken: properQRToken || `EXPIRED-${Date.now()}-${guestData.email.split('@')[0]}`
       }
     })
     
