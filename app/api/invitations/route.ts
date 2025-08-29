@@ -4,7 +4,6 @@ import { getCurrentUserId } from '@/lib/auth';
 import { validateCreateInvitation } from '@/lib/validations';
 import { todayInLA } from '@/lib/timezone';
 import { sendInvitationEmail } from '@/lib/email';
-import { getCurrentUserId } from '@/lib/auth';
 import type { ContactMethod } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
