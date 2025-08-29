@@ -24,6 +24,7 @@ model User {
   // Relations
   hostedVisits    Visit[] @relation("HostVisits")
   overrideVisits  Visit[] @relation("OverrideVisits")
+  hostedInvitations Invitation[] @relation("HostInvitations")
 
   @@map("users")
 }
@@ -33,12 +34,18 @@ model Guest {
   email            String    @unique
   name             String
   phone            String?
+  country          String?
+  contactMethod    ContactMethod?  @map("contact_method")
+  contactValue     String?         @map("contact_value")
   termsAcceptedAt  DateTime? @map("terms_accepted_at") @db.Timestamptz
   blacklistedAt    DateTime? @map("blacklisted_at") @db.Timestamptz
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   // Relations
-  visits Visit[]
+  visits      Visit[]
+  invitations Invitation[]
+  acceptances Acceptance[]
+  discounts   Discount[]
 
   @@map("guests")
 }
@@ -47,22 +54,26 @@ model Visit {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   guestId        String    @map("guest_id") @db.Uuid
   hostId         String    @map("host_id") @db.Uuid
+  invitationId   String?   @map("invitation_id") @db.Uuid
   invitedAt      DateTime  @default(now()) @map("invited_at") @db.Timestamptz
   checkedInAt    DateTime? @map("checked_in_at") @db.Timestamptz
   checkedOutAt   DateTime? @map("checked_out_at") @db.Timestamptz
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz
   overrideReason String?   @map("override_reason")
   overrideBy     String?   @map("override_by") @db.Uuid
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   // Relations
-  guest     Guest  @relation(fields: [guestId], references: [id])
-  host      User   @relation("HostVisits", fields: [hostId], references: [id])
-  overrideUser User? @relation("OverrideVisits", fields: [overrideBy], references: [id])
+  guest        Guest       @relation(fields: [guestId], references: [id])
+  host         User        @relation("HostVisits", fields: [hostId], references: [id])
+  invitation   Invitation? @relation(fields: [invitationId], references: [id])
+  overrideUser User?       @relation("OverrideVisits", fields: [overrideBy], references: [id])
 
   // Indexes
   @@index([guestId, checkedInAt])
   @@index([hostId, checkedInAt])
   @@index([checkedInAt])
+  @@index([expiresAt])
   @@map("visits")
 }
 
@@ -75,8 +86,74 @@ model Policy {
   @@map("policies")
 }
 
+model Invitation {
+  id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guestId      String           @map("guest_id") @db.Uuid
+  hostId       String           @map("host_id") @db.Uuid
+  status       InvitationStatus @default(PENDING)
+  inviteDate   DateTime         @map("invite_date") @db.Date
+  qrToken      String?          @map("qr_token")
+  qrIssuedAt   DateTime?        @map("qr_issued_at") @db.Timestamptz
+  qrExpiresAt  DateTime?        @map("qr_expires_at") @db.Timestamptz
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  guest  Guest  @relation(fields: [guestId], references: [id])
+  host   User   @relation("HostInvitations", fields: [hostId], references: [id])
+  visits Visit[]
+
+  // Indexes
+  @@index([hostId, inviteDate])
+  @@index([guestId, status])
+  @@index([qrToken])
+  @@map("invitations")
+}
+
+model Acceptance {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guestId               String   @map("guest_id") @db.Uuid
+  termsVersion          String   @map("terms_version")
+  visitorAgreementVersion String @map("visitor_agreement_version")
+  acceptedAt            DateTime @default(now()) @map("accepted_at") @db.Timestamptz
+
+  // Relations
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  // Indexes
+  @@index([guestId])
+  @@map("acceptances")
+}
+
+model Discount {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guestId    String    @map("guest_id") @db.Uuid
+  triggeredAt DateTime  @default(now()) @map("triggered_at") @db.Timestamptz
+  emailSent  Boolean   @default(false) @map("email_sent")
+  sentAt     DateTime? @map("sent_at") @db.Timestamptz
+
+  // Relations
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  // Indexes
+  @@index([guestId])
+  @@map("discounts")
+}
+
 enum UserRole {
   host
   admin
   security
+}
+
+enum ContactMethod {
+  TELEGRAM
+  PHONE
+}
+
+enum InvitationStatus {
+  PENDING
+  ACTIVATED
+  CHECKED_IN
+  EXPIRED
 }

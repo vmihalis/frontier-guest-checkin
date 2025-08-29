@@ -2,14 +2,42 @@
 
 import { useState, useEffect, useRef } from 'react';
 import QrScanner from 'qr-scanner';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateTimeInLA, TIMEZONE_DISPLAY } from '@/lib/timezone';
 
 interface CameraDevice {
   deviceId: string;
   label: string;
 }
 
+interface CheckInResult {
+  success: boolean;
+  reEntry?: boolean;
+  visit?: {
+    id: string;
+    checkedInAt: string;
+    expiresAt: string;
+  };
+  guest?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  host?: {
+    id: string;
+    name: string;
+  };
+  discountTriggered?: boolean;
+  message?: string;
+  error?: string;
+}
+
 export default function CheckInPage() {
   const [scannedData, setScannedData] = useState<string | null>(null);
+  const [checkInResult, setCheckInResult] = useState<CheckInResult | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState(true);
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
@@ -61,17 +89,65 @@ export default function CheckInPage() {
     initializeScanner();
   }, []);
 
-  const handleScan = (result: any) => {
-    if (result) {
-      setScannedData(result[0]?.rawValue || result.text || JSON.stringify(result));
-      setIsScanning(false);
-    }
-  };
+  // Legacy unused handler - keeping for compatibility
+  // const handleScan = (result: any) => {
+  //   if (result) {
+  //     setScannedData(result[0]?.rawValue || result.text || JSON.stringify(result));
+  //     setIsScanning(false);
+  //   }
+  // };
 
-  const handleScanSuccess = (result: QrScanner.ScanResult) => {
+  const handleScanSuccess = async (result: QrScanner.ScanResult) => {
     setScannedData(result.data);
     setIsScanning(false);
     qrScannerRef.current?.stop();
+    
+    // Process the scanned QR code
+    await processCheckIn(result.data);
+  };
+
+  const processCheckIn = async (scannedData: string) => {
+    setIsProcessing(true);
+    try {
+      // Extract token from scanned data (handle different formats)
+      let token = scannedData;
+      
+      // If it's a URL format like "berlinhouse://checkin?token=...", extract token
+      const urlMatch = scannedData.match(/[?&]token=([^&]+)/);
+      if (urlMatch) {
+        token = decodeURIComponent(urlMatch[1]);
+      }
+      
+      const response = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setCheckInResult({
+          success: true,
+          ...result,
+        });
+      } else {
+        setCheckInResult({
+          success: false,
+          error: result.error || 'Check-in failed',
+        });
+      }
+    } catch (error) {
+      console.error('Check-in error:', error);
+      setCheckInResult({
+        success: false,
+        error: 'Network error. Please try again.',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleScanError = (error: string | Error) => {
@@ -83,6 +159,7 @@ export default function CheckInPage() {
 
   const resetScanner = () => {
     setScannedData(null);
+    setCheckInResult(null);
     setIsScanning(true);
     startScanner();
   };
@@ -253,49 +330,99 @@ export default function CheckInPage() {
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="text-center mb-6">
-                <div className="text-green-500 text-6xl mb-4">✅</div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">QR Code Scanned!</h2>
-              </div>
-
-              {scannedData && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-800 mb-2">Scanned Data:</h3>
-                  <div className="bg-gray-100 p-4 rounded-lg">
-                    <code className="text-sm text-gray-700 break-all">
-                      {scannedData}
-                    </code>
+              {isProcessing ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Check-in...</h2>
+                  <p className="text-gray-600">Please wait while we verify your QR code</p>
+                </div>
+              ) : checkInResult ? (
+                <div className="text-center">
+                  <div className={`text-6xl mb-4 ${checkInResult.success ? 'text-green-500' : 'text-red-500'}`}>
+                    {checkInResult.success ? '✅' : '❌'}
                   </div>
+                  
+                  <h2 className={`text-xl font-semibold mb-2 ${
+                    checkInResult.success ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    {checkInResult.success ? 
+                      (checkInResult.reEntry ? 'Welcome Back!' : 'Check-in Successful!') : 
+                      'Check-in Failed'
+                    }
+                  </h2>
+
+                  <p className="text-gray-600 mb-6">
+                    {checkInResult.message}
+                  </p>
+
+                  {checkInResult.success && checkInResult.guest && (
+                    <Card className="mb-6 text-left">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">Guest Information</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div>
+                          <span className="font-medium">Name:</span> {checkInResult.guest.name}
+                        </div>
+                        <div>
+                          <span className="font-medium">Email:</span> {checkInResult.guest.email}
+                        </div>
+                        {checkInResult.visit && (
+                          <>
+                            <div>
+                              <span className="font-medium">Check-in Time:</span>{' '}
+                              {formatDateTimeInLA(new Date(checkInResult.visit.checkedInAt))}
+                            </div>
+                            <div>
+                              <span className="font-medium">Valid Until:</span>{' '}
+                              {formatDateTimeInLA(new Date(checkInResult.visit.expiresAt))}
+                            </div>
+                          </>
+                        )}
+                        {checkInResult.discountTriggered && (
+                          <div className="pt-2">
+                            <Badge variant="success" className="text-sm">
+                              🎉 3rd Lifetime Visit - Discount Sent!
+                            </Badge>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {!checkInResult.success && checkInResult.error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                      <p className="text-red-800 text-sm">{checkInResult.error}</p>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={resetScanner}
+                    className="w-full"
+                  >
+                    Scan Another QR Code
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center mb-6">
+                  <div className="text-green-500 text-6xl mb-4">📱</div>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2">QR Code Scanned!</h2>
+                  <p className="text-gray-600">Processing check-in...</p>
                 </div>
               )}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={resetScanner}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                >
-                  Scan Another
-                </button>
-                <button
-                  onClick={() => {
-                    // TODO: Process check-in logic here
-                    alert(`Processing check-in for: ${scannedData}`);
-                  }}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-                >
-                  Check In
-                </button>
-              </div>
             </div>
           )}
         </div>
 
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500 mb-2">
-            Compatible with QR codes, barcodes, and all major code formats
+            Compatible with BerlinHouse invitation QR codes
+          </p>
+          <p className="text-xs text-gray-400 mb-1">
+            Optimized for iPad Safari compatibility
           </p>
           <p className="text-xs text-gray-400">
-            Optimized for iPad Safari compatibility
+            Times shown in {TIMEZONE_DISPLAY}
           </p>
         </div>
       </div>
