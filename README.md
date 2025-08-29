@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontier Tower Guest Check-In
 
-## Getting Started
+Production-ready visitor management system with QR code scanning, multi-guest support, and comprehensive business rule validation.
 
-First, run the development server:
+## Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:push      # Setup database
+npm run db:seed      # Populate with test data
+npm run dev          # Start development server
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Navigate to `/checkin` for QR scanner or `/invites` for host dashboard.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Battle-Tested Demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Three QR codes ready for demo scenarios:
 
-## Learn More
+- **✅ Ms. Vicki Bruen** (`Shaun79@gmail.com`) - New check-in success
+- **✅ Jorge Aufderhar** (`Javonte.Feil-Koelpin@hotmail.com`) - Re-entry success  
+- **❌ Alexis Thiel** (`Alexanne19@suspicious`) - Blacklisted rejection
 
-To learn more about Next.js, take a look at the following resources:
+Perfect 2:1 success-to-failure ratio with realistic error handling.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Key Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Unified QR System** - Single multi-guest API handles individual and group scanning
+- **Business Logic Validation** - Rolling 30-day limits, concurrent capacity, blacklist enforcement
+- **12-Hour Visit Expiry** - Natural expiration without manual checkout
+- **iPad Optimized Scanner** - Camera selection with Safari compatibility
+- **Email Integration** - React Email templates with Resend API
+- **Comprehensive Testing** - Multi-environment test suite with staging integration
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Frontend**: Next.js 15 + React 19 + TypeScript
+- **Database**: Prisma ORM + PostgreSQL/Supabase  
+- **Styling**: Tailwind CSS 4 + shadcn/ui
+- **QR Scanning**: qr-scanner library with device optimization
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Commands
+
+```bash
+npm run db:generate   # Generate Prisma client
+npm run db:push      # Push schema changes
+npm run db:reset     # Reset and migrate
+npm run db:studio    # Open database GUI
+npm run db:seed      # Populate test data
+```
+
+## Testing
+
+```bash
+npm run test:multi      # Multi-guest scenarios
+npm run test:scenarios  # Business logic validation
+npm run test:staging    # Integration tests
+```
+
+---
+
+See [CLAUDE.md](./CLAUDE.md) for complete development documentation.
