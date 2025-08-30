@@ -2,11 +2,11 @@
 
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MultiGuestData } from '@/lib/qr-token';
+import { GuestData } from '@/lib/qr-token';
 
 interface GuestSelectionProps {
-  guests: MultiGuestData[];
-  onSelectGuest: (guest: MultiGuestData) => void;
+  guests: GuestData[];
+  onSelectGuest: (guest: GuestData) => void;
   onCancel: () => void;
 }
 

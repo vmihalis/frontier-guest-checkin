@@ -544,8 +544,8 @@ async function seed() {
   })
   console.log(`Blocked blacklist invitation attempts: ${blacklistAttempts}`)
   
-  // 🔥 BATTLE TEST QR CODES - Multi-guest format for unified scanning
-  console.log('\n🎯 Creating battle test QR codes (multi-guest format)...')
+  // 🔥 BATTLE TEST QR CODES - Guest batch format for unified scanning
+  console.log('\n🎯 Creating battle test QR codes (guest batch format)...')
   
   // Battle test guests from multi-checkin-real.json fixture
   const battleTestGuests = [
@@ -571,7 +571,7 @@ async function seed() {
       }
     })
 
-    // Generate multi-guest QR payload (single guest in the array)
+    // Generate guest batch QR payload (single guest in the array)
     const qrPayload = JSON.stringify({
       guests: [{
         e: guest.email,
@@ -604,7 +604,7 @@ async function seed() {
     }
   }
 
-  console.log('\n🎯 BATTLE TEST QR CODES CREATED (multi-guest format):')
+  console.log('\n🎯 BATTLE TEST QR CODES CREATED (guest batch format):')
   console.log('====================================================')
   battleQRs.forEach(({ guest, qrPayload, shouldSucceed, failReason }) => {
     const status = shouldSucceed ? '✅ SUCCESS' : `❌ FAIL (${failReason})`
@@ -613,7 +613,7 @@ async function seed() {
   })
   console.log('\n🔥 Ready for unified battle testing!')
   console.log('- Enable demo mode: DEMO_MODE=true npm run dev')
-  console.log('- Navigate to /checkin (uses multi-guest API)')
+  console.log('- Navigate to /checkin (uses unified check-in API)')
   console.log('- First two QRs should succeed, third should fail with blacklist error')
 
   console.log('\n✨ Seeding complete! Database ready for interplanetary frontier operations.')

@@ -134,24 +134,16 @@ export async function getAuthContext(request: NextRequest): Promise<AuthContext>
     };
   }
 
-  // 🔒 PRODUCTION AUTH: Full authentication logic preserved
+  // 🔒 PRODUCTION AUTH: JWT-only authentication
   try {
-    // Try to get token from Authorization header
+    // Get token from Authorization header
     const authHeader = request.headers.get('authorization');
-    let token: string | null = null;
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
-
-    // Fallback to cookie
-    if (!token) {
-      token = request.cookies.get('auth-token')?.value || null;
-    }
-
-    if (!token) {
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return { user: null, isAuthenticated: false };
     }
+
+    const token = authHeader.substring(7);
 
     const user = await verifyAuthToken(token);
     return {

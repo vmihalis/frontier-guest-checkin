@@ -126,6 +126,7 @@ export async function validateGuestBlacklist(guestEmail: string): Promise<Valida
 
 /**
  * Check if guest has accepted terms and visitor agreement
+ * For returning guests, acceptance is valid if within the last 365 days
  */
 export async function validateGuestAcceptance(guestId: string): Promise<ValidationResult> {
   const acceptance = await prisma.acceptance.findFirst({
@@ -137,6 +138,17 @@ export async function validateGuestAcceptance(guestId: string): Promise<Validati
     return {
       isValid: false,
       error: "Guest must accept Terms & Visitor Agreement before activation.",
+    };
+  }
+
+  // Check if acceptance is within last 365 days (annual renewal)
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  
+  if (acceptance.acceptedAt < oneYearAgo) {
+    return {
+      isValid: false,
+      error: "Terms acceptance has expired. Guest must re-accept current Terms & Visitor Agreement.",
     };
   }
 
@@ -166,6 +178,7 @@ export function validateQRToken(qrExpiresAt: Date | null): ValidationResult {
 
 /**
  * Check if guest already has an active visit (for re-entry detection)
+ * Enhanced to handle cross-host scenarios
  */
 export async function checkExistingActiveVisit(hostId: string, guestEmail: string): Promise<{
   hasActiveVisit: boolean;
@@ -178,11 +191,18 @@ export async function checkExistingActiveVisit(hostId: string, guestEmail: strin
       name: string;
       email: string;
     };
+    host: {
+      id: string;
+      name: string;
+      email: string;
+    };
   };
+  crossHostVisit?: boolean;
 }> {
   const now = nowInLA();
   
-  const activeVisit = await prisma.visit.findFirst({
+  // Check for active visit with the same host first
+  const sameHostActiveVisit = await prisma.visit.findFirst({
     where: {
       hostId,
       guest: { email: guestEmail },
@@ -191,12 +211,36 @@ export async function checkExistingActiveVisit(hostId: string, guestEmail: strin
     },
     include: {
       guest: true,
+      host: true,
+    },
+  });
+
+  if (sameHostActiveVisit) {
+    return {
+      hasActiveVisit: true,
+      activeVisit: sameHostActiveVisit,
+      crossHostVisit: false,
+    };
+  }
+
+  // Check for active visit with a different host
+  const crossHostActiveVisit = await prisma.visit.findFirst({
+    where: {
+      hostId: { not: hostId },
+      guest: { email: guestEmail },
+      checkedInAt: { not: null },
+      expiresAt: { gt: now },
+    },
+    include: {
+      guest: true,
+      host: true,
     },
   });
 
   return {
-    hasActiveVisit: !!activeVisit,
-    activeVisit: activeVisit || undefined,
+    hasActiveVisit: !!crossHostActiveVisit,
+    activeVisit: crossHostActiveVisit || undefined,
+    crossHostVisit: !!crossHostActiveVisit,
   };
 }
 
@@ -247,14 +291,15 @@ export function canUserOverride(userRole?: string): boolean {
 }
 
 /**
- * Comprehensive validation for admitting a guest (check-in)
+ * Enhanced validation for admitting returning guests
+ * Handles cross-host scenarios and expired acceptance gracefully
  */
-export async function validateAdmitGuest(
+export async function validateAdmitGuestWithRenewal(
   hostId: string,
   guestId: string,
   guestEmail: string,
   qrExpiresAt: Date | null
-): Promise<ValidationResult> {
+): Promise<ValidationResult & { requiresAcceptanceRenewal?: boolean }> {
   // Check if guest is blacklisted (early check)
   const blacklistResult = await validateGuestBlacklist(guestEmail);
   if (!blacklistResult.isValid) {
@@ -285,13 +330,49 @@ export async function validateAdmitGuest(
     return rollingLimitResult;
   }
 
-  // Check if guest has accepted terms
+  // Check if guest has recent accepted terms
   const acceptanceResult = await validateGuestAcceptance(guestId);
   if (!acceptanceResult.isValid) {
-    return acceptanceResult;
+    // For returning guests, check if they had previous acceptance (expired)
+    const hasAnyAcceptance = await prisma.acceptance.findFirst({
+      where: { guestId },
+    });
+
+    if (hasAnyAcceptance) {
+      // Return indication that acceptance renewal is needed
+      return {
+        isValid: false,
+        error: acceptanceResult.error,
+        requiresAcceptanceRenewal: true
+      };
+    } else {
+      // First-time guest, full acceptance required
+      return acceptanceResult;
+    }
   }
 
   return { isValid: true };
+}
+
+/**
+ * Comprehensive validation for admitting a guest (check-in)
+ * Legacy function - maintained for backward compatibility
+ */
+export async function validateAdmitGuest(
+  hostId: string,
+  guestId: string,
+  guestEmail: string,
+  qrExpiresAt: Date | null
+): Promise<ValidationResult> {
+  // Use the enhanced validation but ignore renewal flag for backward compatibility
+  const result = await validateAdmitGuestWithRenewal(hostId, guestId, guestEmail, qrExpiresAt);
+  return {
+    isValid: result.isValid,
+    error: result.error,
+    nextEligibleDate: result.nextEligibleDate,
+    currentCount: result.currentCount,
+    maxCount: result.maxCount
+  };
 }
 
 /**
@@ -356,4 +437,59 @@ export async function shouldTriggerDiscount(guestId: string): Promise<boolean> {
   ]);
 
   return lifetimeVisits === 3 && !existingDiscount;
+}
+
+/**
+ * Auto-renew terms acceptance for returning guests
+ * Creates a new acceptance record with current timestamp and versions
+ */
+export async function renewGuestAcceptance(
+  guestId: string,
+  termsVersion: string = "1.0",
+  visitorAgreementVersion: string = "1.0"
+): Promise<void> {
+  await prisma.acceptance.create({
+    data: {
+      guestId,
+      termsVersion,
+      visitorAgreementVersion,
+    },
+  });
+}
+
+/**
+ * Handle returning guest scenarios with automatic acceptance renewal
+ * This function is designed for QR-based check-ins where guests shouldn't 
+ * need to manually re-accept terms for each visit
+ */
+export async function processReturningGuestCheckIn(
+  hostId: string,
+  guestId: string,
+  guestEmail: string,
+  qrExpiresAt: Date | null
+): Promise<ValidationResult & { acceptanceRenewed?: boolean }> {
+  const validation = await validateAdmitGuestWithRenewal(hostId, guestId, guestEmail, qrExpiresAt);
+  
+  // If guest needs acceptance renewal (returning guest with expired terms)
+  if (!validation.isValid && validation.requiresAcceptanceRenewal) {
+    try {
+      // Auto-renew acceptance for returning guests using QR codes
+      await renewGuestAcceptance(guestId);
+      
+      // Re-validate after renewal
+      const revalidation = await validateAdmitGuestWithRenewal(hostId, guestId, guestEmail, qrExpiresAt);
+      
+      return {
+        ...revalidation,
+        acceptanceRenewed: true
+      };
+    } catch (error) {
+      return {
+        isValid: false,
+        error: "Failed to renew guest acceptance. Please contact support."
+      };
+    }
+  }
+  
+  return validation;
 }

@@ -28,7 +28,7 @@ npm run db:seed      # Populate database with test data
 ### Testing & Development
 ```bash
 # Development Testing
-npm run test:multi      # Multi-guest checkin scenarios
+npm run test:multi      # Guest batch checkin scenarios
 npm run test:scenarios  # Business logic scenarios  
 npm run test:generate   # Generate test data
 npm run test:all        # Run all development tests
@@ -84,8 +84,7 @@ npm run test:staging:full   # Complete integration test suite
 - **PLANNED**: Admin console for analytics, policy management, blacklist administration
 
 ### API Routes (Current)
-- `POST /api/checkin` - **DEPRECATED** - Legacy single-guest API (forwards to multi-guest)
-- `POST /api/checkin/multi-guest` - **MAIN API** - Unified check-in processing with overrides
+- `POST /api/checkin` - **UNIFIED CHECK-IN API** - Handles single and multiple guest check-ins with overrides
 - `POST /api/invitations` - Create guest invitations with email notifications
 - `POST /api/invitations/[id]/accept` - Guest acceptance flow
 - `POST /api/invitations/[id]/activate` - QR code activation
@@ -97,13 +96,13 @@ npm run test:staging:full   # Complete integration test suite
 
 ### Key Components
 - **OverrideDialog** - Security override UI for capacity limits with password validation
-- **GuestSelection** - Multi-guest QR code selection interface
+- **GuestSelection** - Guest batch QR code selection interface
 - **QR Scanner** - Camera-optimized scanning with device selection
 - **Design System** - Comprehensive UI kit documented in DESIGN_SYSTEM.md
 
 ### Core Libraries
 - `src/lib/validations.ts` - **CRITICAL** - All business rule validation logic
-- `src/lib/qr-token.ts` - QR code parsing and multi-guest data handling
+- `src/lib/qr-token.ts` - QR code parsing and guest data handling
 - `src/lib/email.ts` - Resend integration with React Email templates
 - `src/lib/auth.ts` - Authentication with DEMO_MODE bypass capability
 - `src/lib/demo-config.ts` - Hackathon/demo mode configuration
@@ -118,15 +117,15 @@ npm run test:staging:full   # Complete integration test suite
 - **Security Override System**: Password-protected capacity limit bypasses with audit trail
 - **Email Integration**: Invitation emails and discount notifications via Resend API
 - **Demo Mode Toggle**: Hackathon-ready authentication bypass (see DEMO-MODE.md)
-- **Multi-guest QR Support**: Single QR codes for multiple visitors
+- **Batch Guest QR Support**: Single QR codes for multiple visitors
 - **12-hour Visit Expiry**: Automatic visit expiration without manual checkout
 - **Discount System**: Third-visit discount emails with tracking
 - **Design System**: Comprehensive UI components with Frontier Tower branding
 
-### 🚧 API Route Status
-- **Multi-guest API is the primary endpoint** - Use `/api/checkin/multi-guest` for all check-ins
-- **Single-guest API is deprecated** - `/api/checkin` forwards to multi-guest for compatibility
-- **Note**: Multi-guest route is considered redundant by maintainer but currently in use
+### ✅ API Route Status
+- **Unified Check-in API** - `/api/checkin` handles both single and multiple guest scenarios
+- **Simplified Architecture** - Single endpoint eliminated complexity and user confusion
+- **Backward Compatible** - Supports legacy QR tokens and new guest batch formats
 
 ### 🔧 Demo/Hackathon Mode
 - **DEMO_MODE Environment Variable**: Bypasses authentication for demonstrations
@@ -189,10 +188,10 @@ Optional:
 ## Architectural Notes
 
 ### Application Architecture
-1. **QR Check-in Flow**: `/checkin` page with scanner → `/api/checkin/multi-guest` → database
+1. **QR Check-in Flow**: `/checkin` page with scanner → `/api/checkin` → database
 2. **Host Invitation Flow**: `/invites` dashboard → invitation APIs → email notifications
 3. **Admin Management**: Planned admin console for analytics and policy management
-4. **Legacy Compatibility**: Single-guest API maintained for backward compatibility
+4. **Unified API**: Single endpoint handles all guest check-in scenarios
 
 ### Override System
 - **Capacity limits** can be overridden by security/admin staff
@@ -207,7 +206,7 @@ Optional:
 - **Comprehensive design system** documented in DESIGN_SYSTEM.md
 
 ## Key Files Modified Recently
-- Modified files per git status: multi-guest route, main check-in route, QR scanner page, validations
+- Modified files per git status: unified check-in route, QR scanner page, validations
 - New files: OverrideDialog component, DESIGN_SYSTEM.md documentation
 
 ## Core Application Features
@@ -219,7 +218,7 @@ Optional:
 
 ## Immediate Development Priorities
 1. **Admin Console Implementation** - Analytics dashboard, user management, policy settings
-2. **API Architecture Cleanup** - Address multi-guest route redundancy concerns
+2. **API Architecture Simplification** - Unified check-in endpoint eliminates complexity
 3. **Enhanced Security Features** - Improved override workflows and audit trails
 4. **Performance Optimization** - Database query optimization and UI responsiveness
 5. **Design System Adoption** - Apply comprehensive UI standards across all interfaces

@@ -21,7 +21,8 @@
     "test:staging:verify": "tsx test/integration/integration-runner.ts verify",
     "test:staging:qr": "tsx test/integration/integration-runner.ts qr-flow",
     "test:staging:full": "tsx test/integration/integration-runner.ts full",
-    "test:invitations": "tsx test/integration/api-invitations.test.ts"
+    "test:invitations": "tsx test/integration/api-invitations.test.ts",
+    "test:checkin": "tsx test/integration/api-checkin.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

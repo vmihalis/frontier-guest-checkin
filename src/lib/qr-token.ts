@@ -13,19 +13,19 @@ export interface QRTokenData {
   exp: number;
 }
 
-export interface MultiGuestData {
+export interface GuestData {
   e: string; // email
   n: string; // name
 }
 
-export interface MultiGuestQRData {
-  guests: MultiGuestData[];
+export interface GuestBatchQRData {
+  guests: GuestData[];
 }
 
 export interface ParsedQRData {
-  type: 'single' | 'multi';
+  type: 'single' | 'batch';
   singleGuest?: QRTokenData;
-  multiGuest?: MultiGuestQRData;
+  guestBatch?: GuestBatchQRData;
 }
 
 /**
@@ -73,18 +73,18 @@ export function validateQRToken(token: string): { isValid: boolean; data?: QRTok
 }
 
 /**
- * Parse QR code data to determine if it's single-guest or multi-guest format
+ * Parse QR code data to determine if it's single-guest or batch format
  */
 export function parseQRData(qrData: string): ParsedQRData {
-  // First, try to parse as direct JSON (multi-guest or direct single-guest format)
+  // First, try to parse as direct JSON (guest batch or direct single-guest format)
   try {
     const parsed = JSON.parse(qrData);
     
-    // Check if it's multi-guest format
+    // Check if it's guest batch format
     if (parsed.guests && Array.isArray(parsed.guests)) {
       return {
-        type: 'multi',
-        multiGuest: parsed as MultiGuestQRData
+        type: 'batch',
+        guestBatch: parsed as GuestBatchQRData
       };
     }
     
@@ -119,10 +119,10 @@ export function parseQRData(qrData: string): ParsedQRData {
 }
 
 /**
- * Generate multi-guest QR data for a host
+ * Generate guest batch QR data for a host
  */
 export function generateMultiGuestQR(guests: Array<{email: string, name: string}>): string {
-  const qrData: MultiGuestQRData = {
+  const qrData: GuestBatchQRData = {
     guests: guests.map(g => ({
       e: g.email,
       n: g.name

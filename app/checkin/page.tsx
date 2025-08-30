@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QrScanner from 'qr-scanner';
-import { parseQRData, MultiGuestData, type ParsedQRData } from '@/lib/qr-token';
+import { parseQRData, GuestData, type ParsedQRData } from '@/lib/qr-token';
 import { GuestSelection } from '@/components/GuestSelection';
 import { OverrideDialog } from '@/components/OverrideDialog';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,7 +17,7 @@ export default function CheckInPage() {
   useAuth();
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [parsedQRData, setParsedQRData] = useState<ParsedQRData | null>(null);
-  const [selectedGuest, setSelectedGuest] = useState<MultiGuestData | null>(null);
+  const [selectedGuest, setSelectedGuest] = useState<GuestData | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState(true);
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
@@ -25,7 +25,7 @@ export default function CheckInPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [checkInState, setCheckInState] = useState<'scanning' | 'guest-selection' | 'processing' | 'success' | 'error' | 'override-required'>('scanning');
   const [overrideData, setOverrideData] = useState<{
-    guestData?: MultiGuestData | string;
+    guestData?: GuestData | string;
     currentCount: number;
     maxCount: number;
     errorMessage: string;
@@ -137,8 +137,8 @@ export default function CheckInPage() {
         // Regular QR token
         processCheckIn(overrideData.guestData, reason, password);
       } else {
-        // Multi-guest data
-        processMultiGuestCheckIn(overrideData.guestData, reason, password);
+        // Guest data
+        processGuestCheckIn(overrideData.guestData, reason, password);
       }
     }
   };
@@ -148,11 +148,11 @@ export default function CheckInPage() {
     resetScanner();
   };
 
-  const handleGuestSelection = (guest: MultiGuestData) => {
+  const handleGuestSelection = (guest: GuestData) => {
     setSelectedGuest(guest);
     setCheckInState('processing');
     // TODO: Process check-in for selected guest
-    processMultiGuestCheckIn(guest);
+    processGuestCheckIn(guest);
   };
 
   const processCheckIn = async (qrData: string, overrideReason?: string, overridePassword?: string) => {
@@ -169,8 +169,26 @@ export default function CheckInPage() {
       
       const result = await response.json();
       
-      if (response.ok) {
-        setCheckInResult(result);
+      if (response.ok && result.success) {
+        // Convert unified API response to expected format
+        const guestResult = result.results?.[0];
+        if (guestResult) {
+          setCheckInResult({
+            success: true,
+            guest: {
+              name: guestResult.guestName,
+              email: guestResult.guestEmail
+            },
+            message: guestResult.message,
+            reEntry: guestResult.reason === 're-entry',
+            discountTriggered: guestResult.discountSent || false
+          });
+        } else {
+          setCheckInResult({
+            success: true,
+            message: result.message
+          });
+        }
         setCheckInState('success');
         setOverrideData(null);
       } else if (response.status === 401 && result.passwordError) {
@@ -182,11 +200,11 @@ export default function CheckInPage() {
           guestData: qrData,
           currentCount: result.currentCount || 3,
           maxCount: result.maxCount || 3,
-          errorMessage: result.error
+          errorMessage: result.message || result.error
         });
         setCheckInState('override-required');
       } else {
-        setErrorMessage(result.error || 'Check-in failed');
+        setErrorMessage(result.message || result.error || 'Check-in failed');
         setCheckInState('error');
       }
     } catch (error) {
@@ -196,9 +214,9 @@ export default function CheckInPage() {
     }
   };
 
-  const processMultiGuestCheckIn = async (guest: MultiGuestData, overrideReason?: string, overridePassword?: string) => {
+  const processGuestCheckIn = async (guest: GuestData, overrideReason?: string, overridePassword?: string) => {
     try {
-      const response = await fetch('/api/checkin/multi-guest', {
+      const response = await fetch('/api/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -210,8 +228,26 @@ export default function CheckInPage() {
       
       const result = await response.json();
       
-      if (response.ok) {
-        setCheckInResult(result);
+      if (response.ok && result.success) {
+        // Convert unified API response to expected format
+        const guestResult = result.results?.[0];
+        if (guestResult) {
+          setCheckInResult({
+            success: true,
+            guest: {
+              name: guestResult.guestName,
+              email: guestResult.guestEmail
+            },
+            message: guestResult.message,
+            reEntry: guestResult.reason === 're-entry',
+            discountTriggered: guestResult.discountSent || false
+          });
+        } else {
+          setCheckInResult({
+            success: true,
+            message: result.message
+          });
+        }
         setCheckInState('success');
         setOverrideData(null);
       } else if (response.status === 401 && result.passwordError) {
@@ -223,15 +259,15 @@ export default function CheckInPage() {
           guestData: guest,
           currentCount: result.currentCount || 3,
           maxCount: result.maxCount || 3,
-          errorMessage: result.error
+          errorMessage: result.message || result.error
         });
         setCheckInState('override-required');
       } else {
-        setErrorMessage(result.error || 'Multi-guest check-in failed');
+        setErrorMessage(result.message || result.error || 'Check-in failed');
         setCheckInState('error');
       }
     } catch (error) {
-      console.error('Multi-guest check-in error:', error);
+      console.error('Guest check-in error:', error);
       setErrorMessage('Network error during check-in');
       setCheckInState('error');
     }
@@ -401,9 +437,9 @@ export default function CheckInPage() {
                 </button>
               </div>
             </div>
-          ) : checkInState === 'guest-selection' && parsedQRData?.multiGuest ? (
+          ) : checkInState === 'guest-selection' && parsedQRData?.guestBatch ? (
             <GuestSelection
-              guests={parsedQRData.multiGuest.guests}
+              guests={parsedQRData.guestBatch.guests}
               onSelectGuest={handleGuestSelection}
               onCancel={resetScanner}
             />
