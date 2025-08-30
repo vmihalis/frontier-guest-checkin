@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
-import { validateAdmitGuest, shouldTriggerDiscount, checkExistingActiveVisit, processReturningGuestCheckIn } from '@/lib/validations';
+import { shouldTriggerDiscount, checkExistingActiveVisit, processReturningGuestCheckIn } from '@/lib/validations';
 import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
 import { sendDiscountEmail } from '@/lib/email';
 import { validateQRToken } from '@/lib/qr-token';
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         } else {
           throw new Error('Not a guest batch format');
         }
-      } catch (jsonError) {
+      } catch {
         console.log('Token is not JSON, trying base64 validation...');
         
         // Handle legacy QR token format (base64 encoded)
@@ -357,18 +357,64 @@ async function processGuestCheckIn({
     overrideUserId = securityUser?.id || null;
   }
 
-  // Create visit record
+  // Create visit record and update invitation status atomically
   const expiresAt = calculateVisitExpiration(now);
-  const visit = await prisma.visit.create({
-    data: {
-      guestId: guestRecord.id,
-      hostId,
-      invitationId: null, // QR codes don't have specific invitation IDs
-      checkedInAt: now,
-      expiresAt,
-      overrideReason: overrideReason || null,
-      overrideBy: overrideUserId,
-    },
+  
+  // Use transaction to ensure visit creation and invitation update are atomic
+  const { visit } = await prisma.$transaction(async (tx) => {
+    // Create the visit
+    const visit = await tx.visit.create({
+      data: {
+        guestId: guestRecord.id,
+        hostId,
+        invitationId: null, // Will be updated after we find the invitation
+        checkedInAt: now,
+        expiresAt,
+        overrideReason: overrideReason || null,
+        overrideBy: overrideUserId,
+      },
+    });
+
+    // Find the best matching invitation to update
+    const invitation = await tx.invitation.findFirst({
+      where: {
+        hostId,
+        guestId: guestRecord.id,
+        inviteDate: {
+          // Search ±1 day to handle timezone edge cases
+          gte: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1),
+          lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+        },
+        status: {
+          in: ['PENDING', 'ACTIVATED'],
+        },
+      },
+      orderBy: [
+        { status: 'desc' }, // ACTIVATED before PENDING 
+        { createdAt: 'desc' }, // Most recent first
+      ],
+    });
+
+    let updatedInvitation = null;
+    if (invitation) {
+      // Update the invitation status and link it to the visit
+      updatedInvitation = await tx.invitation.update({
+        where: { id: invitation.id },
+        data: { status: 'CHECKED_IN' },
+      });
+
+      // Update the visit to reference the invitation
+      await tx.visit.update({
+        where: { id: visit.id },
+        data: { invitationId: invitation.id },
+      });
+
+      console.log(`✅ Updated invitation ${invitation.id} to CHECKED_IN for guest ${guest.e}`);
+    } else {
+      console.log(`⚠️  No matching invitation found for guest ${guest.e} - treating as walk-in`);
+    }
+
+    return { visit, updatedInvitation };
   });
 
   // Check for discount eligibility

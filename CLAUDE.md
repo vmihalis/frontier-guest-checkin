@@ -173,11 +173,18 @@ npm run test:staging:full   # Complete integration test suite
 
 ## Development Guidelines
 
+### Code Quality & Testing Principles
+- **Surgical Integration**: NEVER create massive functions or blow up line counts - integrate changes into existing code surgically
+- **Test Coverage**: Add regression tests by enhancing existing test functions, not creating new 150+ line test monsters
+- **Data Consistency**: Use atomic transactions for multi-table operations (visits + invitation status updates)
+- **Implementation Over Analysis**: Focus on code changes and real fixes, not lengthy planning documents
+
 ### Database Operations
 - **No migrations**: Uses `npm run db:push` for schema changes
 - **UUID primary keys**: Database-generated with `@default(dbgenerated("gen_random_uuid("))` 
 - **Snake_case mapping**: Use `@map` directives for database columns
 - **Proper indexing**: On guestId, hostId, checkedInAt, qrToken fields
+- **Atomic Transactions**: Critical for data integrity - visit creation must update invitation status atomically
 
 ### QR Scanner Implementation
 - **Primary deployment target**: iPad Safari

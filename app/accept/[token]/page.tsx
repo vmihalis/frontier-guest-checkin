@@ -321,9 +321,9 @@ export default function AcceptTermsPage() {
                   <ul className="space-y-2 text-orange-800">
                     <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Frequency Limit:</strong> You may enter the Tower a maximum of three (3) times per month</span></li>
                     <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Floor Access:</strong> You are not permitted on community floors unless explicit permission has been granted by the respective floor leads</span></li>
-                    <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Check-In Required:</strong> You must check in at the entrance and will only be admitted once picked up by your hosting member ("citizen")</span></li>
+                    <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Check-In Required:</strong> You must check in at the entrance and will only be admitted once picked up by your hosting member (&quot;citizen&quot;)</span></li>
                     <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Accompaniment:</strong> You must remain with your hosting citizen at all times and may not move about the Tower independently</span></li>
-                    <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Citizen-Only Events:</strong> You are not allowed to attend events designated as "citizen-only"</span></li>
+                    <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Citizen-Only Events:</strong> You are not allowed to attend events designated as &quot;citizen-only&quot;</span></li>
                     <li className="flex items-start"><span className="text-orange-600 mr-2 flex-shrink-0">•</span><span><strong>Host Responsibility:</strong> Your hosting citizen is responsible for your conduct and compliance at all times</span></li>
                   </ul>
                 </div>

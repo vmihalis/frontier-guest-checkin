@@ -30,12 +30,17 @@ interface CheckInResponse {
 async function testSingleGuestCheckIn() {
   console.log('\n📝 Test 1: Single guest check-in via unified API');
   
+  // Get a real host for invitation linking
+  const host = await prisma.user.findFirst({ where: { role: 'host' } });
+  if (!host) throw new Error('No host found');
+
   // Create test guest with acceptance
   const testGuest = await prisma.guest.create({
     data: {
       email: `test.single.${Date.now()}@example.com`,
       name: 'Single Test Guest',
-      country: 'US'
+      country: 'US',
+      termsAcceptedAt: new Date(),
     }
   });
 
@@ -44,6 +49,16 @@ async function testSingleGuestCheckIn() {
       guestId: testGuest.id,
       termsVersion: '1.0',
       visitorAgreementVersion: '1.0'
+    }
+  });
+
+  // Create invitation to test status update
+  const invitation = await prisma.invitation.create({
+    data: {
+      guestId: testGuest.id,
+      hostId: host.id,
+      inviteDate: new Date(),
+      status: 'PENDING'
     }
   });
 
@@ -59,6 +74,17 @@ async function testSingleGuestCheckIn() {
   
   if (response.ok && result.success) {
     console.log('✅ Single guest check-in successful');
+    
+    // Verify invitation status updated (critical regression test)
+    const updatedInvitation = await prisma.invitation.findUnique({ 
+      where: { id: invitation.id } 
+    });
+    
+    if (updatedInvitation?.status === 'CHECKED_IN') {
+      console.log('✅ Invitation status correctly updated');
+    } else {
+      throw new Error(`Expected CHECKED_IN, got: ${updatedInvitation?.status}`);
+    }
   } else {
     console.log('❌ Single guest check-in failed:', result.message);
     throw new Error('Single guest check-in failed');
@@ -332,6 +358,7 @@ async function testHostConcurrentLimit() {
   }
 }
 
+
 async function clearTestData() {
   // Clear test visits to prevent capacity issues
   await prisma.visit.updateMany({
@@ -389,6 +416,7 @@ async function runAllTests() {
     
     await testHostConcurrentLimit();
     await clearTestData();
+    
 
     console.log('\n🏆 All check-in API tests completed successfully!');
     process.exit(0);
