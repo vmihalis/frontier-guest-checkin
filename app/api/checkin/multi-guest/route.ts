@@ -184,6 +184,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Verify hostId exists before creating visit to prevent foreign key constraint violations
+    const hostExists = await prisma.user.findUnique({
+      where: { id: hostId },
+      select: { id: true }
+    });
+    
+    if (!hostExists) {
+      console.error(`ERROR: Host with ID ${hostId} not found in database`);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Invalid host - user not found in database',
+          guestEmail: guest.e,
+          guestName: guest.n
+        },
+        { status: 400 }
+      );
+    }
+
     // Create new visit
     const visit = await prisma.visit.create({
       data: {
