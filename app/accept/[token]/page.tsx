@@ -166,8 +166,12 @@ export default function AcceptTermsPage() {
       <div className="max-w-4xl mx-auto px-4">
         <Card className="bg-white border border-gray-300 rounded-lg shadow-xl p-8">
           <div className="text-center mb-10">
-            <div className="w-20 h-20 bg-purple-600 rounded-xl flex items-center justify-center mx-auto mb-6">
-              <span className="text-white font-mono text-2xl font-bold">ft</span>
+            <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+              <img 
+                src="/logo.JPG" 
+                alt="Frontier Tower Logo" 
+                className="w-full h-full object-contain rounded-xl"
+              />
             </div>
             <h1 className="text-4xl font-bold text-gray-800 mb-4">
               Welcome to Frontier Tower
