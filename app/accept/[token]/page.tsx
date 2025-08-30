@@ -256,7 +256,7 @@ export default function AcceptTermsPage() {
                     className="mt-1 h-5 w-5 text-blue-600"
                   />
                   <label htmlFor="terms" className="text-base font-medium text-gray-800 cursor-pointer leading-relaxed">
-                    ✅ I have <strong>carefully read and understand</strong> the Terms and Conditions above, 
+                    I have <strong>carefully read and understand</strong> the Terms and Conditions above, 
                     and I agree to comply with all stated policies.
                   </label>
                 </div>
@@ -345,7 +345,7 @@ export default function AcceptTermsPage() {
                     className="mt-1 h-5 w-5 text-green-600"
                   />
                   <label htmlFor="visitor-agreement" className="text-base font-medium text-gray-800 cursor-pointer leading-relaxed">
-                    ✅ I have <strong>thoroughly reviewed and understand</strong> the Visitor Agreement above, 
+                    I have <strong>thoroughly reviewed and understand</strong> the Visitor Agreement above, 
                     and I commit to following all visitor responsibilities and restrictions.
                   </label>
                 </div>
@@ -362,26 +362,24 @@ export default function AcceptTermsPage() {
             )}
 
             <div className="text-center pt-6">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-1">
-                <Button
-                  type="submit"
-                  disabled={!termsAccepted || !visitorAgreementAccepted || submitting}
-                  className={`w-full sm:w-auto px-12 py-4 text-lg font-bold rounded-lg transition-all ${
-                    !termsAccepted || !visitorAgreementAccepted || submitting
-                      ? 'bg-gray-300 text-gray-700 cursor-not-allowed'
-                      : 'bg-white text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {submitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-500 mr-2 inline-block"></div>
-                      Processing Your Acceptance...
-                    </>
-                  ) : (
-                    <>🚀 Accept Terms and Continue to Frontier Tower</>
-                  )}
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                disabled={!termsAccepted || !visitorAgreementAccepted || submitting}
+                className={`w-full sm:w-auto px-12 py-4 text-lg font-bold rounded-lg transition-all opacity-100 ${
+                  !termsAccepted || !visitorAgreementAccepted || submitting
+                    ? 'bg-gray-300 text-gray-700 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline-block"></div>
+                    Processing Your Acceptance...
+                  </>
+                ) : (
+                  <>Accept Terms and Continue</>
+                )}
+              </Button>
               <p className="text-sm text-gray-600 mt-4">
                 By clicking above, you confirm that you have read, understood, and agree to both documents.
               </p>
