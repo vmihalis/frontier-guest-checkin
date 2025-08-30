@@ -519,9 +519,9 @@ export default function InvitesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {invitations.map((invitation) => (
                   <Card key={invitation.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
-                    <div className="p-4">
+                    <div className="p-3">
                       {/* Compact Guest Header */}
-                      <div className="mb-3">
+                      <div className="mb-2">
                         <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">{invitation.guest.name}</h3>
                         <p className="text-xs text-gray-600 mb-2 truncate">{invitation.guest.email}</p>
                         
