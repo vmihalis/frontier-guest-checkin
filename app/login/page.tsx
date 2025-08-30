@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { Logo } from "@/components/ui/logo"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -89,8 +90,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md shadow-lg border border-gray-300">
         <CardHeader className="text-center space-y-3">
-          <div className="mx-auto w-16 h-16 bg-purple-600 rounded-xl flex items-center justify-center mb-2">
-            <span className="text-white font-mono text-xl font-bold">ft</span>
+          <div className="mx-auto mb-2 flex justify-center">
+            <Logo size="md" priority className="rounded-xl" />
           </div>
           <CardTitle className="text-3xl font-bold text-gray-800">Frontier Tower</CardTitle>
           <CardDescription className="text-gray-600">Sign in to invite guests</CardDescription>

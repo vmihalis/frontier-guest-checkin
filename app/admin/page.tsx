@@ -34,6 +34,7 @@ import {
   UserX,
   Eye
 } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 
 interface AdminStats {
   overview: {
@@ -433,6 +434,9 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
+          <div className="mb-6">
+            <Logo size="lg" className="mx-auto mb-4" />
+          </div>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-lg text-gray-800">Loading admin dashboard...</p>
         </div>
@@ -447,9 +451,7 @@ export default function AdminPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-mono text-lg font-bold">ft</span>
-              </div>
+              <Logo size="sm" className="rounded-lg" />
               <h1 className="text-4xl font-bold text-gray-800">Frontier Tower</h1>
             </div>
             <p className="text-lg text-gray-800">System Administration & Analytics</p>

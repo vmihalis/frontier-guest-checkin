@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/logo";
 
 export default function Home() {
   return (
@@ -7,8 +8,8 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           {/* Logo and Header */}
           <div className="mb-12">
-            <div className="w-24 h-24 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <span className="text-white font-mono text-3xl font-bold">ft</span>
+            <div className="mx-auto mb-6 flex justify-center">
+              <Logo size="xl" priority className="shadow-lg rounded-2xl" />
             </div>
             <h1 className="text-6xl font-bold text-gray-800 mb-4">
               Frontier Tower

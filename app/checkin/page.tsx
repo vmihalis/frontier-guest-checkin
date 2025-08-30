@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QrScanner from 'qr-scanner';
-import Image from 'next/image';
 import { parseQRData, MultiGuestData, type ParsedQRData } from '@/lib/qr-token';
 import { GuestSelection } from '@/components/GuestSelection';
 import { OverrideDialog } from '@/components/OverrideDialog';
 import { useAuth } from '@/hooks/use-auth';
+import { Logo } from '@/components/ui/logo';
 
 interface CameraDevice {
   deviceId: string;
@@ -337,14 +337,8 @@ export default function CheckInPage() {
       <div className="container mx-auto px-4 py-4 sm:py-8 max-w-2xl">
         <div className="text-center mb-8">
           {/* Logo */}
-          <div className="mb-6">
-            <Image 
-              src="/logo.JPG" 
-              alt="Frontier Tower Logo" 
-              width={96}
-              height={96}
-              className="h-12 sm:h-16 md:h-20 lg:h-24 mx-auto mb-4 object-contain"
-            />
+          <div className="mb-6 flex justify-center">
+            <Logo size="lg" priority className="h-12 sm:h-16 md:h-20 lg:h-24" />
           </div>
           
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Guest Check-In</h1>

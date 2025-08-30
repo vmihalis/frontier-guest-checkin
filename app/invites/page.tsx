@@ -13,6 +13,7 @@ import { formatDateInLA, formatTimeInLA, formatCountdown, TIMEZONE_DISPLAY } fro
 import { QRCodeComponent } from '@/components/ui/qrcode';
 import { generateMultiGuestQR } from '@/lib/qr-token';
 import { Search, QrCode, Copy, RotateCcw, UserCheck, Clock, Users, Calendar } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 
 interface Guest {
   id: string;
@@ -286,9 +287,7 @@ export default function InvitesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-mono text-lg font-bold">ft</span>
-              </div>
+              <Logo size="sm" className="rounded-lg" />
               <h1 className="text-4xl font-bold text-gray-800">Frontier Tower</h1>
             </div>
             <p className="text-lg text-gray-800">Welcome, {currentUser?.name || 'Host'}</p>
