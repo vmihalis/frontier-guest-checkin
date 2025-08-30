@@ -376,14 +376,17 @@ async function processGuestCheckIn({
     });
 
     // Find the best matching invitation to update
-    const invitation = await tx.invitation.findFirst({
+    const searchDateStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const searchDateEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    // First try: exact host match
+    let invitation = await tx.invitation.findFirst({
       where: {
         hostId,
         guestId: guestRecord.id,
         inviteDate: {
           // Search ±1 day to handle timezone edge cases
-          gte: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1),
-          lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+          gte: searchDateStart,
+          lte: searchDateEnd,
         },
         status: {
           in: ['PENDING', 'ACTIVATED'],
@@ -394,6 +397,30 @@ async function processGuestCheckIn({
         { createdAt: 'desc' }, // Most recent first
       ],
     });
+
+    // If no exact host match, try any host for this guest (cross-host scenario)
+    if (!invitation) {
+      invitation = await tx.invitation.findFirst({
+        where: {
+          guestId: guestRecord.id,
+          inviteDate: {
+            gte: searchDateStart,
+            lte: searchDateEnd,
+          },
+          status: {
+            in: ['PENDING', 'ACTIVATED'],
+          },
+        },
+        orderBy: [
+          { status: 'desc' }, // ACTIVATED before PENDING 
+          { createdAt: 'desc' }, // Most recent first
+        ],
+      });
+      
+      if (invitation) {
+        console.log(`🔗 Cross-host check-in: invitation ${invitation.id} (host: ${invitation.hostId}) processed by host: ${hostId}`);
+      }
+    }
 
     let updatedInvitation = null;
     if (invitation) {

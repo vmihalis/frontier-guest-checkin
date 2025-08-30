@@ -552,7 +552,7 @@ export default function CheckInPage() {
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center mb-6">
                 <div className="text-green-500 text-6xl mb-4">
-                  {checkInResult?.reEntry ? '👋' : (checkInResult?.discountTriggered ? '🎉🎫' : '✨🎆')}
+                  ✨
                 </div>
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
                   {checkInResult?.reEntry ? "Welcome Back!" : "You're All Set!"}
@@ -564,14 +564,14 @@ export default function CheckInPage() {
                 )}
                 {checkInResult?.discountTriggered && (
                   <p className="text-sm text-purple-600 font-medium mt-2">
-                    🎉 Special surprise coming to your email!
+                    Special surprise coming to your email!
                   </p>
                 )}
               </div>
 
               {checkInResult?.message && (
                 <div className="mb-6">
-                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-center">
                     <p className="text-sm text-green-800 leading-relaxed">{checkInResult.message}</p>
                   </div>
                 </div>
