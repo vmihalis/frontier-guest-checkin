@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { formatDateInLA, formatTimeInLA, formatCountdown, TIMEZONE_DISPLAY } from '@/lib/timezone';
+import { formatDateInLA, formatCountdown, TIMEZONE_DISPLAY } from '@/lib/timezone';
 import { QRCodeComponent } from '@/components/ui/qrcode';
 import { generateMultiGuestQR } from '@/lib/qr-token';
 import { Search, QrCode, Copy, RotateCcw, UserCheck, Clock, Users, Calendar } from 'lucide-react';
@@ -254,51 +254,69 @@ export default function InvitesPage() {
     toast({ title: 'Info', description: 'QR regeneration not available' });
   };
 
-  const getStatusBadge = (invitation: Invitation) => {
-    const { status } = invitation;
+  // Systematic status components - single source of truth
+  const getPrimaryStatus = (invitation: Invitation) => {
+    const hasTerms = !!invitation.guest.termsAcceptedAt;
     
-    switch (status) {
-      case 'PENDING':
-        return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-            <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
-            Pending
-          </span>
-        );
-      case 'ACTIVATED':
-        return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-            Ready
-          </span>
-        );
-      case 'CHECKED_IN':
-        return (
+    if (invitation.status === 'CHECKED_IN') {
+      return {
+        badge: (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
             <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
             Checked In
           </span>
-        );
-      case 'EXPIRED':
-        return (
+        ),
+        action: null
+      };
+    }
+    
+    if (invitation.status === 'EXPIRED') {
+      return {
+        badge: (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
             <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
             Expired
           </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-            <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
-            {status}
+        ),
+        action: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <RotateCcw className="h-3 w-3 mr-2" />
+            Generate New QR
           </span>
-        );
+        )
+      };
     }
-  };
-
-
-  const hasAcceptedTerms = (invitation: Invitation) => {
-    return !!invitation.guest.termsAcceptedAt;
+    
+    if (hasTerms) {
+      return {
+        badge: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+            Ready
+          </span>
+        ),
+        action: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+            <UserCheck className="h-3 w-3 mr-2" />
+            On Your QR
+          </span>
+        )
+      };
+    }
+    
+    return {
+      badge: (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+          <Clock className="h-3 w-3 mr-2" />
+          Awaiting Terms
+        </span>
+      ),
+      action: (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+          <span>Email Sent</span>
+        </span>
+      )
+    };
   };
 
 
@@ -502,70 +520,28 @@ export default function InvitesPage() {
                 {invitations.map((invitation) => (
                   <Card key={invitation.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
                     <div className="p-6">
-                      {/* Guest Info Header */}
-                      <div className="flex items-start justify-between mb-4">
+                      {/* Clean Guest Info Header - Systematic Design */}
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">{invitation.guest.name}</h3>
-                            {getStatusBadge(invitation)}
+                            {getPrimaryStatus(invitation).badge}
                           </div>
                           <p className="text-sm text-gray-600">{invitation.guest.email}</p>
                         </div>
                         
-                        {/* Status Display */}
-                        <div className="flex gap-3 ml-6">
-                          {invitation.status === 'PENDING' && !hasAcceptedTerms(invitation) && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                              <Clock className="h-3 w-3 mr-2" />
-                              Awaiting Terms
-                            </span>
-                          )}
-                          
-                          {hasAcceptedTerms(invitation) && invitation.status !== 'EXPIRED' && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                              <UserCheck className="h-3 w-3 mr-2" />
-                              On Your QR
-                            </span>
-                          )}
+                        {/* Action Indicator - Right Aligned */}
+                        <div className="ml-6">
+                          {getPrimaryStatus(invitation).action}
                         </div>
                       </div>
                       
-                      {/* Status Information */}
-                      <div className="space-y-3">
-                        {hasAcceptedTerms(invitation) && (
-                          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                            Terms Accepted
-                          </div>
-                        )}
-                        
-                        {!hasAcceptedTerms(invitation) && invitation.status === 'PENDING' && (
-                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                            <div className="flex items-center text-sm text-amber-800">
-                              <Clock className="h-4 w-4 mr-2" />
-                              <span>Waiting for guest to accept terms via email</span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {invitation.status === 'ACTIVATED' && invitation.qrExpiresAt && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <div className="flex items-center text-sm text-blue-800">
-                              <Clock className="h-4 w-4 mr-2" />
-                              <span>QR Code expires at {formatTimeInLA(new Date(invitation.qrExpiresAt))}</span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {invitation.status === 'CHECKED_IN' && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                            <div className="flex items-center text-sm text-green-800">
-                              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                              <span>Successfully checked in</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      {/* Only show QR expiry for truly time-sensitive cases */}
+                      {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
+                        <div className="mt-3 text-xs text-gray-500">
+                          Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
+                        </div>
+                      )}
                     </div>
                   </Card>
                 ))}
