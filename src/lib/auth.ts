@@ -3,7 +3,6 @@ import { prisma } from './prisma';
 import { UserRole } from '@prisma/client';
 import * as jose from 'jose';
 import { isDemoMode, getDemoUser, logDemo } from './demo-config';
-import { authenticateWithService } from './auth-service';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'default-dev-secret-change-in-production'
@@ -63,15 +62,15 @@ export async function verifyAuthToken(token: string): Promise<AuthUser | null> {
 }
 
 /**
- * Authenticates a user with email and password via external auth service
- * Falls back to local authentication if service is unavailable
+ * Authenticates a user with email and password
+ * STUB IMPLEMENTATION: Verifies email exists in database but accepts any password
  */
 export async function authenticateUser(
   email: string, 
   password: string
 ): Promise<AuthUser | null> {
   try {
-    // First, look up user in local database
+    // Look up user in database - email must exist
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -83,22 +82,12 @@ export async function authenticateUser(
     });
 
     if (!user) {
-      console.log(`User not found in local database: ${email}`);
+      console.log(`Authentication failed: User not found in database: ${email}`);
       return null;
     }
 
-    // Try to authenticate with external auth service
-    const authResult = await authenticateWithService({ email, password });
-    
-    if (authResult && authResult.success) {
-      console.log(`User authenticated via external auth service: ${email}`);
-      return user;
-    }
-    
-    // If auth service failed or is unavailable, fall back to local auth
-    // For development, accept any password for seeded users
-    console.log(`External auth service unavailable, using fallback authentication for: ${email}`);
-    console.log(`Mock authentication with password: ${password}`);
+    // STUB: Accept any password for development - just verify the user exists
+    console.log(`Stub authentication successful for user: ${email} (password accepted: ${password.length} chars)`);
     
     return user;
   } catch (error) {
@@ -112,10 +101,33 @@ export async function authenticateUser(
  * 🎭 DEMO MODE: Bypasses auth checks when enabled
  */
 export async function getAuthContext(request: NextRequest): Promise<AuthContext> {
-  // 🎭 DEMO MODE: Return real seeded user if demo mode is enabled
+  // 🎭 DEMO MODE: Try JWT first, fallback to demo user if no valid JWT
   if (isDemoMode()) {
+    // Try to get token from Authorization header first
+    const authHeader = request.headers.get('authorization');
+    let token: string | null = null;
+    
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+      
+      // Try to verify the JWT token
+      try {
+        const user = await verifyAuthToken(token);
+        if (user) {
+          logDemo('Using JWT user in demo mode', user);
+          return {
+            user,
+            isAuthenticated: true,
+          };
+        }
+      } catch {
+        // JWT invalid, continue to demo fallback
+      }
+    }
+    
+    // Fallback to demo user if no valid JWT
     const demoUser = await getDemoUser();
-    logDemo('Using real seeded user for auth context', demoUser);
+    logDemo('Using fallback demo user for auth context', demoUser);
     return {
       user: demoUser,
       isAuthenticated: true,
@@ -158,14 +170,6 @@ export async function getAuthContext(request: NextRequest): Promise<AuthContext>
  * Throws error if not authenticated in production mode
  */
 export async function getCurrentUserId(request: NextRequest): Promise<string> {
-  // 🎭 DEMO MODE: Return real seeded user ID immediately
-  if (isDemoMode()) {
-    const demoUser = await getDemoUser();
-    logDemo('getCurrentUserId returning real seeded user ID', demoUser.id);
-    return demoUser.id;
-  }
-
-  // 🔒 PRODUCTION AUTH: Full authentication required
   const { user, isAuthenticated } = await getAuthContext(request);
   
   if (!isAuthenticated || !user) {
@@ -181,14 +185,6 @@ export async function getCurrentUserId(request: NextRequest): Promise<string> {
  * Throws error if not authenticated in production mode
  */
 export async function getCurrentUser(request: NextRequest): Promise<AuthUser> {
-  // 🎭 DEMO MODE: Return real seeded user immediately  
-  if (isDemoMode()) {
-    const demoUser = await getDemoUser();
-    logDemo('getCurrentUser returning real seeded user', demoUser);
-    return demoUser;
-  }
-
-  // 🔒 PRODUCTION AUTH: Full authentication required
   const { user, isAuthenticated } = await getAuthContext(request);
   
   if (!isAuthenticated || !user) {

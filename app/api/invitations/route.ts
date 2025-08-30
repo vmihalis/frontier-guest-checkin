@@ -50,23 +50,40 @@ export async function POST(request: NextRequest) {
 
     const inviteDateParsed = new Date(inviteDate || todayInLA());
 
+    // Map contactMethod string to enum value
+    const contactMethodEnum = contactMethod.toUpperCase() as ContactMethod;
+
     // Upsert guest
     const guest = await prisma.guest.upsert({
       where: { email },
       update: {
         name,
         country,
-        contactMethod: contactMethod as ContactMethod,
+        contactMethod: contactMethodEnum,
         contactValue,
       },
       create: {
         email,
         name,
         country,
-        contactMethod: contactMethod as ContactMethod,
+        contactMethod: contactMethodEnum,
         contactValue,
       },
     });
+
+    // Verify hostId exists before creating invitation to prevent foreign key constraint violations
+    const hostExists = await prisma.user.findUnique({
+      where: { id: hostId },
+      select: { id: true }
+    });
+    
+    if (!hostExists) {
+      console.error(`ERROR: Host with ID ${hostId} not found in database`);
+      return NextResponse.json(
+        { error: 'Invalid host - user not found in database' },
+        { status: 400 }
+      );
+    }
 
     // Create invitation
     const invitation = await prisma.invitation.create({
@@ -110,8 +127,8 @@ export async function POST(request: NextRequest) {
       invitation,
       message: 'Invitation created successfully',
     });
-  } catch {
-    console.error('Error creating invitation:');
+  } catch (error) {
+    console.error('Error creating invitation:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -148,8 +165,8 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ invitations });
-  } catch {
-    console.error('Error fetching invitations:');
+  } catch (error) {
+    console.error('Error fetching invitations:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

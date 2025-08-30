@@ -147,6 +147,7 @@ enum UserRole {
 }
 
 enum ContactMethod {
+  EMAIL
   TELEGRAM
   PHONE
 }

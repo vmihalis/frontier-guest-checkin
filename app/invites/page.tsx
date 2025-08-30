@@ -15,6 +15,12 @@ import { generateMultiGuestQR } from '@/lib/qr-token';
 import { Search, QrCode, Copy, RotateCcw, UserCheck, Clock, Users, Calendar } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 
+// Helper function to get auth headers
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('auth-token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 interface Guest {
   id: string;
   name: string;
@@ -92,15 +98,37 @@ export default function InvitesPage() {
       
       // Load current user if not already loaded
       if (!currentUser) {
-        const userRes = await fetch('/api/auth/me');
-        if (userRes.ok) {
-          const userData = await userRes.json();
-          setCurrentUser(userData.user);
+        // Try to load from localStorage first
+        const storedUser = localStorage.getItem('current-user');
+        if (storedUser) {
+          try {
+            setCurrentUser(JSON.parse(storedUser));
+          } catch {
+            // If parsing fails, fetch from API
+            const userRes = await fetch('/api/auth/me', {
+              headers: getAuthHeaders()
+            });
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              setCurrentUser(userData.user);
+            }
+          }
+        } else {
+          // No stored user, fetch from API
+          const userRes = await fetch('/api/auth/me', {
+            headers: getAuthHeaders()
+          });
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setCurrentUser(userData.user);
+          }
         }
       }
       
       // Load today's invitations
-      const invitesRes = await fetch(`/api/invitations?date=${selectedDate}`);
+      const invitesRes = await fetch(`/api/invitations?date=${selectedDate}`, {
+        headers: getAuthHeaders()
+      });
       const invitesData = await invitesRes.json();
       
       if (invitesRes.ok) {
@@ -133,7 +161,9 @@ export default function InvitesPage() {
       }
       
       // Load guest history
-      const historyRes = await fetch(`/api/guests/history?query=${searchTerm}`);
+      const historyRes = await fetch(`/api/guests/history?query=${searchTerm}`, {
+        headers: getAuthHeaders()
+      });
       const historyData = await historyRes.json();
       
       if (historyRes.ok) {
@@ -174,7 +204,10 @@ export default function InvitesPage() {
     try {
       const response = await fetch('/api/invitations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({
           ...formData,
           termsAccepted: true, // Host acknowledges they will send terms to guest

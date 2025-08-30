@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUser, createAuthToken } from '@/lib/auth';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,16 +25,6 @@ export async function POST(request: NextRequest) {
     // Create JWT token
     const token = await createAuthToken(user);
 
-    // Set HTTP-only cookie
-    const cookieStore = await cookies();
-    cookieStore.set('auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 24 hours
-      path: '/',
-    });
-
     return NextResponse.json({
       success: true,
       user: {
@@ -47,8 +36,8 @@ export async function POST(request: NextRequest) {
       token,
       message: 'Login successful',
     });
-  } catch {
-    console.error('Login error:');
+  } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

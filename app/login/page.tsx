@@ -69,6 +69,12 @@ export default function LoginPage() {
         return;
       }
 
+      // Clear any existing auth data and store new token
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem('auth-token', data.token);
+      localStorage.setItem('current-user', JSON.stringify(data.user));
+
       toast({
         title: "Sign-in successful",
         description: `Welcome, ${data.user.name}!`,
