@@ -8,7 +8,7 @@ A principled testing setup for the visitor management system with comprehensive 
 # Generate mock data from current database
 npm run test:generate
 
-# Run multi-guest check-in with 3 real guests
+# Run guest batch check-in with 3 real guests
 npm run test:multi valid_three_guests
 
 # List all available scenarios
@@ -28,7 +28,7 @@ test/
 │   ├── QRPayloadGenerator.ts   # QR code payloads & validation
 │   └── DatabaseHelpers.ts      # DB operations & verification
 ├── scenarios/       # Test scenario implementations
-│   └── MultiGuestCheckin.ts    # Multi-guest check-in flows
+│   └── MultiGuestCheckin.ts    # Guest batch check-in flows
 ├── fixtures/        # Static test data
 │   └── multi-checkin-real.json # Real database guest data
 └── integration/     # End-to-end tests (future)
@@ -62,7 +62,7 @@ Generate and validate QR code payloads:
 const qr = QRPayloadGenerator.createSingleGuestPayload(guest)
 
 // Multiple guests with signing
-const qr = QRPayloadGenerator.createMultiGuestPayload(guests, {
+const qr = QRPayloadGenerator.createGuestBatchPayload(guests, {
   hostId: host.id,
   expiresIn: 3600,
   sign: true
@@ -209,7 +209,7 @@ QR_SECRET="test-secret-key"
 
 ### GitHub Actions Integration
 ```yaml
-- name: Run multi-guest tests
+- name: Run guest batch tests
   run: |
     npm run db:seed
     npm run test:all
@@ -241,7 +241,7 @@ static createCustomScenario() {
 // Add to QRPayloadGenerator.createTestScenarios()
 customEdgeCase: () => {
   const guests = TestDataFactory.createGuestBatch(3)
-  return this.createMultiGuestPayload(guests, {
+  return this.createGuestBatchPayload(guests, {
     customField: 'value',
     sign: true
   })

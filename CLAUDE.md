@@ -46,7 +46,7 @@ npm run test:staging:full   # Complete integration test suite
 - **Database**: Prisma ORM with PostgreSQL (no migrations, uses db:push)
 - **Email**: Resend API with React Email templates
 - **QR Scanning**: qr-scanner library with iPad Safari optimization
-- **Authentication**: DEMO_MODE toggle system (see DEMO-MODE.md)
+- **Authentication**: JWT-only production auth with DEMO_MODE bypass (see DEMO-MODE.md)
 - **Testing**: Multi-environment test suite with Faker.js
 
 ## Database Architecture
@@ -143,7 +143,6 @@ npm run test:staging:full   # Complete integration test suite
 - **Locations Table**: Multiple tower buildings support for multi-location deployments  
 - **Kiosk Interface**: Manual guest lookup, walk-in registration, badge printing capabilities
 - **Advanced Features**: Visit analytics, capacity reporting, guest history search
-- **Production Auth**: Enhanced authentication system to replace DEMO_MODE (Prisma-based)
 
 ## Development Guidelines
 
@@ -185,6 +184,28 @@ Optional:
 - `DEMO_MODE` — dev-only bypass; build asserts if enabled for prod
 - `DEBUG` — extra logging in dev/tests
 
+## Authentication Strategy
+
+### Production Authentication (JWT-Only)
+- **Token Storage**: Client-side localStorage (`auth-token`)
+- **API Authentication**: `Authorization: Bearer <token>` headers only
+- **No Cookies**: Completely eliminated server-side cookie handling
+- **Token Lifecycle**: 24-hour expiration, client-side logout clears localStorage
+- **Security**: All API routes require valid JWT tokens for authentication
+
+### Demo Mode (Development Only)
+- **Environment Toggle**: `DEMO_MODE=true` enables permissive authentication
+- **Fallback Behavior**: Uses real database users when JWT missing/invalid
+- **User Validation**: Still verifies user emails exist in database
+- **Build Safety**: Production builds fail if DEMO_MODE enabled
+- **Use Case**: Hackathons, demos, development without complex auth setup
+
+### API Route Authentication
+All protected routes use unified `getCurrentUserId(request)` which:
+1. **Production Mode**: Requires valid JWT token, returns user ID or throws error
+2. **Demo Mode**: Tries JWT first, falls back to first available host user
+3. **Consistent Interface**: Same function signature regardless of mode
+
 ## Architectural Notes
 
 ### Application Architecture
@@ -218,7 +239,7 @@ Optional:
 
 ## Immediate Development Priorities
 1. **Admin Console Implementation** - Analytics dashboard, user management, policy settings
-2. **API Architecture Simplification** - Unified check-in endpoint eliminates complexity
-3. **Enhanced Security Features** - Improved override workflows and audit trails
-4. **Performance Optimization** - Database query optimization and UI responsiveness
-5. **Design System Adoption** - Apply comprehensive UI standards across all interfaces
+2. **Enhanced Security Features** - Improved override workflows and audit trails  
+3. **Performance Optimization** - Database query optimization and UI responsiveness
+4. **Multi-Location Support** - Locations table for multiple tower buildings
+5. **Advanced Analytics** - Visit analytics, capacity reporting, guest history search

@@ -33,7 +33,7 @@ npm run db:reset       # Reset DB locally
 npm run db:studio      # Prisma Studio
 npm run db:seed        # Seed demo data
 
-npm run test:multi     # Multi-guest scenarios
+npm run test:multi     # Guest batch scenarios
 npm run test:scenarios # Business rules
 npm run test:staging   # Integration (requires non-prod DB)
 ```
@@ -69,7 +69,7 @@ npm run test:staging   # Integration (requires non-prod DB)
 - Third lifetime visit triggers discount email.
 
 ### Key Files
-- API: `app/api/checkin/multi-guest/route.ts` — unified check‑in endpoint (override + discount).
+- API: `app/api/checkin/route.ts` — unified check‑in endpoint (single/batch guests, override + discount).
 - Rules: `src/lib/validations.ts` — business rule evaluation.
 - Auth: `src/lib/auth.ts`, `src/lib/demo-config.ts` — JWT + demo bypass.
 - Email: `src/lib/email.ts`, templates in `src/lib/email-templates/`.
