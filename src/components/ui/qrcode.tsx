@@ -76,7 +76,7 @@ export function QRCodeComponent({
   if (!qrDataUrl) {
     return (
       <div className={`flex items-center justify-center p-4 bg-gray-50 border border-gray-200 rounded-lg ${className}`}>
-        <p className="text-sm text-gray-500">No QR code generated</p>
+        <p className="text-sm text-gray-700">No QR code generated</p>
       </div>
     );
   }

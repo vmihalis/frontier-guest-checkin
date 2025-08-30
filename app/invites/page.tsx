@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateInLA, formatTimeInLA, formatCountdown, TIMEZONE_DISPLAY } from '@/lib/timezone';
 import { QRCodeComponent } from '@/components/ui/qrcode';
+import { generateMultiGuestQR } from '@/lib/qr-token';
 import { Search, QrCode, Copy, RotateCcw, UserCheck, Clock, Users, Calendar } from 'lucide-react';
 
 interface Guest {
@@ -46,11 +46,12 @@ interface GuestHistoryItem {
   hasDiscount: boolean;
 }
 
-const MOCK_HOST = {
-  id: 'mock-host-id',
-  name: 'John Host',
-  email: 'host@example.com',
-};
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 export default function InvitesPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -59,6 +60,7 @@ export default function InvitesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   // Form states
@@ -75,13 +77,26 @@ export default function InvitesPage() {
   const [qrModalData, setQrModalData] = useState<{
     isOpen: boolean;
     invitation?: Invitation;
+    hostQR?: string;
     countdown?: string;
   }>({ isOpen: false });
+
+  // Host QR state
+  const [hostQRData, setHostQRData] = useState<string | null>(null);
 
   // Load data
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Load current user if not already loaded
+      if (!currentUser) {
+        const userRes = await fetch('/api/auth/me');
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setCurrentUser(userData.user);
+        }
+      }
       
       // Load today's invitations
       const invitesRes = await fetch(`/api/invitations?date=${selectedDate}`);
@@ -97,6 +112,23 @@ export default function InvitesPage() {
           new Date(inv.qrExpiresAt) > new Date()
         ).length || 0;
         setActiveGuestCount(activeCount);
+        
+        // Generate host QR data for guests who accepted terms
+        const acceptedGuests = invitesData.invitations?.filter((inv: Invitation) => 
+          inv.guest.termsAcceptedAt && inv.status !== 'EXPIRED'
+        ) || [];
+        
+        if (acceptedGuests.length > 0) {
+          const qrData = generateMultiGuestQR(
+            acceptedGuests.map((inv: Invitation) => ({
+              email: inv.guest.email,
+              name: inv.guest.name
+            }))
+          );
+          setHostQRData(qrData);
+        } else {
+          setHostQRData(null);
+        }
       }
       
       // Load guest history
@@ -112,7 +144,7 @@ export default function InvitesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, searchTerm, toast]);
+  }, [selectedDate, searchTerm, currentUser, toast]);
 
   useEffect(() => {
     loadData();
@@ -173,51 +205,7 @@ export default function InvitesPage() {
     }
   };
 
-  const handleActivateQR = async (invitationId: string) => {
-    try {
-      const response = await fetch(`/api/invitations/${invitationId}/activate`, {
-        method: 'POST',
-      });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        const updatedInvitation = data.invitation;
-        setQrModalData({ 
-          isOpen: true, 
-          invitation: updatedInvitation,
-          countdown: formatCountdown(new Date(data.expiresAt))
-        });
-        loadData();
-      } else {
-        toast({ title: 'Error', description: data.error || 'Failed to activate QR code' });
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Network error. Please try again.' });
-    }
-  };
-
-  const handleAdmit = async (invitationId: string) => {
-    try {
-      const response = await fetch(`/api/invitations/${invitationId}/admit`, {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({ 
-          title: 'Success', 
-          description: data.message || 'Guest checked in successfully!' 
-        });
-        loadData();
-      } else {
-        toast({ title: 'Error', description: data.error || 'Failed to admit guest' });
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Network error. Please try again.' });
-    }
-  };
 
 
   const copyQRToken = () => {
@@ -228,9 +216,8 @@ export default function InvitesPage() {
   };
 
   const regenerateQR = async () => {
-    if (qrModalData.invitation) {
-      await handleActivateQR(qrModalData.invitation.id);
-    }
+    // Not used with multi-guest QR system
+    toast({ title: 'Info', description: 'QR regeneration not available' });
   };
 
   const getStatusBadge = (invitation: Invitation) => {
@@ -238,31 +225,48 @@ export default function InvitesPage() {
     
     switch (status) {
       case 'PENDING':
-        return <Badge variant="outline">Pending</Badge>;
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+            <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+            Pending
+          </span>
+        );
       case 'ACTIVATED':
-        return <Badge variant="info">Activated</Badge>;
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+            Ready
+          </span>
+        );
       case 'CHECKED_IN':
-        return <Badge variant="success">Checked In</Badge>;
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+            Checked In
+          </span>
+        );
       case 'EXPIRED':
-        return <Badge variant="destructive">Expired</Badge>;
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+            <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+            Expired
+          </span>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+            <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+            {status}
+          </span>
+        );
     }
   };
 
-  const canActivate = (invitation: Invitation) => {
-    return invitation.status === 'PENDING' && invitation.guest.termsAcceptedAt;
-  };
 
   const hasAcceptedTerms = (invitation: Invitation) => {
     return !!invitation.guest.termsAcceptedAt;
   };
 
-  const canAdmit = (invitation: Invitation) => {
-    return invitation.status === 'ACTIVATED' && 
-           invitation.qrExpiresAt && 
-           new Date(invitation.qrExpiresAt) > new Date();
-  };
 
   if (isLoading) {
     return (
@@ -276,33 +280,71 @@ export default function InvitesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">BerlinHouse – Invites</h1>
-            <p className="text-muted-foreground">Welcome, {MOCK_HOST.name}</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-mono text-lg font-bold">ft</span>
+              </div>
+              <h1 className="text-4xl font-bold text-gray-800">Frontier Tower</h1>
+            </div>
+            <p className="text-lg text-gray-800">Welcome, {currentUser?.name || 'Host'}</p>
           </div>
           <div className="flex items-center gap-4">
-            <Badge variant="info" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Active Guests: {activeGuestCount}/3
-            </Badge>
-            <p className="text-xs text-muted-foreground">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">Active Guests: {activeGuestCount}/3</span>
+            </div>
+            <p className="text-xs text-gray-700">
               Times shown in {TIMEZONE_DISPLAY}
             </p>
           </div>
         </div>
 
+        {/* Host QR Code Section */}
+        {hostQRData && (
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-800">
+                <QrCode className="h-5 w-5 text-blue-600" />
+                Your Check-in QR Code
+              </CardTitle>
+              <CardDescription className="text-gray-700">
+                {invitations.filter(inv => inv.guest.termsAcceptedAt && inv.status !== 'EXPIRED').length} guest(s) available for check-in
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  <p className="mb-2">This QR code contains all guests who have accepted the terms.</p>
+                  <p className="text-xs text-gray-600">Show this at the kiosk to check in your guests.</p>
+                </div>
+                <Button
+                  onClick={() => setQrModalData({ 
+                    isOpen: true, 
+                    hostQR: hostQRData
+                  })}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Show QR Code
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Create Invitation Form */}
-        <Card>
+        <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+              <UserCheck className="h-6 w-6 text-blue-600" />
               Create Invitation
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-800">
               Send an invitation email to a guest. They must accept terms via email before QR activation.
             </CardDescription>
           </CardHeader>
@@ -310,7 +352,7 @@ export default function InvitesPage() {
             <form onSubmit={handleCreateInvitation} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -320,7 +362,7 @@ export default function InvitesPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -331,7 +373,7 @@ export default function InvitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country *</Label>
+                  <Label htmlFor="country" className="text-sm font-medium text-gray-700">Country *</Label>
                   <Input
                     id="country"
                     value={formData.country}
@@ -341,7 +383,7 @@ export default function InvitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Contact Method *</Label>
+                  <Label className="text-sm font-medium text-gray-700">Contact Method *</Label>
                   <div className="flex gap-2">
                     <Select 
                       value={formData.contactMethod}
@@ -349,7 +391,7 @@ export default function InvitesPage() {
                         setFormData({ ...formData, contactMethod: value })
                       }
                     >
-                      <SelectTrigger className="w-32">
+                      <SelectTrigger className="w-32 border border-gray-300 rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -367,7 +409,7 @@ export default function InvitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="inviteDate">Invite Date</Label>
+                  <Label htmlFor="inviteDate" className="text-sm font-medium text-gray-700">Invite Date</Label>
                   <Input
                     id="inviteDate"
                     type="date"
@@ -386,7 +428,7 @@ export default function InvitesPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors">
                 Create Invitation
               </Button>
             </form>
@@ -394,15 +436,15 @@ export default function InvitesPage() {
         </Card>
 
         {/* Today's Invitations */}
-        <Card>
+        <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+                  <Calendar className="h-6 w-6 text-blue-600" />
                   Today&apos;s Invitations
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-800">
                   {formatDateInLA(new Date(selectedDate))}
                 </CardDescription>
               </div>
@@ -416,92 +458,84 @@ export default function InvitesPage() {
           </CardHeader>
           <CardContent>
             {invitations.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No invitations for this date.
-              </p>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-8 w-8 text-gray-500" />
+                </div>
+                <p className="text-lg font-medium text-gray-800 mb-2">No invitations for this date</p>
+                <p className="text-gray-600">Create your first invitation above to get started.</p>
+              </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {invitations.map((invitation) => (
-                  <div key={invitation.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{invitation.guest.name}</h3>
-                        {getStatusBadge(invitation)}
+                  <Card key={invitation.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                    <div className="p-6">
+                      {/* Guest Info Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{invitation.guest.name}</h3>
+                            {getStatusBadge(invitation)}
+                          </div>
+                          <p className="text-sm text-gray-600">{invitation.guest.email}</p>
+                        </div>
+                        
+                        {/* Status Display */}
+                        <div className="flex gap-3 ml-6">
+                          {invitation.status === 'PENDING' && !hasAcceptedTerms(invitation) && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                              <Clock className="h-3 w-3 mr-2" />
+                              Awaiting Terms
+                            </span>
+                          )}
+                          
+                          {hasAcceptedTerms(invitation) && invitation.status !== 'EXPIRED' && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                              <UserCheck className="h-3 w-3 mr-2" />
+                              On Your QR
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Status Information */}
+                      <div className="space-y-3">
                         {hasAcceptedTerms(invitation) && (
-                          <Badge variant="success" className="text-xs">Terms Accepted</Badge>
+                          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            Terms Accepted
+                          </div>
+                        )}
+                        
+                        {!hasAcceptedTerms(invitation) && invitation.status === 'PENDING' && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <div className="flex items-center text-sm text-amber-800">
+                              <Clock className="h-4 w-4 mr-2" />
+                              <span>Waiting for guest to accept terms via email</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {invitation.status === 'ACTIVATED' && invitation.qrExpiresAt && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-center text-sm text-blue-800">
+                              <Clock className="h-4 w-4 mr-2" />
+                              <span>QR Code expires at {formatTimeInLA(new Date(invitation.qrExpiresAt))}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {invitation.status === 'CHECKED_IN' && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-center text-sm text-green-800">
+                              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                              <span>Successfully checked in</span>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{invitation.guest.email}</p>
-                      
-                      {!hasAcceptedTerms(invitation) && invitation.status === 'PENDING' && (
-                        <p className="text-sm text-amber-600 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Waiting for guest to accept terms via email
-                        </p>
-                      )}
-                      
-                      {invitation.status === 'ACTIVATED' && invitation.qrExpiresAt && (
-                        <p className="text-sm text-amber-600 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          QR Expires: {formatTimeInLA(new Date(invitation.qrExpiresAt))}
-                        </p>
-                      )}
-                      
-                      {invitation.status === 'CHECKED_IN' && (
-                        <p className="text-sm text-green-600">
-                          Checked in successfully
-                        </p>
-                      )}
                     </div>
-                    
-                    <div className="flex gap-2">
-                      {invitation.status === 'PENDING' && !hasAcceptedTerms(invitation) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled
-                          className="opacity-50"
-                        >
-                          <QrCode className="h-4 w-4 mr-1" />
-                          Awaiting Terms
-                        </Button>
-                      )}
-                      
-                      {canActivate(invitation) && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleActivateQR(invitation.id)}
-                        >
-                          <QrCode className="h-4 w-4 mr-1" />
-                          Generate QR
-                        </Button>
-                      )}
-                      
-                      {invitation.status === 'ACTIVATED' && (
-                        <Button
-                          size="sm"
-                          onClick={() => setQrModalData({ 
-                            isOpen: true, 
-                            invitation,
-                            countdown: invitation.qrExpiresAt ? formatCountdown(new Date(invitation.qrExpiresAt)) : undefined
-                          })}
-                        >
-                          <QrCode className="h-4 w-4 mr-1" />
-                          Show QR
-                        </Button>
-                      )}
-                      
-                      {canAdmit(invitation) && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleAdmit(invitation.id)}
-                        >
-                          Admit
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             )}
@@ -509,13 +543,13 @@ export default function InvitesPage() {
         </Card>
 
         {/* Guest History */}
-        <Card>
+        <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
           <CardHeader>
-            <CardTitle>Guest History</CardTitle>
-            <CardDescription>Search and view guest visit statistics</CardDescription>
+            <CardTitle className="text-2xl font-bold text-gray-800">Guest History</CardTitle>
+            <CardDescription className="text-gray-800">Search and view guest visit statistics</CardDescription>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
                 <Input
                   placeholder="Search guests by name or email..."
                   value={searchTerm}
@@ -527,7 +561,7 @@ export default function InvitesPage() {
           </CardHeader>
           <CardContent>
             {guestHistory.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
+              <p className="text-center text-gray-800 py-8">
                 {searchTerm ? 'No guests found matching your search.' : 'No guest history available.'}
               </p>
             ) : (
@@ -556,9 +590,13 @@ export default function InvitesPage() {
                         }
                       </TableCell>
                       <TableCell>
-                        <Badge variant={guest.hasDiscount ? 'success' : 'outline'}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          guest.hasDiscount 
+                            ? 'bg-green-50 text-green-800 border border-green-200' 
+                            : 'bg-gray-100 text-gray-800 border border-gray-200'
+                        }`}>
                           {guest.hasDiscount ? 'Yes' : 'No'}
-                        </Badge>
+                        </span>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -573,21 +611,25 @@ export default function InvitesPage() {
           open={qrModalData.isOpen} 
           onOpenChange={(open) => setQrModalData({ isOpen: open })}
         >
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md bg-white border-gray-300">
             <DialogHeader>
-              <DialogTitle>QR Code - {qrModalData.invitation?.guest.name}</DialogTitle>
-              <DialogDescription>
-                Show this QR code to the guest for check-in
+              <DialogTitle className="text-gray-800">
+                {qrModalData.hostQR ? 'Your Check-in QR Code' : `QR Code - ${qrModalData.invitation?.guest.name}`}
+              </DialogTitle>
+              <DialogDescription className="text-gray-700">
+                {qrModalData.hostQR 
+                  ? 'Show this QR code at the kiosk to check in your guests' 
+                  : 'Show this QR code to the guest for check-in'}
               </DialogDescription>
             </DialogHeader>
             
-            {qrModalData.invitation && (
+            {(qrModalData.invitation || qrModalData.hostQR) && (
               <div className="space-y-4">
-                <div className="flex items-center justify-center p-8 bg-white rounded-lg border">
-                  <div className="text-center">
-                    {qrModalData.invitation.qrToken ? (
+                <Card className="p-8">
+                  <div className="text-center flex flex-col items-center justify-center">
+                    {(qrModalData.hostQR || qrModalData.invitation?.qrToken) ? (
                       <QRCodeComponent 
-                        value={qrModalData.invitation.qrToken}
+                        value={qrModalData.hostQR || qrModalData.invitation?.qrToken || ''}
                         size={256}
                         className="mb-4"
                         onError={(error) => {
@@ -601,35 +643,70 @@ export default function InvitesPage() {
                     ) : (
                       <div className="text-center">
                         <div className="text-6xl mb-4">❌</div>
-                        <p className="text-sm text-muted-foreground">No QR token available</p>
+                        <p className="text-sm text-gray-800">No QR data available</p>
                       </div>
                     )}
-                    <p className="text-xs font-mono bg-gray-100 p-2 rounded mt-2 break-all">
-                      {qrModalData.invitation.qrToken || 'No token available'}
-                    </p>
+                    {!qrModalData.hostQR && (
+                      <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <p className="text-xs font-mono text-gray-700 break-all leading-relaxed">
+                          {qrModalData.invitation?.qrToken || 'No token available'}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                </Card>
                 
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Time remaining:</p>
-                  <p className={`text-2xl font-mono ${
-                    qrModalData.countdown === 'EXPIRED' ? 'text-red-500' : 'text-green-600'
-                  }`}>
-                    {qrModalData.countdown || '00:00'}
-                  </p>
-                </div>
+                {!qrModalData.hostQR && qrModalData.countdown && (
+                  qrModalData.countdown === 'EXPIRED' ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="text-center">
+                        <p className="text-sm text-red-800 mb-1">Time remaining:</p>
+                        <p className="text-2xl font-mono font-semibold text-red-600">
+                          EXPIRED
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="text-center">
+                        <p className="text-sm text-green-800 mb-1">Time remaining:</p>
+                        <p className="text-2xl font-mono font-semibold text-green-800">
+                          {qrModalData.countdown || '00:00'}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             )}
             
-            <DialogFooter className="flex gap-2">
-              <Button variant="outline" onClick={copyQRToken}>
-                <Copy className="h-4 w-4 mr-1" />
-                Copy Token
-              </Button>
-              <Button variant="outline" onClick={regenerateQR}>
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Regenerate
-              </Button>
+            <DialogFooter className="flex gap-3 pt-2">
+              {!qrModalData.hostQR && (
+                <>
+                  <Button 
+                    onClick={copyQRToken}
+                    variant="secondary"
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy Token
+                  </Button>
+                  <Button 
+                    onClick={regenerateQR}
+                    variant="default"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Regenerate
+                  </Button>
+                </>
+              )}
+              {qrModalData.hostQR && (
+                <Button 
+                  onClick={() => setQrModalData({ isOpen: false })}
+                  variant="default"
+                >
+                  Close
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -119,6 +119,20 @@ export function parseQRData(qrData: string): ParsedQRData {
 }
 
 /**
+ * Generate multi-guest QR data for a host
+ */
+export function generateMultiGuestQR(guests: Array<{email: string, name: string}>): string {
+  const qrData: MultiGuestQRData = {
+    guests: guests.map(g => ({
+      e: g.email,
+      n: g.name
+    }))
+  };
+  
+  return JSON.stringify(qrData);
+}
+
+/**
  * Generate QR code display data (for UI display)
  */
 export function generateQRDisplayData(token: string): string {

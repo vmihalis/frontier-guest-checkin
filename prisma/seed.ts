@@ -38,6 +38,19 @@ async function seed() {
   // Create diverse user population
   const users: Prisma.UserCreateInput[] = []
   
+  // Demo users for consistent development
+  users.push({
+    email: 'demo.host@frontier.dev',
+    name: 'Demo Host',
+    role: UserRole.host,
+  })
+  
+  users.push({
+    email: 'demo.security@frontier.dev',
+    name: 'Demo Security',
+    role: UserRole.security,
+  })
+  
   // Admins (global operations)
   for (let i = 0; i < 5; i++) {
     users.push({

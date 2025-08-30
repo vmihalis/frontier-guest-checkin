@@ -38,14 +38,15 @@ export function isDemoMode(): boolean {
 }
 
 /**
- * Get a real demo user from the database
- * Uses the first host user from seeded data
+ * Get a real demo user from the database  
+ * Uses a specific demo user with known email for consistency
  */
 export async function getDemoUser() {
   const { prisma } = await import('./prisma');
   
-  const hostUser = await prisma.user.findFirst({
-    where: { role: 'host' },
+  // First try to find our specific demo user
+  let hostUser = await prisma.user.findUnique({
+    where: { email: 'demo.host@frontier.dev' },
     select: {
       id: true,
       email: true,
@@ -53,6 +54,20 @@ export async function getDemoUser() {
       role: true,
     },
   });
+
+  // If demo user doesn't exist, fallback to any host user
+  if (!hostUser) {
+    hostUser = await prisma.user.findFirst({
+      where: { role: 'host' },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+      orderBy: { email: 'asc' }, // For consistency, always pick same user
+    });
+  }
   
   if (!hostUser) {
     throw new Error('No host user found in database. Run npm run db:seed first.');

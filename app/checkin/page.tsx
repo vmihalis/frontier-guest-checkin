@@ -507,10 +507,10 @@ export default function CheckInPage() {
         </div>
 
         <div className="text-center mt-6 sm:mt-8">
-          <p className="text-xs sm:text-sm text-gray-500 mb-2">
+          <p className="text-xs sm:text-sm text-gray-700 mb-2">
             Compatible with QR codes, barcodes, and all major code formats
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-700">
             Optimized for iPad Safari compatibility
           </p>
         </div>

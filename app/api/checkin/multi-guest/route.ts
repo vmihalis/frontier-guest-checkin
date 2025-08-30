@@ -22,11 +22,20 @@ export async function POST(request: NextRequest) {
     try {
       hostId = await getCurrentUserId(request);
     } catch {
-      // No authentication - use first host user for QR scanner
-      const hostUser = await prisma.user.findFirst({
-        where: { role: 'host' },
+      // No authentication - use demo host user for QR scanner
+      let hostUser = await prisma.user.findUnique({
+        where: { email: 'demo.host@frontier.dev' },
         select: { id: true }
       });
+
+      // Fallback to any host user if demo user doesn't exist
+      if (!hostUser) {
+        hostUser = await prisma.user.findFirst({
+          where: { role: 'host' },
+          select: { id: true },
+          orderBy: { email: 'asc' } // For consistency
+        });
+      }
       
       if (!hostUser) {
         return NextResponse.json(
@@ -157,11 +166,20 @@ export async function POST(request: NextRequest) {
       try {
         overrideUserId = await getCurrentUserId(request);
       } catch {
-        // In QR scanner mode without auth, we'll track as system override
-        const securityUser = await prisma.user.findFirst({
-          where: { role: 'security' },
+        // In QR scanner mode without auth, use demo security user for overrides
+        let securityUser = await prisma.user.findUnique({
+          where: { email: 'demo.security@frontier.dev' },
           select: { id: true }
         });
+
+        // Fallback to any security user if demo user doesn't exist
+        if (!securityUser) {
+          securityUser = await prisma.user.findFirst({
+            where: { role: 'security' },
+            select: { id: true },
+            orderBy: { email: 'asc' } // For consistency
+          });
+        }
         overrideUserId = securityUser?.id || null;
       }
     }

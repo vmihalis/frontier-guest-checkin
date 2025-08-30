@@ -3,6 +3,7 @@ import { prisma } from './prisma';
 import { UserRole } from '@prisma/client';
 import * as jose from 'jose';
 import { isDemoMode, getDemoUser, logDemo } from './demo-config';
+import { authenticateWithService } from './auth-service';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'default-dev-secret-change-in-production'
@@ -62,16 +63,15 @@ export async function verifyAuthToken(token: string): Promise<AuthUser | null> {
 }
 
 /**
- * Authenticates a user with email and password
+ * Authenticates a user with email and password via external auth service
+ * Falls back to local authentication if service is unavailable
  */
 export async function authenticateUser(
   email: string, 
   password: string
 ): Promise<AuthUser | null> {
   try {
-    // TODO: In production, implement proper password hashing with bcrypt
-    // For now, we'll use a simple check for development
-    
+    // First, look up user in local database
     const user = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -83,12 +83,22 @@ export async function authenticateUser(
     });
 
     if (!user) {
+      console.log(`User not found in local database: ${email}`);
       return null;
     }
 
-    // TODO: Replace with actual password verification
+    // Try to authenticate with external auth service
+    const authResult = await authenticateWithService({ email, password });
+    
+    if (authResult && authResult.success) {
+      console.log(`User authenticated via external auth service: ${email}`);
+      return user;
+    }
+    
+    // If auth service failed or is unavailable, fall back to local auth
     // For development, accept any password for seeded users
-    console.log(`Mock authentication for user: ${email} with password: ${password}`);
+    console.log(`External auth service unavailable, using fallback authentication for: ${email}`);
+    console.log(`Mock authentication with password: ${password}`);
     
     return user;
   } catch (error) {

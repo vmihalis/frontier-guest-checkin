@@ -173,13 +173,18 @@ npm run test:staging:full   # Complete integration test suite
 - **Discount trigger**: Automatic on third lifetime visit
 
 ### Environment Setup
-Required environment variables:
-- `DATABASE_URL` - PostgreSQL database connection
-- `DIRECT_URL` - Direct database connection for migrations
-- `RESEND_API_KEY` - Resend API key for email notifications
-- `EMAIL_FROM` - From address for system emails
-- `DEMO_MODE` - Set to "true" for hackathon/demo mode (optional)
-- `OVERRIDE_PASSWORD` - Security override password (defaults to "meow")
+Use `.env.example` as the source of truth. Minimum required:
+- `DATABASE_URL` — PostgreSQL connection (single var across environments)
+- `JWT_SECRET` — long random string for JWT signing
+- `NEXT_PUBLIC_APP_URL` — base URL for links/emails
+- For email: `RESEND_API_KEY`, `EMAIL_FROM`
+
+Optional:
+- `DIRECT_URL` — direct DB connection for Prisma migrations (no pooling)
+- `TEST_DATABASE_URL` — isolated DB for tests (otherwise uses `DATABASE_URL`)
+- `OVERRIDE_PASSWORD` — capacity override approval at kiosk
+- `DEMO_MODE` — dev-only bypass; build asserts if enabled for prod
+- `DEBUG` — extra logging in dev/tests
 
 ## Architectural Notes
 

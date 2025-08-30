@@ -49,7 +49,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/signin', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,16 +86,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-semibold">Frontier Tower</CardTitle>
-          <CardDescription className="text-muted-foreground">Sign in to invite guests</CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md shadow-lg border border-gray-300">
+        <CardHeader className="text-center space-y-3">
+          <div className="mx-auto w-16 h-16 bg-purple-600 rounded-xl flex items-center justify-center mb-2">
+            <span className="text-white font-mono text-xl font-bold">ft</span>
+          </div>
+          <CardTitle className="text-3xl font-bold text-gray-800">Frontier Tower</CardTitle>
+          <CardDescription className="text-gray-600">Sign in to invite guests</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -104,17 +107,19 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 aria-describedby={emailError ? "email-error" : undefined}
-                className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
+className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}
               />
               {emailError && (
-                <p id="email-error" className="text-sm text-destructive" aria-live="polite">
-                  {emailError}
-                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p id="email-error" className="text-sm text-red-800" aria-live="polite">
+                    {emailError}
+                  </p>
+                </div>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -123,27 +128,33 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 aria-describedby={passwordError ? "password-error" : undefined}
-                className={passwordError ? "border-destructive focus-visible:ring-destructive" : ""}
+className={passwordError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}
               />
               {passwordError && (
-                <p id="password-error" className="text-sm text-destructive" aria-live="polite">
-                  {passwordError}
-                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p id="password-error" className="text-sm text-red-800" aria-live="polite">
+                    {passwordError}
+                  </p>
+                </div>
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={!isFormValid}>
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+              disabled={!isFormValid}
+            >
               Sign In
             </Button>
           </form>
 
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-gray-700 text-center">
             By continuing you agree to the{" "}
-            <a href="#" className="underline hover:text-foreground">
+            <a href="#" className="underline text-blue-600 hover:text-blue-700">
               Terms
             </a>{" "}
             &{" "}
-            <a href="#" className="underline hover:text-foreground">
+            <a href="#" className="underline text-blue-600 hover:text-blue-700">
               Privacy
             </a>
             .
