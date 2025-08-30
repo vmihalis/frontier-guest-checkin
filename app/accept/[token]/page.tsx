@@ -307,6 +307,23 @@ export default function AcceptTermsPage() {
                   </ul>
                 </div>
                 
+                <div className="bg-orange-100 border-l-4 border-orange-500 p-4 mb-4">
+                  <h3 className="font-bold text-orange-800 mb-3 flex items-center">
+                    <span className="mr-2">👥</span> Guest Access Terms & Conditions
+                  </h3>
+                  <p className="text-orange-800 mb-3 font-medium">
+                    As a guest at Frontier Tower, you must understand and comply with the following:
+                  </p>
+                  <ul className="space-y-2 text-orange-800">
+                    <li className="flex items-start"><span className="text-orange-600 mr-2">•</span><strong>Frequency Limit:</strong> You may enter the Tower a maximum of three (3) times per month</li>
+                    <li className="flex items-start"><span className="text-orange-600 mr-2">•</span><strong>Floor Access:</strong> You are not permitted on community floors unless explicit permission has been granted by the respective floor leads</li>
+                    <li className="flex items-start"><span className="text-orange-600 mr-2">•</span><strong>Check-In Required:</strong> You must check in at the entrance and will only be admitted once picked up by your hosting member ("citizen")</li>
+                    <li className="flex items-start"><span className="text-orange-600 mr-2">•</span><strong>Accompaniment:</strong> You must remain with your hosting citizen at all times and may not move about the Tower independently</li>
+                    <li className="flex items-start"><span className="text-orange-600 mr-2">•</span><strong>Citizen-Only Events:</strong> You are not allowed to attend events designated as "citizen-only"</li>
+                    <li className="flex items-start"><span className="text-orange-600 mr-2">•</span><strong>Host Responsibility:</strong> Your hosting citizen is responsible for your conduct and compliance at all times</li>
+                  </ul>
+                </div>
+                
                 <div className="bg-gray-100 border-l-4 border-gray-500 p-4">
                   <h3 className="font-bold text-gray-800 mb-2 flex items-center">
                     <span className="mr-2">🔐</span> Data Collection & Privacy
