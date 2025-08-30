@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Frontier Tower - Visitor Management System",
   description: "Advanced visitor management with QR code check-in, security overrides, and comprehensive business rule validation.",
+  icons: {
+    icon: '/frontier.ico?v=2',
+    shortcut: '/frontier.ico?v=2',
+    apple: '/frontier.ico?v=2',
+  },
 };
 
 export default function RootLayout({
