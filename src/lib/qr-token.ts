@@ -76,12 +76,16 @@ export function validateQRToken(token: string): { isValid: boolean; data?: QRTok
  * Parse QR code data to determine if it's single-guest or batch format
  */
 export function parseQRData(qrData: string): ParsedQRData {
+  console.log('Parsing QR data:', qrData.substring(0, 100), '...');
+  
   // First, try to parse as direct JSON (guest batch or direct single-guest format)
   try {
     const parsed = JSON.parse(qrData);
+    console.log('Successfully parsed as JSON:', parsed);
     
     // Check if it's guest batch format
     if (parsed.guests && Array.isArray(parsed.guests)) {
+      console.log('Detected guest batch format with', parsed.guests.length, 'guests');
       return {
         type: 'batch',
         guestBatch: parsed as GuestBatchQRData
@@ -90,6 +94,7 @@ export function parseQRData(qrData: string): ParsedQRData {
     
     // Check if it's direct JSON single-guest format
     if (parsed.inviteId && parsed.guestEmail && parsed.hostId) {
+      console.log('Detected single guest JSON format');
       return {
         type: 'single',
         singleGuest: parsed as QRTokenData
@@ -97,22 +102,30 @@ export function parseQRData(qrData: string): ParsedQRData {
     }
     
     // If JSON parsed but doesn't match expected formats
+    console.log('JSON parsed but unknown format:', Object.keys(parsed));
     throw new Error('Unknown JSON QR format');
   } catch (jsonError) {
+    console.log('JSON parsing failed:', jsonError instanceof Error ? jsonError.message : 'Unknown');
+    
     // If JSON parsing failed, try base64 decoding (single-guest token format)
     try {
       const decoded = JSON.parse(atob(qrData)) as QRTokenData;
+      console.log('Base64 decoded successfully:', decoded);
+      
       if (decoded.inviteId && decoded.guestEmail && decoded.hostId) {
+        console.log('Detected base64-encoded single guest token');
         return {
           type: 'single',
           singleGuest: decoded
         };
       }
+      
+      console.log('Base64 decoded but missing required fields:', Object.keys(decoded));
       throw new Error('Base64 decoded but missing required fields');
     } catch (base64Error) {
-      // Both JSON and base64 parsing failed
       console.error('QR parsing failed - JSON error:', jsonError instanceof Error ? jsonError.message : 'Unknown');
       console.error('QR parsing failed - Base64 error:', base64Error instanceof Error ? base64Error.message : 'Unknown');
+      console.error('Raw QR data (first 200 chars):', qrData.substring(0, 200));
       throw new Error('Invalid QR data format - neither valid JSON nor base64 token');
     }
   }

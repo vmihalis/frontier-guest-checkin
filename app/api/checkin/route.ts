@@ -29,44 +29,73 @@ interface CheckInRequest {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== CHECK-IN API REQUEST START ===');
+    console.log('Method:', request.method);
+    console.log('URL:', request.url);
+    console.log('Content-Type:', request.headers.get('content-type'));
+    
     const body: CheckInRequest = await request.json();
+    console.log('Request body:', JSON.stringify(body, null, 2));
+    console.log('Body type:', typeof body);
+    console.log('==================================');
+    
     const { token, guest, guests, overrideReason, overridePassword } = body;
 
     // Parse and normalize input to array of guests
     let guestList: GuestData[] = [];
 
     if (token) {
-      // Handle legacy QR token format
-      const tokenValidation = validateQRToken(token);
-      if (!tokenValidation.isValid || !tokenValidation.data) {
-        return NextResponse.json(
-          { 
-            success: false,
-            message: 'Invalid QR code format',
-            error: tokenValidation.error
-          },
-          { status: 400 }
-        );
+      console.log('Processing token:', token.substring(0, 50) + '...');
+      
+      // First try to parse as JSON (guest batch format)
+      try {
+        const parsed = JSON.parse(token);
+        console.log('Token parsed as JSON:', parsed);
+        
+        if (parsed.guests && Array.isArray(parsed.guests)) {
+          console.log('Detected guest batch format in token field');
+          guestList = parsed.guests;
+        } else {
+          throw new Error('Not a guest batch format');
+        }
+      } catch (jsonError) {
+        console.log('Token is not JSON, trying base64 validation...');
+        
+        // Handle legacy QR token format (base64 encoded)
+        const tokenValidation = validateQRToken(token);
+        console.log('Token validation result:', tokenValidation);
+        
+        if (!tokenValidation.isValid || !tokenValidation.data) {
+          console.log('Token validation failed:', tokenValidation.error);
+          return NextResponse.json(
+            { 
+              success: false,
+              message: 'Invalid QR code format',
+              error: tokenValidation.error
+            },
+            { status: 400 }
+          );
+        }
+
+        const { guestEmail } = tokenValidation.data;
+        const guestRecord = await prisma.guest.findUnique({
+          where: { email: guestEmail },
+          select: { name: true, email: true }
+        });
+
+        if (!guestRecord) {
+          return NextResponse.json(
+            { 
+              success: false,
+              message: `Guest ${guestEmail} not found in database`,
+              guestEmail
+            },
+            { status: 404 }
+          );
+        }
+
+        guestList = [{ e: guestRecord.email, n: guestRecord.name }];
       }
-
-      const { guestEmail } = tokenValidation.data;
-      const guestRecord = await prisma.guest.findUnique({
-        where: { email: guestEmail },
-        select: { name: true, email: true }
-      });
-
-      if (!guestRecord) {
-        return NextResponse.json(
-          { 
-            success: false,
-            message: `Guest ${guestEmail} not found in database`,
-            guestEmail
-          },
-          { status: 404 }
-        );
-      }
-
-      guestList = [{ e: guestRecord.email, n: guestRecord.name }];
     } else if (guest) {
       // Single guest direct format
       guestList = [guest];
@@ -74,6 +103,7 @@ export async function POST(request: NextRequest) {
       // Multiple guests format
       guestList = guests;
     } else {
+      console.log('No guest data provided in request');
       return NextResponse.json(
         { 
           success: false,
@@ -84,8 +114,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate guest data
+    console.log('Validating guest data for', guestList.length, 'guests');
     for (const g of guestList) {
       if (!g || !g.e || !g.n) {
+        console.log('Invalid guest data:', g);
         return NextResponse.json(
           { 
             success: false,
@@ -184,11 +216,28 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Check-in API error:', error);
+    console.error('=== CHECK-IN API ERROR ===');
+    console.error('Error type:', error?.constructor?.name);
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Full error:', error);
+    console.error('=========================');
+    
+    // Check if it's a JSON parsing error
+    if (error instanceof SyntaxError && error.message.includes('JSON')) {
+      return NextResponse.json(
+        { 
+          success: false,
+          message: 'Invalid request format. Please check the request data.',
+          error: 'JSON parsing failed'
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false,
-        message: 'System error during check-in. Please try again.',
+        message: 'Check-in temporarily unavailable. Please try again in a moment.',
         error: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
@@ -246,7 +295,7 @@ async function processGuestCheckIn({
   if (guestRecord.blacklistedAt) {
     return {
       success: false,
-      message: `${guest.n} is on the blacklist and cannot be checked in`,
+      message: `${guest.n} isn't eligible for building access today`,
       guestEmail: guest.e,
       guestName: guest.n,
       reason: 'blacklisted'
@@ -259,7 +308,7 @@ async function processGuestCheckIn({
     if (crossHostVisit) {
       return {
         success: true,
-        message: `${guest.n} is already checked in with ${activeVisit.host.name}`,
+        message: `${guest.n} is already enjoying their visit with ${activeVisit.host.name}! 🎉`,
         guestEmail: guest.e,
         guestName: guest.n,
         visitId: activeVisit.id,
@@ -271,7 +320,7 @@ async function processGuestCheckIn({
     } else {
       return {
         success: true,
-        message: `${guest.n} is already checked in`,
+        message: `Welcome back, ${guest.n}! You're already all set ✨`,
         guestEmail: guest.e,
         guestName: guest.n,
         visitId: activeVisit.id,
@@ -287,7 +336,7 @@ async function processGuestCheckIn({
   if (!validation.isValid) {
     return {
       success: false,
-      message: validation.error || `Cannot check in ${guest.n} - capacity or policy limits exceeded`,
+      message: validation.error || `Can't check in ${guest.n} right now - we're at our limits!`,
       guestEmail: guest.e,
       guestName: guest.n,
       reason: 'policy-violation',
@@ -334,9 +383,9 @@ async function processGuestCheckIn({
   }
 
   // Include acceptance renewal information in response
-  let message = `${guest.n} checked in successfully`;
+  let message = `Welcome to Frontier Tower, ${guest.n}! 🏢✨`;
   if (validation.acceptanceRenewed) {
-    message += ' (terms acceptance renewed)';
+    message = `Welcome back, ${guest.n}! We've updated your visitor terms 📝✨`;
   }
 
   return {

@@ -48,7 +48,7 @@ export async function validateHostConcurrentLimit(hostId: string): Promise<Valid
   if (activeVisitsCount >= limit) {
     return {
       isValid: false,
-      error: `Host concurrent limit reached (${limit}).`,
+      error: `Host at capacity with ${activeVisitsCount} guests (max ${limit}). Security can override if needed.`,
       currentCount: activeVisitsCount,
       maxCount: limit,
     };
@@ -83,7 +83,7 @@ export async function validateGuestRollingLimit(guestEmail: string): Promise<Val
     
     return {
       isValid: false,
-      error: `Guest reached ${limit} visits in last 30 days. Next eligible on ${nextEligibleDate.toLocaleDateString()}.`,
+      error: `Guest has reached ${limit} visits this month. Next visit available ${nextEligibleDate.toLocaleDateString()}.`,
       nextEligibleDate,
     };
   }
@@ -98,7 +98,7 @@ export function validateTimeCutoff(): ValidationResult {
   if (isAfterCutoff()) {
     return {
       isValid: false,
-      error: "Entries closed after 11:59 PM.",
+      error: "Building is closed for the night. Check-ins resume tomorrow morning.",
     };
   }
 
@@ -117,7 +117,7 @@ export async function validateGuestBlacklist(guestEmail: string): Promise<Valida
   if (guest?.blacklistedAt) {
     return {
       isValid: false,
-      error: "Guest is blacklisted and cannot be admitted.",
+      error: "Guest is not authorized for building access. Contact security for assistance.",
     };
   }
 
@@ -137,7 +137,7 @@ export async function validateGuestAcceptance(guestId: string): Promise<Validati
   if (!acceptance) {
     return {
       isValid: false,
-      error: "Guest must accept Terms & Visitor Agreement before activation.",
+      error: "Guest needs to accept visitor terms before check-in. Email will be sent.",
     };
   }
 
@@ -148,7 +148,7 @@ export async function validateGuestAcceptance(guestId: string): Promise<Validati
   if (acceptance.acceptedAt < oneYearAgo) {
     return {
       isValid: false,
-      error: "Terms acceptance has expired. Guest must re-accept current Terms & Visitor Agreement.",
+      error: "Guest's visitor agreement has expired. New terms acceptance required.",
     };
   }
 
@@ -169,7 +169,7 @@ export function validateQRToken(qrExpiresAt: Date | null): ValidationResult {
   if (now > qrExpiresAt) {
     return {
       isValid: false,
-      error: "QR code has expired. Please regenerate.",
+      error: "This QR code has expired. Please generate a new invitation.",
     };
   }
 
@@ -486,7 +486,7 @@ export async function processReturningGuestCheckIn(
     } catch (error) {
       return {
         isValid: false,
-        error: "Failed to renew guest acceptance. Please contact support."
+        error: "Unable to process guest terms update. Technical support needed."
       };
     }
   }

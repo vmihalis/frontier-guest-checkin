@@ -94,6 +94,33 @@ npm run test:staging:full   # Complete integration test suite
 - `POST /api/auth/login` - Authentication
 - `POST /api/auth/logout` - Sign out
 
+### QR Code Format Handling (Critical)
+**IMPORTANT**: The `/api/checkin` endpoint must support ALL QR code formats to prevent parsing failures:
+
+#### Supported QR Formats:
+1. **Raw JSON Guest Batch** (sent as `token` field):
+   ```json
+   {"guests":[{"e":"email@domain.com","n":"Full Name"},{"e":"email2@domain.com","n":"Name Two"}]}
+   ```
+2. **Base64 Single Guest Token** (legacy format):
+   ```
+   eyJpbnZpdGVJZCI6IjEyMyIsImZdZXN0RW1haWwiOiJ0ZXN0QGVtYWlsLmNvbSJ9...
+   ```
+3. **Direct Guest Object** (sent as `guest` field):
+   ```json
+   {"e":"email@domain.com","n":"Full Name"}
+   ```
+4. **Guest Array** (sent as `guests` field):
+   ```json
+   [{"e":"email1@domain.com","n":"Name 1"},{"e":"email2@domain.com","n":"Name 2"}]
+   ```
+
+#### Implementation Requirements:
+- **Frontend**: Must attempt parsing but NEVER fail on unknown formats - always fallback to sending raw data to API
+- **Backend**: Must try JSON parsing first, then base64 decoding as fallback
+- **Error Handling**: Provide specific business rule error messages, not generic "invalid format"
+- **Logging**: Include detailed QR parsing logs for debugging format issues
+
 ### Key Components
 - **OverrideDialog** - Security override UI for capacity limits with password validation
 - **GuestSelection** - Guest batch QR code selection interface

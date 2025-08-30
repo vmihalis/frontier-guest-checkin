@@ -13,6 +13,92 @@ interface CameraDevice {
   label: string;
 }
 
+// Get appropriate error icon based on the error type
+function getErrorIcon(errorMessage: string | null): string {
+  if (!errorMessage) return '❌';
+  
+  if (errorMessage.includes('capacity') || errorMessage.includes('full')) return '👥';
+  if (errorMessage.includes('monthly') || errorMessage.includes('limit')) return '📅'; 
+  if (errorMessage.includes('Building hours') || errorMessage.includes('closed')) return '🌙';
+  if (errorMessage.includes('expired') || errorMessage.includes('QR code')) return '🎫';
+  if (errorMessage.includes('terms') || errorMessage.includes('email')) return '✉️';
+  if (errorMessage.includes('security') || errorMessage.includes("can't access")) return '🔐';
+  if (errorMessage.includes('technical') || errorMessage.includes('Connection')) return '🔧';
+  if (errorMessage.includes('find') || errorMessage.includes('system')) return '🔍';
+  
+  return '❌';
+}
+
+// Get appropriate error title based on the error type
+function getErrorTitle(errorMessage: string | null): string {
+  if (!errorMessage) return 'Check-In Issue';
+  
+  if (errorMessage.includes('capacity') || errorMessage.includes('full')) return 'At Capacity';
+  if (errorMessage.includes('monthly') || errorMessage.includes('limit')) return 'Visit Limit Reached'; 
+  if (errorMessage.includes('Building hours') || errorMessage.includes('closed')) return 'Building Closed';
+  if (errorMessage.includes('expired') || errorMessage.includes('QR code')) return 'QR Code Expired';
+  if (errorMessage.includes('terms') || errorMessage.includes('email')) return 'Terms Needed';
+  if (errorMessage.includes('security') || errorMessage.includes("can't access")) return 'Access Restricted';
+  if (errorMessage.includes('technical') || errorMessage.includes('Connection')) return 'Technical Issue';
+  if (errorMessage.includes('find') || errorMessage.includes('system')) return 'Guest Not Found';
+  
+  return 'Check-In Issue';
+}
+
+// Get contextual error messages based on the specific failure reason
+function getContextualErrorMessage(result: any): string {
+  // Check for specific error patterns in the message or result
+  const message = result.message || result.error || '';
+  
+  // Blacklisted guest
+  if (message.includes("not authorized") || message.includes("blacklist")) {
+    return "Guest is not authorized for building access. Contact security for assistance.";
+  }
+  
+  // Capacity limits
+  if (message.includes("capacity") || message.includes("concurrent limit")) {
+    return "Host is at capacity. Security can override if space is available.";
+  }
+  
+  // Visit limits (monthly)
+  if (message.includes("visits this month") || message.includes("30 days")) {
+    return "Guest has reached monthly visit limit. Next visit available next month.";
+  }
+  
+  // Time cutoff
+  if (message.includes("closed for the night") || message.includes("11:59 PM")) {
+    return "Building is closed for the night. Check-ins resume tomorrow morning.";
+  }
+  
+  // QR code issues  
+  if (message.includes("expired") || message.includes("QR code")) {
+    return "QR code has expired. Please generate a new invitation.";
+  }
+  
+  // Terms acceptance
+  if (message.includes("visitor terms") || message.includes("acceptance")) {
+    return "Guest needs to accept visitor terms before check-in. Email will be sent.";
+  }
+  
+  // Guest not found
+  if (message.includes("not found")) {
+    return "Guest not found in system. Please verify QR code and try again.";
+  }
+  
+  // Network/system errors
+  if (message.includes("technical") || message.includes("unavailable") || message.includes("network")) {
+    return "Service temporarily unavailable. Please try again.";
+  }
+  
+  // Already checked in
+  if (message.includes("already")) {
+    return message; // These are already friendly from the API
+  }
+  
+  // Default fallback with the original message
+  return message || "Check-in failed. Please try again or contact support.";
+}
+
 export default function CheckInPage() {
   useAuth();
   const [scannedData, setScannedData] = useState<string | null>(null);
@@ -96,7 +182,7 @@ export default function CheckInPage() {
       setIsScanning(false);
       qrScannerRef.current?.stop();
       
-      if (parsed.type === 'multi') {
+      if (parsed.type === 'batch') {
         setCheckInState('guest-selection');
       } else {
         setCheckInState('processing');
@@ -104,10 +190,15 @@ export default function CheckInPage() {
       }
     } catch (error) {
       console.error('Failed to parse QR data:', error);
-      setErrorMessage('Invalid QR code format');
-      setCheckInState('error');
+      // Instead of showing an error, try to process it as a raw token
+      // This handles legacy formats or formats we don't recognize in frontend
+      console.log('Attempting to process as raw token...');
+      setScannedData(result.data);
+      setParsedQRData(null);
       setIsScanning(false);
       qrScannerRef.current?.stop();
+      setCheckInState('processing');
+      processCheckIn(result.data);
     }
   }, []);
 
@@ -204,12 +295,14 @@ export default function CheckInPage() {
         });
         setCheckInState('override-required');
       } else {
-        setErrorMessage(result.message || result.error || 'Check-in failed');
+        // Handle specific error cases with contextual messages
+        const errorMsg = getContextualErrorMessage(result);
+        setErrorMessage(errorMsg);
         setCheckInState('error');
       }
     } catch (error) {
       console.error('Check-in error:', error);
-      setErrorMessage('Network error during check-in');
+      setErrorMessage('Connection issue. Please try again.');
       setCheckInState('error');
     }
   };
@@ -263,12 +356,14 @@ export default function CheckInPage() {
         });
         setCheckInState('override-required');
       } else {
-        setErrorMessage(result.message || result.error || 'Check-in failed');
+        // Handle specific error cases with contextual messages
+        const errorMsg = getContextualErrorMessage(result);
+        setErrorMessage(errorMsg);
         setCheckInState('error');
       }
     } catch (error) {
       console.error('Guest check-in error:', error);
-      setErrorMessage('Network error during check-in');
+      setErrorMessage('Connection issue. Please try again.');
       setCheckInState('error');
     }
   };
@@ -456,11 +551,20 @@ export default function CheckInPage() {
           ) : checkInState === 'success' ? (
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center mb-6">
-                <div className="text-green-500 text-6xl mb-4">✅</div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Check-In Successful!</h2>
+                <div className="text-green-500 text-6xl mb-4">
+                  {checkInResult?.reEntry ? '👋' : (checkInResult?.discountTriggered ? '🎉🎫' : '✨🎆')}
+                </div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
+                  {checkInResult?.reEntry ? "Welcome Back!" : "You're All Set!"}
+                </h2>
                 {checkInResult?.guest && (
                   <p className="text-sm text-gray-600">
-                    Welcome, {checkInResult.guest.name}!
+                    {checkInResult.reEntry ? `Good to see you again, ${checkInResult.guest.name}!` : `Enjoy your visit, ${checkInResult.guest.name}!`}
+                  </p>
+                )}
+                {checkInResult?.discountTriggered && (
+                  <p className="text-sm text-purple-600 font-medium mt-2">
+                    🎉 Special surprise coming to your email!
                   </p>
                 )}
               </div>
@@ -468,7 +572,7 @@ export default function CheckInPage() {
               {checkInResult?.message && (
                 <div className="mb-6">
                   <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-                    <p className="text-sm text-green-800">{checkInResult.message}</p>
+                    <p className="text-sm text-green-800 leading-relaxed">{checkInResult.message}</p>
                   </div>
                 </div>
               )}
@@ -485,8 +589,8 @@ export default function CheckInPage() {
           ) : checkInState === 'error' ? (
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center mb-6">
-                <div className="text-red-500 text-6xl mb-4">❌</div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Check-In Failed</h2>
+                <div className="text-red-500 text-6xl mb-4">{getErrorIcon(errorMessage)}</div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">{getErrorTitle(errorMessage)}</h2>
               </div>
 
               {errorMessage && (
