@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -432,29 +431,34 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading admin dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-800">Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Frontier Tower - Admin Dashboard</h1>
-            <p className="text-muted-foreground">System administration and analytics</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-mono text-lg font-bold">ft</span>
+              </div>
+              <h1 className="text-4xl font-bold text-gray-800">Frontier Tower</h1>
+            </div>
+            <p className="text-lg text-gray-800">System Administration & Analytics</p>
           </div>
           <div className="flex items-center gap-4">
-            <Badge variant="default" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Admin Access
-            </Badge>
+            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-800">Admin Access</span>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -471,18 +475,18 @@ export default function AdminPage() {
         </div>
 
         {/* Global Search */}
-        <Card>
+        <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+              <Globe className="h-6 w-6 text-blue-600" />
               Global Search
             </CardTitle>
-            <CardDescription>Search across guests, hosts, and visits</CardDescription>
+            <CardDescription className="text-gray-800">Search across guests, hosts, and visits</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
                 <Input
                   placeholder="Search guests, hosts, visits..."
                   value={globalSearchTerm}
@@ -500,10 +504,12 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{result.title}</p>
-                        <p className="text-sm text-muted-foreground">{result.subtitle}</p>
-                        <p className="text-xs text-muted-foreground">{result.description}</p>
+                        <p className="text-sm text-gray-600">{result.subtitle}</p>
+                        <p className="text-xs text-gray-500">{result.description}</p>
                       </div>
-                      <Badge variant="outline">{result.type}</Badge>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                        {result.type}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -513,14 +519,14 @@ export default function AdminPage() {
         </Card>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="activity">Live Activity</TabsTrigger>
-            <TabsTrigger value="guests">Guest Management</TabsTrigger>
-            <TabsTrigger value="reports">Executive Reports</TabsTrigger>
-            <TabsTrigger value="policies">System Policies</TabsTrigger>
-            <TabsTrigger value="audit">Audit Log</TabsTrigger>
-            <TabsTrigger value="journey">Guest Journey</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7 bg-white border border-gray-300 rounded-lg p-1">
+            <TabsTrigger value="overview" className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200">Overview</TabsTrigger>
+            <TabsTrigger value="activity" className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200">Live Activity</TabsTrigger>
+            <TabsTrigger value="guests" className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200">Guest Management</TabsTrigger>
+            <TabsTrigger value="reports" className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200">Executive Reports</TabsTrigger>
+            <TabsTrigger value="policies" className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200">System Policies</TabsTrigger>
+            <TabsTrigger value="audit" className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200">Audit Log</TabsTrigger>
+            <TabsTrigger value="journey" className="text-gray-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200">Guest Journey</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -529,53 +535,53 @@ export default function AdminPage() {
               <>
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card>
+                  <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Total Guests</CardTitle>
-                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium text-gray-700">Total Guests</CardTitle>
+                      <Users className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.overview.totalGuests}</div>
-                      <p className="text-xs text-muted-foreground">
+                      <div className="text-2xl font-bold text-gray-800">{stats.overview.totalGuests}</div>
+                      <p className="text-xs text-gray-600">
                         Registered visitors
                       </p>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Active Now</CardTitle>
-                      <UserCheck className="h-4 w-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium text-gray-700">Active Now</CardTitle>
+                      <UserCheck className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.overview.activeVisits}</div>
-                      <p className="text-xs text-muted-foreground">
+                      <div className="text-2xl font-bold text-gray-800">{stats.overview.activeVisits}</div>
+                      <p className="text-xs text-gray-600">
                         Currently in building
                       </p>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Today&apos;s Visits</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium text-gray-700">Today&apos;s Visits</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.overview.todayVisits}</div>
-                      <p className="text-xs text-muted-foreground">
+                      <div className="text-2xl font-bold text-gray-800">{stats.overview.todayVisits}</div>
+                      <p className="text-xs text-gray-600">
                         +{stats.overview.weekVisits - stats.overview.todayVisits} this week
                       </p>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">System Issues</CardTitle>
-                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                      <CardTitle className="text-sm font-medium text-gray-700">System Issues</CardTitle>
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.system.blacklistedGuests}</div>
-                      <p className="text-xs text-muted-foreground">
+                      <div className="text-2xl font-bold text-gray-800">{stats.system.blacklistedGuests}</div>
+                      <p className="text-xs text-gray-600">
                         Blacklisted guests
                       </p>
                     </CardContent>
@@ -584,35 +590,37 @@ export default function AdminPage() {
 
                 {/* Charts and Additional Stats */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
+                  <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                     <CardHeader>
-                      <CardTitle>Top Hosts</CardTitle>
-                      <CardDescription>Most active hosts by visit count</CardDescription>
+                      <CardTitle className="text-2xl font-bold text-gray-800">Top Hosts</CardTitle>
+                      <CardDescription className="text-gray-800">Most active hosts by visit count</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
                         {stats.topHosts.slice(0, 5).map((host, index) => (
                           <div key={host.id} className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-800">
                                 {index + 1}
                               </div>
                               <div>
-                                <p className="font-medium">{host.name}</p>
-                                <p className="text-sm text-muted-foreground">{host.email}</p>
+                                <p className="font-medium text-gray-800">{host.name}</p>
+                                <p className="text-sm text-gray-600">{host.email}</p>
                               </div>
                             </div>
-                            <Badge variant="outline">{host.visitCount} visits</Badge>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
+                              {host.visitCount} visits
+                            </span>
                           </div>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                     <CardHeader>
-                      <CardTitle>Weekly Trend</CardTitle>
-                      <CardDescription>Daily visit counts for the past week</CardDescription>
+                      <CardTitle className="text-2xl font-bold text-gray-800">Weekly Trend</CardTitle>
+                      <CardDescription className="text-gray-800">Daily visit counts for the past week</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
@@ -642,21 +650,21 @@ export default function AdminPage() {
 
           {/* Live Activity Tab */}
           <TabsContent value="activity" className="space-y-6">
-            <Card>
+            <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+                      <Activity className="h-6 w-6 text-blue-600" />
                       Live Activity Feed
                     </CardTitle>
-                    <CardDescription>Recent system events and activities</CardDescription>
+                    <CardDescription className="text-gray-800">Recent system events and activities</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-800 border border-green-200">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       Auto-refresh: 30s
-                    </Badge>
+                    </span>
                     <Button variant="outline" size="sm" onClick={loadActivities}>
                       <RefreshCw className="h-4 w-4" />
                     </Button>
@@ -666,7 +674,7 @@ export default function AdminPage() {
               <CardContent>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {activities.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
+                    <p className="text-center text-gray-800 py-8">
                       No recent activity found.
                     </p>
                   ) : (
@@ -678,11 +686,11 @@ export default function AdminPage() {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <h4 className="font-medium">{activity.title}</h4>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-gray-500">
                               {new Date(activity.timestamp).toLocaleString()}
                             </span>
                           </div>
-                          <p className="text-sm text-muted-foreground">{activity.description}</p>
+                          <p className="text-sm text-gray-600">{activity.description}</p>
                         </div>
                       </div>
                     ))
@@ -694,13 +702,13 @@ export default function AdminPage() {
 
           {/* Guest Management Tab */}
           <TabsContent value="guests" className="space-y-6">
-            <Card>
+            <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
               <CardHeader>
-                <CardTitle>Guest Management</CardTitle>
-                <CardDescription>Search and manage guest accounts</CardDescription>
+                <CardTitle className="text-2xl font-bold text-gray-800">Guest Management</CardTitle>
+                <CardDescription className="text-gray-800">Search and manage guest accounts</CardDescription>
                 <div className="flex flex-wrap gap-2">
                   <div className="relative flex-1 min-w-64">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
                     <Input
                       placeholder="Search guests by name or email..."
                       value={searchTerm}
@@ -732,7 +740,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 {getFilteredGuests().length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-gray-800 py-8">
                     {searchTerm ? 'No guests found matching your search.' : 'No guests found.'}
                   </p>
                 ) : (
@@ -759,10 +767,14 @@ export default function AdminPage() {
                           <TableCell>
                             <div className="flex gap-1">
                               {guest.isBlacklisted && (
-                                <Badge variant="destructive">Blacklisted</Badge>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-800 border border-red-200">
+                                  Blacklisted
+                                </span>
                               )}
                               {guest.hasDiscount && (
-                                <Badge variant="default">Discount</Badge>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-800 border border-green-200">
+                                  Discount
+                                </span>
                               )}
                             </div>
                           </TableCell>
@@ -806,15 +818,15 @@ export default function AdminPage() {
 
           {/* Executive Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
-            <Card>
+            <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+                      <FileText className="h-6 w-6 text-blue-600" />
                       Executive Summary Reports
                     </CardTitle>
-                    <CardDescription>Comprehensive analytics and business insights</CardDescription>
+                    <CardDescription className="text-gray-800">Comprehensive analytics and business insights</CardDescription>
                   </div>
                   <Select value={reportPeriod} onValueChange={setReportPeriod}>
                     <SelectTrigger className="w-40">
@@ -832,73 +844,81 @@ export default function AdminPage() {
                 {executiveReport ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Card>
+                      <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Total Visits</CardTitle>
+                          <CardTitle className="text-sm font-medium text-gray-700">Total Visits</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{executiveReport.metrics.totalVisits.value}</div>
+                          <div className="text-2xl font-bold text-gray-800">{executiveReport.metrics.totalVisits.value}</div>
                           <p className={`text-xs ${executiveReport.metrics.totalVisits.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {executiveReport.metrics.totalVisits.change >= 0 ? '+' : ''}{executiveReport.metrics.totalVisits.change}% from previous period
                           </p>
                         </CardContent>
                       </Card>
                       
-                      <Card>
+                      <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Unique Guests</CardTitle>
+                          <CardTitle className="text-sm font-medium text-gray-700">Unique Guests</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{executiveReport.metrics.uniqueGuests.value}</div>
+                          <div className="text-2xl font-bold text-gray-800">{executiveReport.metrics.uniqueGuests.value}</div>
                           <p className={`text-xs ${executiveReport.metrics.uniqueGuests.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {executiveReport.metrics.uniqueGuests.change >= 0 ? '+' : ''}{executiveReport.metrics.uniqueGuests.change}% from previous period
                           </p>
                         </CardContent>
                       </Card>
                       
-                      <Card>
+                      <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Conversion Rate</CardTitle>
+                          <CardTitle className="text-sm font-medium text-gray-700">Conversion Rate</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{executiveReport.conversions.overallConversion}%</div>
-                          <p className="text-xs text-muted-foreground">Invitation to visit</p>
+                          <div className="text-2xl font-bold text-gray-800">{executiveReport.conversions.overallConversion}%</div>
+                          <p className="text-xs text-gray-600">Invitation to visit</p>
                         </CardContent>
                       </Card>
                     </div>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <Card>
+                      <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                         <CardHeader>
-                          <CardTitle>Top Countries</CardTitle>
+                          <CardTitle className="text-2xl font-bold text-gray-800">Top Countries</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-2">
                             {executiveReport.demographics.countries.slice(0, 5).map((country) => (
                               <div key={country.country} className="flex items-center justify-between">
-                                <span className="text-sm">{country.country}</span>
-                                <Badge variant="outline">{country.count} visitors</Badge>
+                                <span className="text-sm text-gray-700">{country.country}</span>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
+                                  {country.count} visitors
+                                </span>
                               </div>
                             ))}
                           </div>
                         </CardContent>
                       </Card>
                       
-                      <Card>
+                      <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                         <CardHeader>
-                          <CardTitle>System Health</CardTitle>
+                          <CardTitle className="text-2xl font-bold text-gray-800">System Health</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm">Override Rate</span>
-                              <Badge variant={executiveReport.systemHealth.overrideRate > 10 ? "destructive" : "default"}>
+                              <span className="text-sm text-gray-700">Override Rate</span>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                executiveReport.systemHealth.overrideRate > 10 
+                                  ? 'bg-red-50 text-red-800 border border-red-200' 
+                                  : 'bg-green-50 text-green-800 border border-green-200'
+                              }`}>
                                 {executiveReport.systemHealth.overrideRate}%
-                              </Badge>
+                              </span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm">New Blacklists</span>
-                              <Badge variant="outline">{executiveReport.systemHealth.blacklistGrowth}</Badge>
+                              <span className="text-sm text-gray-700">New Blacklists</span>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                {executiveReport.systemHealth.blacklistGrowth}
+                              </span>
                             </div>
                           </div>
                         </CardContent>
@@ -906,7 +926,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-gray-800 py-8">
                     Loading executive report...
                   </p>
                 )}
@@ -916,13 +936,13 @@ export default function AdminPage() {
 
           {/* System Policies Tab */}
           <TabsContent value="policies" className="space-y-6">
-            <Card>
+            <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+                  <Settings className="h-6 w-6 text-blue-600" />
                   System Policies
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-800">
                   Configure business rules and limits for the guest check-in system
                 </CardDescription>
               </CardHeader>
@@ -930,7 +950,7 @@ export default function AdminPage() {
                 <form onSubmit={handlePolicyUpdate} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="guestMonthlyLimit">Guest Monthly Limit</Label>
+                      <Label htmlFor="guestMonthlyLimit" className="text-sm font-medium text-gray-700">Guest Monthly Limit</Label>
                       <Input
                         id="guestMonthlyLimit"
                         type="number"
@@ -942,13 +962,13 @@ export default function AdminPage() {
                           guestMonthlyLimit: parseInt(e.target.value)
                         })}
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-gray-600">
                         Maximum visits per guest in a 30-day rolling window
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="hostConcurrentLimit">Host Concurrent Limit</Label>
+                      <Label htmlFor="hostConcurrentLimit" className="text-sm font-medium text-gray-700">Host Concurrent Limit</Label>
                       <Input
                         id="hostConcurrentLimit"
                         type="number"
@@ -960,7 +980,7 @@ export default function AdminPage() {
                           hostConcurrentLimit: parseInt(e.target.value)
                         })}
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-gray-600">
                         Maximum active guests per host at any time
                       </p>
                     </div>
@@ -969,9 +989,9 @@ export default function AdminPage() {
                   <div className="pt-4 border-t">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">Current Settings</p>
+                        <p className="font-medium text-gray-800">Current Settings</p>
                         {policies && (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-gray-600">
                             Last updated: {new Date(policies.updatedAt).toLocaleString()}
                           </p>
                         )}
@@ -989,10 +1009,10 @@ export default function AdminPage() {
 
           {/* Audit Log Tab */}
           <TabsContent value="audit" className="space-y-6">
-            <Card>
+            <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
               <CardHeader>
-                <CardTitle>Recent Override Activities</CardTitle>
-                <CardDescription>Security override actions in the last 30 days</CardDescription>
+                <CardTitle className="text-2xl font-bold text-gray-800">Recent Override Activities</CardTitle>
+                <CardDescription className="text-gray-800">Security override actions in the last 30 days</CardDescription>
               </CardHeader>
               <CardContent>
                 {stats?.recentOverrides && stats.recentOverrides.length > 0 ? (
@@ -1012,12 +1032,14 @@ export default function AdminPage() {
                           <TableCell>
                             <div>
                               <p className="font-medium">{override.guestName}</p>
-                              <p className="text-sm text-muted-foreground">{override.guestEmail}</p>
+                              <p className="text-sm text-gray-600">{override.guestEmail}</p>
                             </div>
                           </TableCell>
                           <TableCell>{override.hostName}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{override.overrideReason}</Badge>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-800 border border-yellow-200">
+                              {override.overrideReason}
+                            </span>
                           </TableCell>
                           <TableCell>{override.overrideBy}</TableCell>
                           <TableCell>
@@ -1028,7 +1050,7 @@ export default function AdminPage() {
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-gray-800 py-8">
                     No override activities in the last 30 days.
                   </p>
                 )}
@@ -1039,15 +1061,15 @@ export default function AdminPage() {
           {/* Guest Journey Tab */}
           <TabsContent value="journey" className="space-y-6">
             {selectedGuest ? (
-              <Card>
+              <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <UserCheck className="h-5 w-5" />
+                      <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
+                        <UserCheck className="h-6 w-6 text-blue-600" />
                         Guest Journey: {selectedGuest.guest.name}
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-gray-800">
                         Complete visit history and timeline for {selectedGuest.guest.email}
                       </CardDescription>
                     </div>
@@ -1059,27 +1081,33 @@ export default function AdminPage() {
                 <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div className="lg:col-span-1">
-                      <Card>
+                      <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                         <CardHeader>
-                          <CardTitle className="text-sm">Summary</CardTitle>
+                          <CardTitle className="text-sm font-medium text-gray-700">Summary</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                           <div className="flex justify-between">
                             <span className="text-sm">Total Visits</span>
-                            <Badge variant="outline">{selectedGuest.summary.totalVisits}</Badge>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
+                              {selectedGuest.summary.totalVisits}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-sm">Invitations</span>
-                            <Badge variant="outline">{selectedGuest.summary.totalInvitations}</Badge>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-800 border border-purple-200">
+                              {selectedGuest.summary.totalInvitations}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-sm">Discounts</span>
-                            <Badge variant="outline">{selectedGuest.summary.discountsEarned}</Badge>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-800 border border-green-200">
+                              {selectedGuest.summary.discountsEarned}
+                            </span>
                           </div>
                           {selectedGuest.summary.mostFrequentHost && (
                             <div>
                               <span className="text-sm">Most Frequent Host</span>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-gray-600">
                                 {selectedGuest.summary.mostFrequentHost.name} ({selectedGuest.summary.mostFrequentHost.count} visits)
                               </p>
                             </div>
@@ -1098,11 +1126,11 @@ export default function AdminPage() {
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-medium">{event.title}</h4>
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-gray-500">
                                   {new Date(event.timestamp).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-sm text-muted-foreground">{event.description}</p>
+                              <p className="text-sm text-gray-600">{event.description}</p>
                             </div>
                           </div>
                         ))}
@@ -1112,13 +1140,13 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card>
+              <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
                 <CardHeader>
-                  <CardTitle>Guest Journey</CardTitle>
-                  <CardDescription>Select a guest from the search results or guest management to view their journey</CardDescription>
+                  <CardTitle className="text-2xl font-bold text-gray-800">Guest Journey</CardTitle>
+                  <CardDescription className="text-gray-800">Select a guest from the search results or guest management to view their journey</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-gray-800 py-8">
                     Use the global search above or click &quot;Journey&quot; button in Guest Management to view a guest&apos;s complete timeline.
                   </p>
                 </CardContent>
