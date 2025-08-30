@@ -516,29 +516,27 @@ export default function InvitesPage() {
                 <p className="text-gray-600">Create your first invitation above to get started.</p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {invitations.map((invitation) => (
-                  <Card key={invitation.id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                    <div className="p-6">
-                      {/* Clean Guest Info Header - Systematic Design */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">{invitation.guest.name}</h3>
-                            {getPrimaryStatus(invitation).badge}
-                          </div>
-                          <p className="text-sm text-gray-600">{invitation.guest.email}</p>
-                        </div>
+                  <Card key={invitation.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+                    <div className="p-4">
+                      {/* Compact Guest Header */}
+                      <div className="mb-3">
+                        <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">{invitation.guest.name}</h3>
+                        <p className="text-xs text-gray-600 mb-2 truncate">{invitation.guest.email}</p>
                         
-                        {/* Action Indicator - Right Aligned */}
-                        <div className="ml-6">
-                          {getPrimaryStatus(invitation).action}
+                        {/* Status & Action in Stack */}
+                        <div className="space-y-2">
+                          {getPrimaryStatus(invitation).badge}
+                          {getPrimaryStatus(invitation).action && (
+                            <div>{getPrimaryStatus(invitation).action}</div>
+                          )}
                         </div>
                       </div>
                       
-                      {/* Only show QR expiry for truly time-sensitive cases */}
+                      {/* Compact Expiry Info */}
                       {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
-                        <div className="mt-3 text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 border-t pt-2 mt-2">
                           Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
                         </div>
                       )}
