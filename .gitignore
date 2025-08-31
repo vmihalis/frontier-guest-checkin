@@ -58,3 +58,7 @@ Thumbs.db
 /test/screenshots/
 /playwright-report/
 /.playwright-mcp/
+
+# Dynamically generated test files (timestamped)
+multi-checkin-[0-9]*.json
+*-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*.json
