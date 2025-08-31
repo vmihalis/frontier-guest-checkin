@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { nowInLA, thirtyDaysAgoInLA } from '@/lib/timezone';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const locationId = searchParams.get('location'); // Optional location filter
+    
     const now = nowInLA();
     const thirtyDaysAgo = thirtyDaysAgoInLA();
     const todayStart = new Date(now);
@@ -11,6 +14,9 @@ export async function GET() {
     
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    // Create location filter for queries
+    const locationFilter = locationId ? { locationId } : {};
 
     // Get basic statistics
     const [
@@ -31,65 +37,83 @@ export async function GET() {
       // Total guests
       prisma.guest.count(),
       
-      // Total visits
+      // Total visits (location-filtered)
       prisma.visit.count({
-        where: { checkedInAt: { not: null } }
-      }),
-      
-      // Currently active visits
-      prisma.visit.count({
-        where: {
+        where: { 
           checkedInAt: { not: null },
-          expiresAt: { gt: now }
+          ...locationFilter
         }
       }),
       
-      // Today's visits
+      // Currently active visits (location-filtered)
+      prisma.visit.count({
+        where: {
+          checkedInAt: { not: null },
+          expiresAt: { gt: now },
+          ...locationFilter
+        }
+      }),
+      
+      // Today's visits (location-filtered)
       prisma.visit.count({
         where: {
           checkedInAt: {
             not: null,
             gte: todayStart
-          }
+          },
+          ...locationFilter
         }
       }),
       
-      // This week's visits
+      // This week's visits (location-filtered)
       prisma.visit.count({
         where: {
           checkedInAt: {
             not: null,
             gte: weekAgo
-          }
+          },
+          ...locationFilter
         }
       }),
       
-      // This month's visits (30 days)
+      // This month's visits (30 days) (location-filtered)
       prisma.visit.count({
         where: {
           checkedInAt: {
             not: null,
             gte: thirtyDaysAgo
-          }
+          },
+          ...locationFilter
         }
       }),
       
-      // Total invitations
-      prisma.invitation.count(),
-      
-      // Pending invitations
+      // Total invitations (location-filtered)
       prisma.invitation.count({
-        where: { status: 'PENDING' }
+        where: locationFilter
       }),
       
-      // Activated invitations
+      // Pending invitations (location-filtered)
       prisma.invitation.count({
-        where: { status: 'ACTIVATED' }
+        where: { 
+          status: 'PENDING',
+          ...locationFilter
+        }
       }),
       
-      // Checked in invitations
+      // Activated invitations (location-filtered)
       prisma.invitation.count({
-        where: { status: 'CHECKED_IN' }
+        where: { 
+          status: 'ACTIVATED',
+          ...locationFilter
+        }
+      }),
+      
+      // Checked in invitations (location-filtered)
+      prisma.invitation.count({
+        where: { 
+          status: 'CHECKED_IN',
+          ...locationFilter
+        }
       }),
       
       // Blacklisted guests
@@ -102,15 +126,17 @@ export async function GET() {
         where: { emailSent: true }
       }),
       
-      // Recent overrides (last 30 days)
+      // Recent overrides (last 30 days) (location-filtered)
       prisma.visit.findMany({
         where: {
           overrideReason: { not: null },
-          createdAt: { gte: thirtyDaysAgo }
+          createdAt: { gte: thirtyDaysAgo },
+          ...locationFilter
         },
         include: {
           guest: { select: { name: true, email: true } },
           host: { select: { name: true, email: true } },
+          location: { select: { name: true, id: true } },
           overrideUser: { select: { name: true, email: true } }
         },
         orderBy: { createdAt: 'desc' },
@@ -118,15 +144,22 @@ export async function GET() {
       })
     ]);
 
-    // Get top hosts by visit count
+    // Get top hosts by visit count (location-filtered)
     const topHosts = await prisma.user.findMany({
-      where: { role: 'host' },
+      where: { 
+        role: 'host',
+        ...(locationId ? { locationId } : {}) // Filter hosts by location too
+      },
       select: {
         id: true,
         name: true,
         email: true,
+        location: { select: { name: true, id: true } },
         hostedVisits: {
-          where: { checkedInAt: { not: null } },
+          where: { 
+            checkedInAt: { not: null },
+            ...locationFilter
+          },
           select: { id: true }
         }
       },
@@ -142,6 +175,7 @@ export async function GET() {
       id: host.id,
       name: host.name,
       email: host.email,
+      location: host.location,
       visitCount: host.hostedVisits.length
     }));
 
@@ -161,7 +195,8 @@ export async function GET() {
             not: null,
             gte: startOfDay,
             lte: endOfDay
-          }
+          },
+          ...locationFilter
         }
       });
 
@@ -170,6 +205,21 @@ export async function GET() {
         visits: dayVisits
       });
     }
+
+    // Get available locations for filtering
+    const locations = await prisma.location.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' }
+    });
+
+    // Get current location info if filtered
+    const currentLocation = locationId 
+      ? await prisma.location.findUnique({
+          where: { id: locationId },
+          select: { id: true, name: true }
+        })
+      : null;
 
     return NextResponse.json({
       overview: {
@@ -198,10 +248,15 @@ export async function GET() {
         guestName: visit.guest.name,
         guestEmail: visit.guest.email,
         hostName: visit.host.name,
+        locationName: visit.location.name,
         overrideReason: visit.overrideReason,
         overrideBy: visit.overrideUser?.name || 'System',
         createdAt: visit.createdAt
-      }))
+      })),
+      // Location context
+      locations,
+      currentLocation,
+      isLocationFiltered: !!locationId
     });
   } catch (error) {
     console.error('Error fetching admin statistics:', error);

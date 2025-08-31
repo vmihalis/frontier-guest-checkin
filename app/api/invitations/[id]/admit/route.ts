@@ -77,6 +77,7 @@ export async function POST(
       data: {
         guestId: invitation.guestId,
         hostId,
+        locationId: invitation.locationId,
         invitationId: invitationId,
         checkedInAt: now,
         expiresAt,

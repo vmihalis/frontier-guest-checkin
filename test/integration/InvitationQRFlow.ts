@@ -61,10 +61,24 @@ export class InvitationQRFlow {
     console.log(`👤 Guest: ${guest.name} (${guest.email})`)
 
     // Step 2: Host creates invitation in system
+    // Get or create a default location
+    let location = await prisma.location.findFirst({ where: { isActive: true } })
+    if (!location) {
+      location = await prisma.location.create({
+        data: {
+          name: 'Test Location',
+          address: '123 Test Street',
+          timezone: 'America/Los_Angeles',
+          isActive: true
+        }
+      })
+    }
+
     const invitation = await prisma.invitation.create({
       data: {
         guestId: guest.id,
         hostId: host.id,
+        locationId: location.id,
         status: 'PENDING',
         inviteDate: new Date(),
         qrToken: `inv_${Date.now()}_${Math.random().toString(36).substring(7)}`,
@@ -185,6 +199,7 @@ export class InvitationQRFlow {
         data: {
           guestId: invitation.guestId,
           hostId: invitation.hostId,
+          locationId: invitation.locationId, // Use same location as invitation
           invitationId: invitation.id,
           invitedAt: invitation.createdAt,
           checkedInAt: new Date(),
@@ -260,6 +275,19 @@ export class InvitationQRFlow {
     console.log(`🏢 Host: ${host.name}`)
     console.log(`👥 Guests: ${guests.length}`)
 
+    // Get or create a default location
+    let location = await prisma.location.findFirst({ where: { isActive: true } })
+    if (!location) {
+      location = await prisma.location.create({
+        data: {
+          name: 'Test Location',
+          address: '123 Test Street',
+          timezone: 'America/Los_Angeles',
+          isActive: true
+        }
+      })
+    }
+
     // Create individual invitations for each guest
     const invitations = []
     for (const guest of guests) {
@@ -267,6 +295,7 @@ export class InvitationQRFlow {
         data: {
           guestId: guest.id,
           hostId: host.id,
+          locationId: location.id,
           status: 'PENDING',
           inviteDate: new Date(),
           qrToken: `multi_${Date.now()}_${Math.random().toString(36).substring(7)}`,

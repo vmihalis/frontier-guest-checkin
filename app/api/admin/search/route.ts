@@ -41,7 +41,19 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           visits: {
             where: { checkedInAt: { not: null } },
-            select: { id: true }
+            select: { 
+              id: true,
+              host: {
+                select: { name: true, email: true }
+              },
+              invitation: {
+                select: {
+                  host: {
+                    select: { name: true, email: true }
+                  }
+                }
+              }
+            }
           }
         },
         take: limit,
@@ -49,13 +61,39 @@ export async function GET(request: NextRequest) {
       });
 
       guests.forEach(guest => {
+        // Calculate host relationship metrics
+        const hostTransferCount = guest.visits.filter(visit => {
+          const invitationHost = visit.invitation?.host;
+          return invitationHost && invitationHost.email !== visit.host.email;
+        }).length;
+        
+        const uniqueHosts = new Set(guest.visits.map(visit => visit.host.email)).size;
+        
+        let description = `${guest.visits.length} visits`;
+        if (uniqueHosts > 1) {
+          description += ` • ${uniqueHosts} hosts`;
+        }
+        if (hostTransferCount > 0) {
+          description += ` • ${hostTransferCount} transfers`;
+        }
+        if (guest.country) {
+          description += ` • ${guest.country}`;
+        }
+        if (guest.blacklistedAt) {
+          description += ' • BLACKLISTED';
+        }
+        
         results.push({
           type: 'guest',
           id: guest.id,
           title: guest.name,
           subtitle: guest.email,
-          description: `${guest.visits.length} visits${guest.country ? ` • ${guest.country}` : ''}${guest.blacklistedAt ? ' • BLACKLISTED' : ''}`,
-          data: guest,
+          description,
+          data: {
+            ...guest,
+            hostTransferCount,
+            uniqueHosts
+          },
           relevanceScore: calculateRelevanceScore(query, [guest.name, guest.email, guest.country])
         });
       });
@@ -117,6 +155,13 @@ export async function GET(request: NextRequest) {
           },
           host: {
             select: { name: true, email: true }
+          },
+          invitation: {
+            select: {
+              host: {
+                select: { name: true, email: true }
+              }
+            }
           }
         },
         take: limit,
@@ -125,18 +170,39 @@ export async function GET(request: NextRequest) {
 
       visits.forEach(visit => {
         const visitDate = visit.checkedInAt ? new Date(visit.checkedInAt).toLocaleDateString() : 'Unknown';
+        const invitationHost = visit.invitation?.host;
+        const isHostTransfer = invitationHost && invitationHost.email !== visit.host.email;
+        
+        let subtitle = `Hosted by ${visit.host.name}`;
+        let description = visitDate;
+        
+        if (isHostTransfer) {
+          subtitle = `Hosted by ${visit.host.name} (invited by ${invitationHost.name})`;
+          description += ` • Host Transfer`;
+        }
+        
+        if (visit.overrideReason) {
+          description += ` • Override: ${visit.overrideReason}`;
+        }
+        
         results.push({
           type: 'visit',
           id: visit.id,
           title: `Visit: ${visit.guest.name}`,
-          subtitle: `Hosted by ${visit.host.name}`,
-          description: `${visitDate}${visit.overrideReason ? ` • Override: ${visit.overrideReason}` : ''}`,
-          data: visit,
+          subtitle,
+          description,
+          data: {
+            ...visit,
+            isHostTransfer,
+            invitationHost
+          },
           relevanceScore: calculateRelevanceScore(query, [
             visit.guest.name, 
             visit.guest.email, 
             visit.host.name, 
             visit.host.email,
+            invitationHost?.name,
+            invitationHost?.email,
             visit.overrideReason
           ])
         });

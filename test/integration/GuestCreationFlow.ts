@@ -53,7 +53,7 @@ export class GuestCreationFlow {
 
       // Now create invitation
       const invitation = await prisma.invitation.create({
-        data: TestDataFactory.createInvitation(newGuest.id, host.id, {
+        data: await TestDataFactory.createInvitation(newGuest.id, host.id, {
           status: 'PENDING',
           inviteDate: new Date(),
           qrToken: `invite_${Date.now()}`,
@@ -116,6 +116,7 @@ export class GuestCreationFlow {
       data: {
         guestId: guest!.id,
         hostId: host!.id,
+        locationId: invitation!.locationId, // Use same location as invitation
         invitationId: invitation!.id,
         checkedInAt: new Date(),
         checkedOutAt: null,
@@ -216,7 +217,7 @@ BENEFITS:
         
         // Try to invite existing guest again
         await prisma.invitation.create({
-          data: TestDataFactory.createInvitation(existingGuest.id, host!.id)
+          data: await TestDataFactory.createInvitation(existingGuest.id, host!.id)
         })
         
         results.push({
@@ -244,11 +245,9 @@ BENEFITS:
       const host = await prisma.user.findFirst({ where: { role: 'host' } })
       
       await prisma.visit.create({
-        data: {
-          guestId: guestWithoutTerms.id,
-          hostId: host!.id,
+        data: await TestDataFactory.createVisit(guestWithoutTerms.id, host!.id, {
           checkedInAt: new Date(),
-        }
+        })
       })
       
       results.push({
@@ -275,7 +274,7 @@ BENEFITS:
       const host = await prisma.user.findFirst({ where: { role: 'host' } })
       
       await prisma.invitation.create({
-        data: TestDataFactory.createInvitation(blacklistedGuest.id, host!.id)
+        data: await TestDataFactory.createInvitation(blacklistedGuest.id, host!.id)
       })
       
       results.push({

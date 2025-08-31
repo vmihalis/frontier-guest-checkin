@@ -129,15 +129,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get host ID
+    // Get host ID and location
     let hostId: string;
+    let locationId: string;
     try {
       hostId = await getCurrentUserId(request);
+      // Get host's primary location
+      const hostUser = await prisma.user.findUnique({
+        where: { id: hostId },
+        select: { locationId: true }
+      });
+      locationId = hostUser?.locationId || '';
     } catch {
       // No authentication - find a demo host for QR scanner
       const hostUser = await prisma.user.findFirst({
         where: { role: 'host' },
-        select: { id: true, email: true, name: true },
+        select: { id: true, email: true, name: true, locationId: true },
         orderBy: { email: 'asc' }
       });
       
@@ -153,6 +160,24 @@ export async function POST(request: NextRequest) {
       
       console.log('Using demo host for check-in:', hostUser.email);
       hostId = hostUser.id;
+      locationId = hostUser.locationId || '';
+    }
+
+    // If no location from host, use default location
+    if (!locationId) {
+      const defaultLocation = await prisma.location.findFirst({
+        select: { id: true }
+      });
+      if (!defaultLocation) {
+        return NextResponse.json(
+          { 
+            success: false,
+            message: 'No location found in database. Please run database seeding.'
+          },
+          { status: 500 }
+        );
+      }
+      locationId = defaultLocation.id;
     }
     
     // Validate hostId is a string
@@ -176,6 +201,7 @@ export async function POST(request: NextRequest) {
         const result = await processGuestCheckIn({
           guest: guestData,
           hostId,
+          locationId,
           overrideReason,
           overridePassword,
           now
@@ -251,12 +277,14 @@ export async function POST(request: NextRequest) {
 async function processGuestCheckIn({
   guest,
   hostId,
+  locationId,
   overrideReason,
   overridePassword,
   now
 }: {
   guest: GuestData;
   hostId: string;
+  locationId: string;
   overrideReason?: string;
   overridePassword?: string;
   now: Date;
@@ -332,7 +360,7 @@ async function processGuestCheckIn({
   }
 
   // Use enhanced validation for returning guests with automatic acceptance renewal
-  const validation = await processReturningGuestCheckIn(hostId, guestRecord.id, guest.e, null);
+  const validation = await processReturningGuestCheckIn(hostId, guestRecord.id, guest.e, null, locationId);
   if (!validation.isValid) {
     return {
       success: false,
@@ -367,6 +395,7 @@ async function processGuestCheckIn({
       data: {
         guestId: guestRecord.id,
         hostId,
+        locationId,
         invitationId: null, // Will be updated after we find the invitation
         checkedInAt: now,
         expiresAt,

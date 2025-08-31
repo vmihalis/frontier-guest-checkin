@@ -10,6 +10,8 @@ export class DatabaseHelpers {
         datasourceUrl: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
         log: process.env.DEBUG ? ['query', 'error', 'warn'] : [],
       })
+      // Set up TestDataFactory with the same prisma client
+      TestDataFactory.setPrisma(this.prisma)
     }
     return this.prisma
   }
@@ -24,8 +26,12 @@ export class DatabaseHelpers {
       prisma.invitation.deleteMany(),
       prisma.guest.deleteMany(),
       prisma.user.deleteMany(),
+      prisma.location.deleteMany(),
       prisma.policy.deleteMany(),
     ])
+    
+    // Reset TestDataFactory state after cleanup
+    TestDataFactory.resetCounters()
   }
 
   static async disconnect() {
@@ -93,7 +99,7 @@ export class DatabaseHelpers {
         : new Date(Date.now() - (60 - i * 5) * 24 * 60 * 60 * 1000)
 
       const visit = await prisma.visit.create({
-        data: TestDataFactory.createVisit(guest.id, host.id, {
+        data: await TestDataFactory.createVisit(guest.id, host.id, {
           checkedInAt: baseDate,
           checkedOutAt: options.allCheckedOut
             ? new Date(baseDate.getTime() + 2 * 60 * 60 * 1000)
@@ -122,7 +128,7 @@ export class DatabaseHelpers {
       })
 
       const visit = await prisma.visit.create({
-        data: TestDataFactory.createActiveVisit(guest.id, host.id),
+        data: await TestDataFactory.createActiveVisit(guest.id, host.id),
       })
       activeVisits.push({ guest, visit })
     }
@@ -252,7 +258,7 @@ export class DatabaseHelpers {
 
     for (const guest of blacklistedGuests) {
       await prisma.invitation.create({
-        data: TestDataFactory.createInvitation(guest.id, host.id, {
+        data: await TestDataFactory.createInvitation(guest.id, host.id, {
           status: 'PENDING',
           qrToken: null,
         }),

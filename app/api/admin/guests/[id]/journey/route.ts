@@ -25,6 +25,11 @@ export async function GET(
                 qrExpiresAt: true,
                 createdAt: true,
                 inviteDate: true
+              },
+              include: {
+                host: {
+                  select: { name: true, email: true }
+                }
               }
             }
           },
@@ -102,7 +107,8 @@ export async function GET(
           hostName: invitation.host.name,
           hostEmail: invitation.host.email,
           inviteDate: invitation.inviteDate,
-          status: invitation.status
+          status: invitation.status,
+          invitationId: invitation.id
         }
       });
 
@@ -127,19 +133,39 @@ export async function GET(
     // Visit events
     guest.visits.forEach(visit => {
       if (visit.checkedInAt) {
+        // Check if there's an invitation host different from visit host
+        const invitationHost = visit.invitation?.host;
+        const isHostMismatch = invitationHost && invitationHost.email !== visit.host.email;
+        
+        let description = `Visited ${visit.host.name}`;
+        if (isHostMismatch) {
+          description += ` (Originally invited by ${invitationHost.name})`;
+        }
+        if (visit.overrideReason) {
+          description += ` • Override: ${visit.overrideReason}`;
+        }
+        if (visit.expiresAt) {
+          description += ` • Expires ${new Date(visit.expiresAt).toLocaleString()}`;
+        }
+        
         timeline.push({
           type: 'checkin',
           timestamp: visit.checkedInAt,
-          title: 'Checked In',
-          description: `Visited ${visit.host.name}${visit.overrideReason ? ` (Override: ${visit.overrideReason})` : ''}${visit.expiresAt ? ` • Expires ${new Date(visit.expiresAt).toLocaleString()}` : ''}`,
-          icon: visit.overrideReason ? 'shield-alert' : 'user-check',
-          severity: visit.overrideReason ? 'warning' : 'success',
+          title: isHostMismatch ? 'Checked In (Host Transfer)' : 'Checked In',
+          description,
+          icon: visit.overrideReason ? 'shield-alert' : (isHostMismatch ? 'user-check' : 'user-check'),
+          severity: visit.overrideReason ? 'warning' : (isHostMismatch ? 'info' : 'success'),
           data: {
             hostName: visit.host.name,
             hostEmail: visit.host.email,
             overrideReason: visit.overrideReason,
             expiresAt: visit.expiresAt,
-            visitId: visit.id
+            visitId: visit.id,
+            invitationHost: invitationHost ? {
+              name: invitationHost.name,
+              email: invitationHost.email
+            } : null,
+            isHostMismatch
           }
         });
       }
@@ -205,7 +231,10 @@ export async function GET(
         new Date(a.checkedInAt!).getTime() - new Date(b.checkedInAt!).getTime()
       )[0]?.checkedInAt,
       averageVisitsPerMonth: calculateAverageVisitsPerMonth(guest.visits),
-      mostFrequentHost: getMostFrequentHost(guest.visits)
+      mostFrequentHost: getMostFrequentHost(guest.visits),
+      mostFrequentInviter: getMostFrequentInviter(guest.invitations),
+      hostTransferCount: getHostTransferCount(guest.visits),
+      uniqueHosts: getUniqueHostCount(guest.visits, guest.invitations)
     };
 
     return NextResponse.json({
@@ -265,4 +294,46 @@ function getMostFrequentHost(visits: Array<{ checkedInAt: Date | null; host: { n
   if (hosts.length === 0) return null;
 
   return hosts.reduce((prev, current) => (prev.count > current.count) ? prev : current);
+}
+
+function getMostFrequentInviter(invitations: Array<{ host: { name: string; email: string } }>): { name: string; count: number } | null {
+  const inviterCounts: { [key: string]: { name: string; count: number } } = {};
+  
+  invitations.forEach(invitation => {
+    if (invitation.host) {
+      const inviterId = invitation.host.email;
+      if (inviterCounts[inviterId]) {
+        inviterCounts[inviterId].count++;
+      } else {
+        inviterCounts[inviterId] = {
+          name: invitation.host.name,
+          count: 1
+        };
+      }
+    }
+  });
+
+  const inviters = Object.values(inviterCounts);
+  if (inviters.length === 0) return null;
+
+  return inviters.reduce((prev, current) => (prev.count > current.count) ? prev : current);
+}
+
+function getHostTransferCount(visits: Array<{ checkedInAt: Date | null; host: { email: string }; invitation?: { host: { email: string } } | null }>): number {
+  return visits.filter(visit => {
+    if (!visit.checkedInAt || !visit.invitation?.host) return false;
+    return visit.host.email !== visit.invitation.host.email;
+  }).length;
+}
+
+function getUniqueHostCount(visits: Array<{ host: { email: string } }>, invitations: Array<{ host: { email: string } }>): { visits: number; invitations: number; total: number } {
+  const visitHostEmails = new Set(visits.map(v => v.host.email));
+  const invitationHostEmails = new Set(invitations.map(i => i.host.email));
+  const allHostEmails = new Set([...visitHostEmails, ...invitationHostEmails]);
+  
+  return {
+    visits: visitHostEmails.size,
+    invitations: invitationHostEmails.size,
+    total: allHostEmails.size
+  };
 }

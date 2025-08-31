@@ -50,7 +50,7 @@ class TermsAcceptanceTest {
 
     if (!invitation) {
       console.log('⚠️  No invitations found, creating test data...');
-      await DatabaseHelpers.seedDatabase();
+      await DatabaseHelpers.setupBasicData();
       
       // Try again
       const newInvitation = await prisma.invitation.findFirst({

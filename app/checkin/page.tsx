@@ -46,7 +46,7 @@ function getErrorTitle(errorMessage: string | null): string {
 }
 
 // Get contextual error messages based on the specific failure reason
-function getContextualErrorMessage(result: any): string {
+function getContextualErrorMessage(result: { message?: string; error?: string }): string {
   // Check for specific error patterns in the message or result
   const message = result.message || result.error || '';
   

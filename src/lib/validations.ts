@@ -30,25 +30,33 @@ async function getPolicies() {
 }
 
 /**
- * Check if host has reached concurrent active guest limit (configurable)
+ * Check if host has reached concurrent active guest limit per location
  */
-export async function validateHostConcurrentLimit(hostId: string): Promise<ValidationResult> {
+export async function validateHostConcurrentLimit(hostId: string, locationId: string): Promise<ValidationResult> {
   const now = nowInLA();
   const policies = await getPolicies();
   const limit = policies.hostConcurrentLimit;
   
+  // Count active visits for this host at this specific location
   const activeVisitsCount = await prisma.visit.count({
     where: {
       hostId,
+      locationId, // Location-specific capacity limit
       checkedInAt: { not: null },
       expiresAt: { gt: now },
     },
   });
 
   if (activeVisitsCount >= limit) {
+    // Get location name for better error messaging
+    const location = await prisma.location.findUnique({
+      where: { id: locationId },
+      select: { name: true }
+    });
+    
     return {
       isValid: false,
-      error: `Host at capacity with ${activeVisitsCount} guests (max ${limit}). Security can override if needed.`,
+      error: `Host at capacity with ${activeVisitsCount} guests at ${location?.name || 'this location'} (max ${limit}). Security can override if needed.`,
       currentCount: activeVisitsCount,
       maxCount: limit,
     };
@@ -92,14 +100,103 @@ export async function validateGuestRollingLimit(guestEmail: string): Promise<Val
 }
 
 /**
- * Check if current time is after 11:59 PM cutoff
+ * Check if location has reached daily visitor capacity
  */
-export function validateTimeCutoff(): ValidationResult {
-  if (isAfterCutoff()) {
+export async function validateLocationCapacity(locationId: string): Promise<ValidationResult> {
+  const now = nowInLA();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  
+  // Get location settings
+  const location = await prisma.location.findUnique({
+    where: { id: locationId },
+    select: { 
+      name: true, 
+      settings: true,
+      isActive: true 
+    }
+  });
+  
+  if (!location) {
     return {
       isValid: false,
-      error: "Building is closed for the night. Check-ins resume tomorrow morning.",
+      error: 'Location not found',
     };
+  }
+  
+  if (!location.isActive) {
+    return {
+      isValid: false,
+      error: `${location.name} is currently closed for visits`,
+    };
+  }
+  
+  // Check location-specific settings
+  const settings = location.settings as { maxDailyVisits?: number } | null;
+  const maxDailyVisits = settings?.maxDailyVisits || 1000; // Default high limit
+  
+  // Count today's check-ins at this location
+  const todayCheckIns = await prisma.visit.count({
+    where: {
+      locationId,
+      checkedInAt: {
+        not: null,
+        gte: todayStart,
+        lt: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)
+      }
+    }
+  });
+  
+  if (todayCheckIns >= maxDailyVisits) {
+    return {
+      isValid: false,
+      error: `${location.name} has reached daily capacity (${todayCheckIns}/${maxDailyVisits} visitors). Try another location.`,
+      currentCount: todayCheckIns,
+      maxCount: maxDailyVisits,
+    };
+  }
+  
+  return { isValid: true };
+}
+
+/**
+ * Check if current time is after location-specific cutoff
+ */
+export async function validateTimeCutoff(locationId?: string): Promise<ValidationResult> {
+  const now = nowInLA();
+  
+  if (locationId) {
+    // Use location-specific cutoff hours
+    const location = await prisma.location.findUnique({
+      where: { id: locationId },
+      select: { name: true, settings: true }
+    });
+    
+    if (location) {
+      const settings = location.settings as { checkInCutoffHour?: number } | null;
+      const cutoffHour = settings?.checkInCutoffHour || 23; // Default 11 PM
+      
+      if (cutoffHour === 24) {
+        // 24/7 location
+        return { isValid: true };
+      }
+      
+      const currentHour = now.getHours();
+      if (currentHour >= cutoffHour) {
+        return {
+          isValid: false,
+          error: `${location.name} is closed for the night. Check-ins resume tomorrow morning.`,
+        };
+      }
+    }
+  } else {
+    // Fallback to global cutoff
+    if (isAfterCutoff()) {
+      return {
+        isValid: false,
+        error: "Building is closed for the night. Check-ins resume tomorrow morning.",
+      };
+    }
   }
 
   return { isValid: true };
@@ -298,7 +395,8 @@ export async function validateAdmitGuestWithRenewal(
   hostId: string,
   guestId: string,
   guestEmail: string,
-  qrExpiresAt: Date | null
+  qrExpiresAt: Date | null,
+  locationId?: string
 ): Promise<ValidationResult & { requiresAcceptanceRenewal?: boolean }> {
   // Check if guest is blacklisted (early check)
   const blacklistResult = await validateGuestBlacklist(guestEmail);
@@ -307,7 +405,7 @@ export async function validateAdmitGuestWithRenewal(
   }
 
   // Check time cutoff
-  const timeCutoffResult = validateTimeCutoff();
+  const timeCutoffResult = await validateTimeCutoff(locationId);
   if (!timeCutoffResult.isValid) {
     return timeCutoffResult;
   }
@@ -319,9 +417,11 @@ export async function validateAdmitGuestWithRenewal(
   }
 
   // Check host concurrent limit
-  const concurrentLimitResult = await validateHostConcurrentLimit(hostId);
-  if (!concurrentLimitResult.isValid) {
-    return concurrentLimitResult;
+  if (locationId) {
+    const concurrentLimitResult = await validateHostConcurrentLimit(hostId, locationId);
+    if (!concurrentLimitResult.isValid) {
+      return concurrentLimitResult;
+    }
   }
 
   // Check guest rolling limit
@@ -466,9 +566,10 @@ export async function processReturningGuestCheckIn(
   hostId: string,
   guestId: string,
   guestEmail: string,
-  qrExpiresAt: Date | null
+  qrExpiresAt: Date | null,
+  locationId?: string
 ): Promise<ValidationResult & { acceptanceRenewed?: boolean }> {
-  const validation = await validateAdmitGuestWithRenewal(hostId, guestId, guestEmail, qrExpiresAt);
+  const validation = await validateAdmitGuestWithRenewal(hostId, guestId, guestEmail, qrExpiresAt, locationId);
   
   // If guest needs acceptance renewal (returning guest with expired terms)
   if (!validation.isValid && validation.requiresAcceptanceRenewal) {
@@ -477,13 +578,13 @@ export async function processReturningGuestCheckIn(
       await renewGuestAcceptance(guestId);
       
       // Re-validate after renewal
-      const revalidation = await validateAdmitGuestWithRenewal(hostId, guestId, guestEmail, qrExpiresAt);
+      const revalidation = await validateAdmitGuestWithRenewal(hostId, guestId, guestEmail, qrExpiresAt, locationId);
       
       return {
         ...revalidation,
         acceptanceRenewed: true
       };
-    } catch (error) {
+    } catch {
       return {
         isValid: false,
         error: "Unable to process guest terms update. Technical support needed."

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { UserCheck, Activity } from 'lucide-react';
+import { UserCheck, Activity, Mail, QrCode, UserPlus, ShieldAlert, Gift, FileCheck, UserX, Ban, Users, ArrowRightLeft } from 'lucide-react';
 
 interface Activity {
   type: string;
@@ -38,6 +38,9 @@ interface GuestJourney {
     firstVisit?: string;
     averageVisitsPerMonth: number;
     mostFrequentHost?: { name: string; count: number };
+    mostFrequentInviter?: { name: string; count: number };
+    hostTransferCount: number;
+    uniqueHosts: { visits: number; invitations: number; total: number };
   };
 }
 
@@ -76,6 +79,16 @@ export default function JourneyTab({ selectedGuestId, onClose, isActive = false 
   const getIconComponent = (iconName: string) => {
     const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
       'user-check': UserCheck,
+      'qr-code': QrCode,
+      'user-plus': UserPlus,
+      'ban': Ban,
+      'shield-alert': ShieldAlert,
+      'gift': Gift,
+      'file-check': FileCheck,
+      'user-x': UserX,
+      'mail': Mail,
+      'users': Users,
+      'arrow-right-left': ArrowRightLeft,
       'activity': Activity,
     };
     
@@ -188,49 +201,102 @@ export default function JourneyTab({ selectedGuestId, onClose, isActive = false 
                 <CardHeader>
                   <CardTitle className="text-sm">Summary</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Total Visits</span>
-                    <Badge variant="outline">{selectedGuest.summary.totalVisits}</Badge>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Total Visits</span>
+                      <Badge variant="outline">{selectedGuest.summary.totalVisits}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Invitations</span>
+                      <Badge variant="outline">{selectedGuest.summary.totalInvitations}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Discounts</span>
+                      <Badge variant="outline">{selectedGuest.summary.discountsEarned}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Unique Hosts</span>
+                      <Badge variant="outline">{selectedGuest.summary.uniqueHosts.total}</Badge>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Invitations</span>
-                    <Badge variant="outline">{selectedGuest.summary.totalInvitations}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Discounts</span>
-                    <Badge variant="outline">{selectedGuest.summary.discountsEarned}</Badge>
-                  </div>
-                  {selectedGuest.summary.mostFrequentHost && (
-                    <div>
-                      <span className="text-sm">Most Frequent Host</span>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedGuest.summary.mostFrequentHost.name} ({selectedGuest.summary.mostFrequentHost.count} visits)
-                      </p>
+                  
+                  {/* Host Transfer Indicator */}
+                  {selectedGuest.summary.hostTransferCount > 0 && (
+                    <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                      <ArrowRightLeft className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm text-blue-800">
+                        {selectedGuest.summary.hostTransferCount} host transfer{selectedGuest.summary.hostTransferCount > 1 ? 's' : ''}
+                      </span>
                     </div>
                   )}
+                  
+                  {/* Host Relationship Details */}
+                  <div className="space-y-2 pt-2 border-t">
+                    {selectedGuest.summary.mostFrequentHost && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Most Frequent Visit Host</span>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedGuest.summary.mostFrequentHost.name} ({selectedGuest.summary.mostFrequentHost.count} visits)
+                        </p>
+                      </div>
+                    )}
+                    {selectedGuest.summary.mostFrequentInviter && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Most Frequent Inviter</span>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedGuest.summary.mostFrequentInviter.name} ({selectedGuest.summary.mostFrequentInviter.count} invitations)
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
             
             <div className="lg:col-span-3">
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {selectedGuest.timeline.map((event, index) => (
+                {selectedGuest.timeline.map((event, index) => {
+                  return (
                   <div key={index} className="flex items-start gap-3 p-3 border rounded-lg">
                     <div className={`p-2 rounded-full ${getSeverityColor(event.severity)}`}>
                       {getIconComponent(event.icon)}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{event.title}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{event.title}</h4>
+                          {/* Override Badge */}
+                          {(event.data as any)?.overrideReason && (
+                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                              <ShieldAlert className="h-3 w-3 mr-1" />
+                              Override
+                            </Badge>
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground">
                           {new Date(event.timestamp).toLocaleString()}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">{event.description}</p>
+                      
+                      {/* Additional Host Context */}
+                      {(event.data as any)?.invitationHost && (event.data as any)?.isHostMismatch && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                          <div className="flex items-center gap-1 text-gray-600">
+                            <Mail className="h-3 w-3" />
+                            <span>Originally invited by: {(event.data as any).invitationHost.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-gray-600 mt-1">
+                            <UserCheck className="h-3 w-3" />
+                            <span>Visited: {(event.data as any).hostName}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

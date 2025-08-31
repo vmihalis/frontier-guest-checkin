@@ -92,13 +92,13 @@ export class MultiGuestCheckinScenario {
         }
 
         const invitation = await prisma.invitation.create({
-          data: TestDataFactory.createInvitation(guest.id, host.id, {
+          data: await TestDataFactory.createInvitation(guest.id, host.id, {
             status: 'ACTIVATED',
           }),
         })
 
         const visit = await prisma.visit.create({
-          data: TestDataFactory.createVisit(guest.id, host.id, {
+          data: await TestDataFactory.createVisit(guest.id, host.id, {
             invitationId: invitation.id,
             checkedInAt: new Date(),
             checkedOutAt: null,

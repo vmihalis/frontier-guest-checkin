@@ -19,9 +19,11 @@ model User {
   email     String   @unique
   name      String
   role      UserRole
+  locationId String?  @map("location_id") @db.Uuid // Primary location for host
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   // Relations
+  location        Location? @relation(fields: [locationId], references: [id])
   hostedVisits    Visit[] @relation("HostVisits")
   overrideVisits  Visit[] @relation("OverrideVisits")
   hostedInvitations Invitation[] @relation("HostInvitations")
@@ -50,10 +52,28 @@ model Guest {
   @@map("guests")
 }
 
+model Location {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   // e.g., "Frontier Tower", "Frontier West", "Frontier East"
+  address   String
+  timezone  String   @default("America/Los_Angeles") // For local time calculations
+  isActive  Boolean  @default(true)
+  settings  Json?    // Location-specific settings (policies, etc.)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  users       User[]       // Hosts primarily located here
+  visits      Visit[]      // Visits occurring at this location
+  invitations Invitation[] // Invitations for this location
+
+  @@map("locations")
+}
+
 model Visit {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   guestId        String    @map("guest_id") @db.Uuid
   hostId         String    @map("host_id") @db.Uuid
+  locationId     String    @map("location_id") @db.Uuid // Location where visit occurs
   invitationId   String?   @map("invitation_id") @db.Uuid
   invitedAt      DateTime  @default(now()) @map("invited_at") @db.Timestamptz
   checkedInAt    DateTime? @map("checked_in_at") @db.Timestamptz
@@ -66,12 +86,14 @@ model Visit {
   // Relations
   guest        Guest       @relation(fields: [guestId], references: [id])
   host         User        @relation("HostVisits", fields: [hostId], references: [id])
+  location     Location    @relation(fields: [locationId], references: [id])
   invitation   Invitation? @relation(fields: [invitationId], references: [id])
   overrideUser User?       @relation("OverrideVisits", fields: [overrideBy], references: [id])
 
   // Indexes
   @@index([guestId, checkedInAt])
   @@index([hostId, checkedInAt])
+  @@index([locationId, checkedInAt]) // Location-specific active visits
   @@index([checkedInAt])
   @@index([expiresAt])
   @@map("visits")
@@ -90,6 +112,7 @@ model Invitation {
   id           String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   guestId      String           @map("guest_id") @db.Uuid
   hostId       String           @map("host_id") @db.Uuid
+  locationId   String           @map("location_id") @db.Uuid // Location for invitation
   status       InvitationStatus @default(PENDING)
   inviteDate   DateTime         @map("invite_date") @db.Date
   qrToken      String?          @map("qr_token")
@@ -99,13 +122,15 @@ model Invitation {
   updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  guest  Guest  @relation(fields: [guestId], references: [id])
-  host   User   @relation("HostInvitations", fields: [hostId], references: [id])
-  visits Visit[]
+  guest    Guest    @relation(fields: [guestId], references: [id])
+  host     User     @relation("HostInvitations", fields: [hostId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+  visits   Visit[]
 
   // Indexes
   @@index([hostId, inviteDate])
   @@index([guestId, status])
+  @@index([locationId, inviteDate]) // Location-specific invitations
   @@index([qrToken])
   @@map("invitations")
 }

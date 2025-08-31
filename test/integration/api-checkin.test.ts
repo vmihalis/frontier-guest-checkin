@@ -6,7 +6,7 @@
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const API_BASE = 'http://localhost:3003';
+const API_BASE = 'http://localhost:3006';
 
 interface CheckInResponse {
   success: boolean;
@@ -34,6 +34,10 @@ async function testSingleGuestCheckIn() {
   const host = await prisma.user.findFirst({ where: { role: 'host' } });
   if (!host) throw new Error('No host found');
 
+  // Get a location for the invitation
+  const location = await prisma.location.findFirst();
+  if (!location) throw new Error('No location found');
+
   // Create test guest with acceptance
   const testGuest = await prisma.guest.create({
     data: {
@@ -57,6 +61,7 @@ async function testSingleGuestCheckIn() {
     data: {
       guestId: testGuest.id,
       hostId: host.id,
+      locationId: location.id,
       inviteDate: new Date(),
       status: 'PENDING'
     }
@@ -139,7 +144,7 @@ async function testMultipleGuestCheckIn() {
   const result: CheckInResponse = await response.json();
   
   // Check if we got a partial success or full success (both are valid)
-  const partialSuccess = response.status === 207 && result.summary?.successful >= 1;
+  const partialSuccess = response.status === 207 && (result.summary?.successful ?? 0) >= 1;
   const fullSuccess = response.ok && result.success && result.summary?.successful === 2;
   
   if (fullSuccess) {
@@ -243,6 +248,10 @@ async function testCrossHostVisitDetection() {
     }
   });
 
+  // Get a location for the visit
+  const location = await prisma.location.findFirst();
+  if (!location) throw new Error('No location found');
+
   // Create active visit with a different host
   const differentHost = await prisma.user.findFirst({
     where: { role: 'host' },
@@ -255,6 +264,7 @@ async function testCrossHostVisitDetection() {
       data: {
         guestId: crossHostGuest.id,
         hostId: differentHost.id,
+        locationId: location.id,
         checkedInAt: new Date(),
         expiresAt: futureTime
       }
@@ -299,7 +309,7 @@ async function testMissingTermsAcceptance() {
 
   const result: CheckInResponse = await response.json();
   
-  if (!response.ok && result.message.includes('Terms & Visitor Agreement')) {
+  if (!response.ok && (result.message.includes('Terms & Visitor Agreement') || result.message.includes('visitor terms'))) {
     console.log('✅ Terms acceptance properly enforced');
   } else {
     console.log('❌ Terms acceptance not enforced:', result.message);

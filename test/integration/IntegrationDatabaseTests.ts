@@ -178,7 +178,7 @@ export class IntegrationDatabaseTests {
 
         // Create invitation in database
         const invitation = await prisma.invitation.create({
-          data: TestDataFactory.createInvitation(guest.id, host.id, {
+          data: await TestDataFactory.createInvitation(guest.id, host.id, {
             status: 'ACTIVATED',
             qrToken: parsed.signature?.substring(0, 32),
           })
@@ -189,6 +189,7 @@ export class IntegrationDatabaseTests {
           data: {
             guestId: guest.id,
             hostId: host.id,
+            locationId: invitation.locationId, // Use same location as invitation
             invitationId: invitation.id,
             checkedInAt: new Date(),
             checkedOutAt: null,
@@ -294,7 +295,7 @@ export class IntegrationDatabaseTests {
 
     // Test invitation creation
     const invitation = await prisma.invitation.create({
-      data: TestDataFactory.createInvitation(newGuest.id, host.id, {
+      data: await TestDataFactory.createInvitation(newGuest.id, host.id, {
         status: 'PENDING',
         inviteDate: new Date(),
       })
@@ -327,6 +328,7 @@ export class IntegrationDatabaseTests {
       data: {
         guestId: newGuest.id,
         hostId: host.id,
+        locationId: invitation.locationId, // Use same location as invitation
         invitationId: invitation.id,
         checkedInAt: new Date(),
         checkedOutAt: null,

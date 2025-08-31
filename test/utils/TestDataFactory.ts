@@ -1,12 +1,52 @@
 import { faker } from '@faker-js/faker'
-import { UserRole, ContactMethod, InvitationStatus } from '@prisma/client'
+import { UserRole, ContactMethod, InvitationStatus, PrismaClient } from '@prisma/client'
 
 export class TestDataFactory {
   private static idCounter = 0
+  private static defaultLocationId: string | null = null
+  private static prisma: PrismaClient | null = null
+
+  static setPrisma(prismaClient: PrismaClient) {
+    this.prisma = prismaClient
+  }
 
   static resetCounters() {
     this.idCounter = 0
+    this.defaultLocationId = null
     faker.seed(12345)
+  }
+
+  static async getDefaultLocationId(): Promise<string> {
+    if (this.defaultLocationId) {
+      return this.defaultLocationId
+    }
+
+    if (!this.prisma) {
+      throw new Error('Prisma client not set. Call TestDataFactory.setPrisma() first')
+    }
+
+    // Try to find existing location
+    let location = await this.prisma.location.findFirst({ where: { isActive: true } })
+    
+    if (!location) {
+      // Create default test location
+      location = await this.prisma.location.create({
+        data: {
+          name: 'Test Location',
+          address: '123 Test Street, Test City, CA 90210',
+          timezone: 'America/Los_Angeles',
+          isActive: true,
+          settings: {
+            checkInCutoffHour: 23,
+            maxDailyVisits: 500,
+            requiresEscort: false
+          }
+        }
+      })
+    }
+
+    this.defaultLocationId = location.id
+    return this.defaultLocationId
   }
 
   static generateId(): string {
@@ -61,13 +101,15 @@ export class TestDataFactory {
     })
   }
 
-  static createInvitation(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
+  static async createInvitation(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
     const now = new Date()
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    const locationId = (typeof overrides.locationId === 'string' ? overrides.locationId : null) || await this.getDefaultLocationId()
 
     return {
       guestId,
       hostId,
+      locationId,
       status: InvitationStatus.PENDING,
       inviteDate: now,
       qrToken: faker.string.alphanumeric(32),
@@ -79,14 +121,16 @@ export class TestDataFactory {
     }
   }
 
-  static createVisit(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
+  static async createVisit(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
     const now = new Date()
     const checkedIn = (overrides.checkedInAt as Date) || now
     const stayHours = faker.number.float({ min: 0.5, max: 8 })
+    const locationId = (typeof overrides.locationId === 'string' ? overrides.locationId : null) || await this.getDefaultLocationId()
     
     const base = {
       guestId,
       hostId,
+      locationId,
       invitationId: null,
       invitedAt: now,
       checkedInAt: checkedIn,
@@ -127,18 +171,18 @@ export class TestDataFactory {
     })
   }
 
-  static createActiveVisit(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
-    return this.createVisit(guestId, hostId, {
+  static async createActiveVisit(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
+    return await this.createVisit(guestId, hostId, {
       checkedInAt: faker.date.recent({ days: 1 }),
       checkedOutAt: null,
       ...overrides,
     })
   }
 
-  static createExpiredInvitation(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
+  static async createExpiredInvitation(guestId: string, hostId: string, overrides: Partial<Record<string, unknown>> = {}) {
     const pastDate = faker.date.past()
     
-    return this.createInvitation(guestId, hostId, {
+    return await this.createInvitation(guestId, hostId, {
       status: InvitationStatus.EXPIRED,
       inviteDate: pastDate,
       qrIssuedAt: pastDate,
@@ -155,7 +199,7 @@ export class TestDataFactory {
     return Array.from({ length: count }, () => this.createHost(overrides))
   }
 
-  static createScenario(type: 'atLimit' | 'overLimit' | 'underLimit', guest: Record<string, unknown>, host: Record<string, unknown>) {
+  static async createScenario(type: 'atLimit' | 'overLimit' | 'underLimit', guest: Record<string, unknown>, host: Record<string, unknown>) {
     const visits = []
     const limits = {
       atLimit: 3,
@@ -165,7 +209,7 @@ export class TestDataFactory {
 
     const count = limits[type]
     for (let i = 0; i < count; i++) {
-      visits.push(this.createVisit(guest.id as string, host.id as string, {
+      visits.push(await this.createVisit(guest.id as string, host.id as string, {
         checkedInAt: faker.date.recent({ days: 20 }),
         checkedOutAt: faker.date.recent({ days: 19 }),
       }))

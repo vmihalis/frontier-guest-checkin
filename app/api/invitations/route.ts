@@ -8,16 +8,38 @@ import type { ContactMethod } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
+    // Check authentication and get location
     let hostId: string;
+    let locationId: string;
     try {
       hostId = await getCurrentUserId(request);
+      // Get host's primary location
+      const hostUser = await prisma.user.findUnique({
+        where: { id: hostId },
+        select: { locationId: true }
+      });
+      locationId = hostUser?.locationId || '';
     } catch {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    // If no location from host, use default location
+    if (!locationId) {
+      const defaultLocation = await prisma.location.findFirst({
+        select: { id: true }
+      });
+      if (!defaultLocation) {
+        return NextResponse.json(
+          { error: 'No location found. Please contact support.' },
+          { status: 500 }
+        );
+      }
+      locationId = defaultLocation.id;
+    }
+
     const body = await request.json();
     
     const { 
@@ -90,6 +112,7 @@ export async function POST(request: NextRequest) {
       data: {
         guestId: guest.id,
         hostId,
+        locationId,
         inviteDate: inviteDateParsed,
       },
       include: {
