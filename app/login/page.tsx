@@ -6,9 +6,9 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Logo } from "@/components/ui/logo"
+import { PageCard } from "@/components/ui/page-card"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -94,15 +94,20 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md shadow-lg border border-gray-300">
-        <CardHeader className="text-center space-y-3">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6 space-y-3">
           <div className="mx-auto mb-2 flex justify-center">
             <Logo size="md" priority className="rounded-xl" />
           </div>
-          <CardTitle className="text-3xl font-bold text-gray-800">Frontier Tower</CardTitle>
-          <CardDescription className="text-gray-600">Sign in to invite guests</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+          <h1 className="text-3xl font-bold text-gray-800">Frontier Tower</h1>
+          <p className="text-gray-600">Sign in to invite guests</p>
+        </div>
+        
+        <PageCard
+          title="Sign In"
+          description="Enter your credentials to access the host dashboard"
+          className="w-full shadow-lg"
+        >
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
@@ -166,8 +171,8 @@ className={passwordError ? "border-red-500 focus:border-red-500 focus:ring-red-2
             </a>
             .
           </p>
-        </CardContent>
-      </Card>
+        </PageCard>
+      </div>
     </div>
   )
 }

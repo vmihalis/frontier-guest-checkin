@@ -4,16 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateInLA, formatCountdown, TIMEZONE_DISPLAY } from '@/lib/timezone';
 import { QRCodeComponent } from '@/components/ui/qrcode';
 import { generateMultiGuestQR } from '@/lib/qr-token';
-import { Search, QrCode, Copy, RotateCcw, UserCheck, Clock, Users, Calendar } from 'lucide-react';
+import { QrCode, Copy, RotateCcw, UserCheck, Clock, Users, Calendar } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
+import { PageHeader } from '@/components/ui/page-header';
+import { PageCard } from '@/components/ui/page-card';
+import { SearchInput } from '@/components/ui/search-input';
+import { DataTable, type Column } from '@/components/ui/data-table';
 
 // Helper function to get auth headers
 function getAuthHeaders(): HeadersInit {
@@ -69,6 +71,45 @@ export default function InvitesPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { toast } = useToast();
+
+  // Guest history table columns
+  const guestHistoryColumns: Column<GuestHistoryItem>[] = [
+    {
+      key: 'name',
+      label: 'Guest',
+      className: 'font-medium'
+    },
+    {
+      key: 'email',
+      label: 'Email'
+    },
+    {
+      key: 'recentVisits',
+      label: 'Visits (30d)'
+    },
+    {
+      key: 'lifetimeVisits',
+      label: 'Lifetime Visits'
+    },
+    {
+      key: 'lastVisitDate',
+      label: 'Last Visit',
+      render: (value) => value ? formatDateInLA(new Date(value)) : 'Never'
+    },
+    {
+      key: 'hasDiscount',
+      label: 'Discount Sent?',
+      render: (value) => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          value
+            ? 'bg-green-50 text-green-800 border border-green-200'
+            : 'bg-gray-100 text-gray-800 border border-gray-200'
+        }`}>
+          {value ? 'Yes' : 'No'}
+        </span>
+      )
+    }
+  ];
 
   // Form states
   const [formData, setFormData] = useState({
@@ -335,70 +376,55 @@ export default function InvitesPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Logo size="sm" className="rounded-lg" />
-              <h1 className="text-4xl font-bold text-gray-800">Frontier Tower</h1>
-            </div>
-            <p className="text-lg text-gray-800">Welcome, {currentUser?.name || 'Host'}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">Active Guests: {activeGuestCount}/3</span>
-            </div>
-            <p className="text-xs text-gray-700">
-              Times shown in {TIMEZONE_DISPLAY}
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Frontier Tower"
+          subtitle={`Welcome, ${currentUser?.name || 'Host'}`}
+          actions={
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800">Active Guests: {activeGuestCount}/3</span>
+              </div>
+              <p className="text-xs text-gray-700">
+                Times shown in {TIMEZONE_DISPLAY}
+              </p>
+            </>
+          }
+        />
 
         {/* Host QR Code Section */}
         {hostQRData && (
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-800">
-                <QrCode className="h-5 w-5 text-blue-600" />
-                Your Check-in QR Code
-              </CardTitle>
-              <CardDescription className="text-gray-700">
-                {invitations.filter(inv => inv.guest.termsAcceptedAt && inv.status !== 'EXPIRED').length} guest(s) available for check-in
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  <p className="mb-2">This QR code contains all guests who have accepted the terms.</p>
-                  <p className="text-xs text-gray-600">Show this at the kiosk to check in your guests.</p>
-                </div>
-                <Button
-                  onClick={() => setQrModalData({ 
-                    isOpen: true, 
-                    hostQR: hostQRData
-                  })}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Show QR Code
-                </Button>
+          <PageCard
+            title="Your Check-in QR Code"
+            description={`${invitations.filter(inv => inv.guest.termsAcceptedAt && inv.status !== 'EXPIRED').length} guest(s) available for check-in`}
+            icon={QrCode}
+            gradient={true}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                <p className="mb-2">This QR code contains all guests who have accepted the terms.</p>
+                <p className="text-xs text-gray-600">Show this at the kiosk to check in your guests.</p>
               </div>
-            </CardContent>
-          </Card>
+              <Button
+                onClick={() => setQrModalData({ 
+                  isOpen: true, 
+                  hostQR: hostQRData
+                })}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <QrCode className="h-4 w-4 mr-2" />
+                Show QR Code
+              </Button>
+            </div>
+          </PageCard>
         )}
 
         {/* Create Invitation Form */}
-        <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-              <UserCheck className="h-6 w-6 text-blue-600" />
-              Create Invitation
-            </CardTitle>
-            <CardDescription className="text-gray-800">
-              Send an invitation email to a guest. They must accept terms via email before QR activation.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <PageCard
+          title="Create Invitation"
+          description="Send an invitation email to a guest. They must accept terms via email before QR activation."
+          icon={UserCheck}
+        >
             <form onSubmit={handleCreateInvitation} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -482,31 +508,23 @@ export default function InvitesPage() {
                 Create Invitation
               </Button>
             </form>
-          </CardContent>
-        </Card>
+        </PageCard>
 
         {/* Today's Invitations */}
-        <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                  Today&apos;s Invitations
-                </CardTitle>
-                <CardDescription className="text-gray-800">
-                  {formatDateInLA(new Date(selectedDate))}
-                </CardDescription>
-              </div>
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-40"
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
+        <PageCard
+          title="Today's Invitations"
+          description={formatDateInLA(new Date(selectedDate))}
+          icon={Calendar}
+          headerClassName="flex items-center justify-between"
+        >
+          <div className="absolute top-4 right-6">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
             {invitations.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -545,72 +563,26 @@ export default function InvitesPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </PageCard>
 
         {/* Guest History */}
-        <Card className="bg-white border border-gray-300 rounded-lg shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-800">Guest History</CardTitle>
-            <CardDescription className="text-gray-800">Search and view guest visit statistics</CardDescription>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
-                <Input
-                  placeholder="Search guests by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {guestHistory.length === 0 ? (
-              <p className="text-center text-gray-800 py-8">
-                {searchTerm ? 'No guests found matching your search.' : 'No guest history available.'}
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Guest</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Visits (30d)</TableHead>
-                    <TableHead>Lifetime Visits</TableHead>
-                    <TableHead>Last Visit</TableHead>
-                    <TableHead>Discount Sent?</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {guestHistory.map((guest) => (
-                    <TableRow key={guest.id}>
-                      <TableCell className="font-medium">{guest.name}</TableCell>
-                      <TableCell>{guest.email}</TableCell>
-                      <TableCell>{guest.recentVisits}</TableCell>
-                      <TableCell>{guest.lifetimeVisits}</TableCell>
-                      <TableCell>
-                        {guest.lastVisitDate 
-                          ? formatDateInLA(new Date(guest.lastVisitDate))
-                          : 'Never'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          guest.hasDiscount 
-                            ? 'bg-green-50 text-green-800 border border-green-200' 
-                            : 'bg-gray-100 text-gray-800 border border-gray-200'
-                        }`}>
-                          {guest.hasDiscount ? 'Yes' : 'No'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <PageCard
+          title="Guest History"
+          description="Search and view guest visit statistics"
+        >
+          <div className="space-y-4">
+            <SearchInput
+              placeholder="Search guests by name or email..."
+              value={searchTerm}
+              onChange={setSearchTerm}
+            />
+            <DataTable
+              data={guestHistory}
+              columns={guestHistoryColumns}
+              emptyMessage={searchTerm ? 'No guests found matching your search.' : 'No guest history available.'}
+            />
+          </div>
+        </PageCard>
 
         {/* QR Code Modal */}
         <Dialog 
