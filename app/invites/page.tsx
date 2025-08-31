@@ -536,30 +536,28 @@ export default function InvitesPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {invitations.map((invitation) => (
-                  <Card key={invitation.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
-                    <div className="p-3">
-                      {/* Compact Guest Header */}
-                      <div className="mb-2">
-                        <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">{invitation.guest.name}</h3>
-                        <p className="text-xs text-gray-600 mb-2 truncate">{invitation.guest.email}</p>
-                        
-                        {/* Status & Action in Stack */}
-                        <div className="space-y-2">
-                          {getPrimaryStatus(invitation).badge}
-                          {getPrimaryStatus(invitation).action && (
-                            <div>{getPrimaryStatus(invitation).action}</div>
-                          )}
-                        </div>
-                      </div>
+                  <div key={invitation.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02] p-3">
+                    {/* Compact Guest Header */}
+                    <div className="mb-2">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">{invitation.guest.name}</h3>
+                      <p className="text-xs text-gray-600 mb-2 truncate">{invitation.guest.email}</p>
                       
-                      {/* Compact Expiry Info */}
-                      {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
-                        <div className="text-xs text-gray-500 border-t pt-2 mt-2">
-                          Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
-                        </div>
-                      )}
+                      {/* Status & Action in Stack */}
+                      <div className="space-y-2">
+                        {getPrimaryStatus(invitation).badge}
+                        {getPrimaryStatus(invitation).action && (
+                          <div>{getPrimaryStatus(invitation).action}</div>
+                        )}
+                      </div>
                     </div>
-                  </Card>
+                    
+                    {/* Compact Expiry Info */}
+                    {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
+                      <div className="text-xs text-gray-500 border-t pt-2 mt-2">
+                        Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -603,7 +601,7 @@ export default function InvitesPage() {
             
             {(qrModalData.invitation || qrModalData.hostQR) && (
               <div className="space-y-4">
-                <Card className="p-8">
+                <div className="p-8 bg-white border border-gray-200 rounded-lg">
                   <div className="text-center flex flex-col items-center justify-center">
                     {(qrModalData.hostQR || qrModalData.invitation?.qrToken) ? (
                       <QRCodeComponent 
@@ -632,7 +630,7 @@ export default function InvitesPage() {
                       </div>
                     )}
                   </div>
-                </Card>
+                </div>
                 
                 {!qrModalData.hostQR && qrModalData.countdown && (
                   qrModalData.countdown === 'EXPIRED' ? (
