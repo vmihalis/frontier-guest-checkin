@@ -515,16 +515,7 @@ export default function InvitesPage() {
           title="Today's Invitations"
           description={formatDateInLA(new Date(selectedDate))}
           icon={Calendar}
-          headerClassName="flex items-center justify-between"
         >
-          <div className="absolute top-4 right-6">
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-40"
-            />
-          </div>
             {invitations.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
