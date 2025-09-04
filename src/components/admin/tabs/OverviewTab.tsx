@@ -1,87 +1,30 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import { Users, UserCheck, TrendingUp, AlertTriangle } from 'lucide-react';
+import { useAdminData } from '@/contexts/AdminDataContext';
 
-interface AdminStats {
-  overview: {
-    totalGuests: number;
-    totalVisits: number;
-    activeVisits: number;
-    todayVisits: number;
-    weekVisits: number;
-    monthVisits: number;
-  };
-  invitations: {
-    total: number;
-    pending: number;
-    activated: number;
-    checkedIn: number;
-  };
-  system: {
-    blacklistedGuests: number;
-    discountsSent: number;
-    overrideCount: number;
-  };
-  topHosts: Array<{
-    id: string;
-    name: string;
-    email: string;
-    visitCount: number;
-  }>;
-  dailyTrends: Array<{
-    date: string;
-    visits: number;
-  }>;
-  recentOverrides: Array<{
-    id: string;
-    guestName: string;
-    guestEmail: string;
-    hostName: string;
-    overrideReason: string;
-    overrideBy: string;
-    createdAt: string;
-  }>;
-}
 
 interface OverviewTabProps {
   onDataLoaded?: () => void;
 }
 
 export default function OverviewTab({ onDataLoaded }: OverviewTabProps) {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+  const { stats, isLoadingStats, loadStats } = useAdminData();
 
-  const loadStats = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/admin/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-        // Signal that data is loaded
-        onDataLoaded?.();
-      }
-    } catch (error) {
-      console.error('Error loading stats:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load overview stats. Please refresh.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast, onDataLoaded]);
-
+  // Load stats when component mounts, but only if we don't have cached data
   useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+    if (!stats) {
+      loadStats();
+    }
+    // Signal that component is ready (either with cached or fresh data)
+    onDataLoaded?.();
+  }, [stats, loadStats, onDataLoaded]);
 
-  if (isLoading) {
+  // Show skeleton when loading without data
+  if (isLoadingStats && !stats) {
     return (
       <div className="space-y-6">
         {/* Stats Cards Skeleton */}

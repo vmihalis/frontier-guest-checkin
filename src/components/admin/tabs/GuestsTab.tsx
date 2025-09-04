@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, Ban, RotateCcw, Eye } from 'lucide-react';
+import { useAdminData } from '@/contexts/AdminDataContext';
 
 interface Guest {
   id: string;
@@ -29,62 +29,27 @@ interface GuestsTabProps {
 }
 
 export default function GuestsTab({ onViewJourney, isActive = false }: GuestsTabProps) {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const { guests, isLoadingGuests, loadGuests, blacklistToggle } = useAdminData();
   const [searchTerm, setSearchTerm] = useState('');
   const [showBlacklisted, setShowBlacklisted] = useState(false);
   const [quickFilter, setQuickFilter] = useState('all');
-  const { toast } = useToast();
 
-  const loadGuests = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/admin/guests?query=${searchTerm}&blacklisted=${showBlacklisted}`);
-      if (response.ok) {
-        const data = await response.json();
-        setGuests(data.guests || []);
-        setHasLoaded(true);
-      }
-    } catch (error) {
-      console.error('Error loading guests:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load guest data. Please refresh.',
-      });
-    } finally {
-      setIsLoading(false);
+  // Load guests when tab becomes active and we don't have cached data
+  useEffect(() => {
+    if (isActive && guests.length === 0) {
+      loadGuests(searchTerm, showBlacklisted);
     }
-  }, [searchTerm, showBlacklisted, toast]);
+  }, [isActive, guests.length, loadGuests, searchTerm, showBlacklisted]);
 
-  const handleBlacklistToggle = async (guestId: string, action: 'blacklist' | 'unblacklist') => {
-    try {
-      const response = await fetch(`/api/admin/guests/${guestId}/blacklist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({ 
-          title: 'Success', 
-          description: data.message 
-        });
-        loadGuests();
-      } else {
-        toast({ 
-          title: 'Error', 
-          description: data.error || 'Failed to update blacklist status' 
-        });
-      }
-    } catch {
-      toast({ 
-        title: 'Error', 
-        description: 'Network error. Please try again.' 
-      });
+  // Reload when search terms change
+  useEffect(() => {
+    if (isActive) {
+      loadGuests(searchTerm, showBlacklisted);
     }
+  }, [searchTerm, showBlacklisted, isActive, loadGuests]);
+
+  const handleBlacklistToggle = (guestId: string, action: 'blacklist' | 'unblacklist') => {
+    blacklistToggle(guestId, action);
   };
 
   const getFilteredGuests = () => {
@@ -109,20 +74,9 @@ export default function GuestsTab({ onViewJourney, isActive = false }: GuestsTab
     return filtered;
   };
 
-  useEffect(() => {
-    if (isActive && !hasLoaded) {
-      loadGuests();
-    }
-  }, [isActive, hasLoaded, loadGuests]);
 
-  // Re-load when search terms change, but only if tab is active and has loaded initially
-  useEffect(() => {
-    if (isActive && hasLoaded) {
-      loadGuests();
-    }
-  }, [searchTerm, showBlacklisted, isActive, hasLoaded, loadGuests]);
-
-  if (!isActive || isLoading) {
+  // Show skeleton when tab is active and loading without data
+  if (isActive && isLoadingGuests && guests.length === 0) {
     return (
       <Card>
         <CardHeader>

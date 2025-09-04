@@ -1,48 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useAdminData } from '@/contexts/AdminDataContext';
 import { UserCheck, Activity, Mail, QrCode, UserPlus, ShieldAlert, Gift, FileCheck, UserX, Ban, Users, ArrowRightLeft } from 'lucide-react';
-
-interface Activity {
-  type: string;
-  timestamp: string;
-  title: string;
-  description: string;
-  icon: string;
-  severity: 'info' | 'success' | 'warning' | 'error';
-  data: Record<string, unknown>;
-}
-
-interface GuestJourney {
-  guest: {
-    id: string;
-    name: string;
-    email: string;
-    country?: string;
-    contactMethod?: string;
-    contactValue?: string;
-    createdAt: string;
-    blacklistedAt?: string;
-  };
-  timeline: Activity[];
-  summary: {
-    totalVisits: number;
-    totalInvitations: number;
-    discountsEarned: number;
-    isBlacklisted: boolean;
-    lastVisit?: string;
-    firstVisit?: string;
-    averageVisitsPerMonth: number;
-    mostFrequentHost?: { name: string; count: number };
-    mostFrequentInviter?: { name: string; count: number };
-    hostTransferCount: number;
-    uniqueHosts: { visits: number; invitations: number; total: number };
-  };
-}
 
 interface JourneyTabProps {
   selectedGuestId?: string;
@@ -51,30 +14,7 @@ interface JourneyTabProps {
 }
 
 export default function JourneyTab({ selectedGuestId, onClose, isActive = false }: JourneyTabProps) {
-  const [selectedGuest, setSelectedGuest] = useState<GuestJourney | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const { toast } = useToast();
-
-  const loadGuestJourney = useCallback(async (guestId: string) => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/admin/guests/${guestId}/journey`);
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedGuest(data);
-        setHasLoaded(true);
-      }
-    } catch (error) {
-      console.error('Error loading guest journey:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load guest journey. Please try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+  const { selectedGuest, isLoadingJourney, loadGuestJourney, clearSelectedGuest } = useAdminData();
 
   const getIconComponent = (iconName: string) => {
     const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
@@ -105,23 +45,15 @@ export default function JourneyTab({ selectedGuestId, onClose, isActive = false 
     }
   };
 
+  // Load guest journey when selectedGuestId changes
   useEffect(() => {
-    if (isActive && selectedGuestId && !hasLoaded) {
+    if (isActive && selectedGuestId && selectedGuest?.guest?.id !== selectedGuestId) {
       loadGuestJourney(selectedGuestId);
-    } else if (!selectedGuestId) {
-      setSelectedGuest(null);
-      setHasLoaded(false);
     }
-  }, [isActive, selectedGuestId, hasLoaded, loadGuestJourney]);
+  }, [isActive, selectedGuestId, selectedGuest, loadGuestJourney]);
 
-  useEffect(() => {
-    // Reset hasLoaded when selectedGuestId changes
-    if (selectedGuestId) {
-      setHasLoaded(false);
-    }
-  }, [selectedGuestId]);
-
-  if (isLoading) {
+  // Show loading skeleton when loading
+  if (isActive && isLoadingJourney) {
     return (
       <Card>
         <CardHeader>
@@ -187,7 +119,7 @@ export default function JourneyTab({ selectedGuestId, onClose, isActive = false 
               </CardDescription>
             </div>
             <Button variant="outline" onClick={() => {
-              setSelectedGuest(null);
+              clearSelectedGuest();
               onClose?.();
             }}>
               Close

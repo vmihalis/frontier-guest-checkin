@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useAdminData } from '@/contexts/AdminDataContext';
 import { 
   Activity, 
   RefreshCw, 
@@ -34,56 +34,18 @@ interface ActivityTabProps {
 }
 
 export default function ActivityTab({ isActive = false }: ActivityTabProps) {
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const { toast } = useToast();
+  const { activities, isLoadingActivities, loadActivities } = useAdminData();
 
-  const loadActivities = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/admin/activity');
-      if (response.ok) {
-        const data = await response.json();
-        setActivities(data.activities || []);
-        setHasLoaded(true);
-      }
-    } catch (error) {
-      console.error('Error loading activities:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load activity feed. Please refresh.',
-      });
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [toast]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await loadActivities();
-  };
-
+  // Load activities when tab becomes active and we don't have cached data
   useEffect(() => {
-    if (isActive && !hasLoaded) {
+    if (isActive && activities.length === 0) {
       loadActivities();
     }
-  }, [isActive, hasLoaded, loadActivities]);
+  }, [isActive, activities.length, loadActivities]);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
-    
-    if (isActive && hasLoaded) {
-      // Only set up auto-refresh if tab is active and has loaded
-      interval = setInterval(loadActivities, 30000); // Auto-refresh every 30 seconds
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isActive, hasLoaded, loadActivities]);
+  const handleRefresh = () => {
+    loadActivities(true); // Force refresh
+  };
 
   const getIconComponent = (iconName: string) => {
     const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
@@ -111,7 +73,8 @@ export default function ActivityTab({ isActive = false }: ActivityTabProps) {
     }
   };
 
-  if (!isActive || isLoading) {
+  // Show skeleton when tab is active and loading without data
+  if (isActive && isLoadingActivities && activities.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -166,9 +129,9 @@ export default function ActivityTab({ isActive = false }: ActivityTabProps) {
               variant="outline" 
               size="sm" 
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={isLoadingActivities}
             >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isLoadingActivities ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>

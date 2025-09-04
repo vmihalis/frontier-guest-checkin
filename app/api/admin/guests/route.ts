@@ -50,18 +50,61 @@ export async function GET(request: NextRequest) {
       take: 100, // Limit to 100 guests for performance
     });
 
-    // Get stats for each guest
-    const guestsWithStats = await Promise.all(
-      guests.map(async (guest) => {
-        const stats = await getGuestStats(guest.email);
-        return {
-          ...guest,
-          ...stats,
-          isBlacklisted: !!guest.blacklistedAt,
-          hasAcceptedTerms: !!guest.termsAcceptedAt
-        };
-      })
-    );
+    // Get all guest IDs for bulk stats query
+    const guestIds = guests.map(g => g.id);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    // Get visit counts for all guests in a single query
+    const visitStats = await prisma.visit.groupBy({
+      by: ['guestId'],
+      where: {
+        guestId: { in: guestIds },
+        checkedInAt: { not: null }
+      },
+      _count: true
+    });
+    
+    const recentVisitStats = await prisma.visit.groupBy({
+      by: ['guestId'],
+      where: {
+        guestId: { in: guestIds },
+        checkedInAt: { 
+          not: null,
+          gte: thirtyDaysAgo
+        }
+      },
+      _count: true
+    });
+    
+    // Get discount status for all guests
+    const discounts = await prisma.discount.findMany({
+      where: {
+        guestId: { in: guestIds }
+      },
+      select: {
+        guestId: true
+      }
+    });
+    
+    // Create maps for quick lookup
+    const visitCountMap = new Map(visitStats.map(v => [v.guestId, v._count]));
+    const recentVisitCountMap = new Map(recentVisitStats.map(v => [v.guestId, v._count]));
+    const discountMap = new Set(discounts.map(d => d.guestId));
+    
+    // Combine data
+    const guestsWithStats = guests.map(guest => ({
+      id: guest.id,
+      name: guest.name,
+      email: guest.email,
+      country: guest.country,
+      isBlacklisted: !!guest.blacklistedAt,
+      hasAcceptedTerms: !!guest.termsAcceptedAt,
+      lifetimeVisits: visitCountMap.get(guest.id) || 0,
+      recentVisits: recentVisitCountMap.get(guest.id) || 0,
+      hasDiscount: discountMap.has(guest.id),
+      createdAt: guest.createdAt
+    }));
 
     return NextResponse.json({ 
       guests: guestsWithStats,

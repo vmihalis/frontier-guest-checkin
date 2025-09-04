@@ -1,97 +1,48 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useAdminData } from '@/contexts/AdminDataContext';
 import { Settings, CheckCircle } from 'lucide-react';
-
-interface Policies {
-  id: number;
-  guestMonthlyLimit: number;
-  hostConcurrentLimit: number;
-  updatedAt: string;
-}
 
 interface PoliciesTabProps {
   isActive?: boolean;
 }
 
 export default function PoliciesTab({ isActive = false }: PoliciesTabProps) {
-  const [policies, setPolicies] = useState<Policies | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const { policies, isLoadingPolicies, loadPolicies, updatePolicies } = useAdminData();
   const [policyForm, setPolicyForm] = useState({
     guestMonthlyLimit: 3,
     hostConcurrentLimit: 3
   });
-  const { toast } = useToast();
 
-  const loadPolicies = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/admin/policies');
-      if (response.ok) {
-        const data = await response.json();
-        setPolicies(data);
-        setPolicyForm({
-          guestMonthlyLimit: data.guestMonthlyLimit,
-          hostConcurrentLimit: data.hostConcurrentLimit
-        });
-        setHasLoaded(true);
-      }
-    } catch (error) {
-      console.error('Error loading policies:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load system policies. Please refresh.',
-      });
-    } finally {
-      setIsLoading(false);
+  // Load policies when tab becomes active and we don't have cached data
+  useEffect(() => {
+    if (isActive && !policies) {
+      loadPolicies();
     }
-  }, [toast]);
+  }, [isActive, policies, loadPolicies]);
+
+  // Update form when policies change
+  useEffect(() => {
+    if (policies) {
+      setPolicyForm({
+        guestMonthlyLimit: policies.guestMonthlyLimit,
+        hostConcurrentLimit: policies.hostConcurrentLimit
+      });
+    }
+  }, [policies]);
 
   const handlePolicyUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    try {
-      const response = await fetch('/api/admin/policies', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(policyForm)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({ 
-          title: 'Success', 
-          description: 'Policies updated successfully!' 
-        });
-        setPolicies(data.policies);
-      } else {
-        toast({ 
-          title: 'Error', 
-          description: data.error || 'Failed to update policies' 
-        });
-      }
-    } catch {
-      toast({ 
-        title: 'Error', 
-        description: 'Network error. Please try again.' 
-      });
-    }
+    await updatePolicies(policyForm);
   };
 
-  useEffect(() => {
-    if (isActive && !hasLoaded) {
-      loadPolicies();
-    }
-  }, [isActive, hasLoaded, loadPolicies]);
-
-  if (!isActive || isLoading) {
+  // Show skeleton when tab is active and loading without data
+  if (isActive && isLoadingPolicies && !policies) {
     return (
       <Card>
         <CardHeader>
@@ -173,7 +124,7 @@ export default function PoliciesTab({ isActive = false }: PoliciesTabProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Current Settings</p>
-                {policies && (
+                {policies && policies.updatedAt && (
                   <p className="text-sm text-muted-foreground">
                     Last updated: {new Date(policies.updatedAt).toLocaleString()}
                   </p>

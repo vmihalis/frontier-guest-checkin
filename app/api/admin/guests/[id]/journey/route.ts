@@ -18,14 +18,6 @@ export async function GET(
               select: { name: true, email: true }
             },
             invitation: {
-              select: { 
-                id: true, 
-                status: true, 
-                qrIssuedAt: true, 
-                qrExpiresAt: true,
-                createdAt: true,
-                inviteDate: true
-              },
               include: {
                 host: {
                   select: { name: true, email: true }

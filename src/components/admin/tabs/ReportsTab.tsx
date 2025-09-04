@@ -1,91 +1,36 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { useAdminData } from '@/contexts/AdminDataContext';
 import { FileText } from 'lucide-react';
-
-interface ExecutiveReport {
-  period: {
-    type: string;
-    startDate: string;
-    endDate: string;
-    label: string;
-  };
-  metrics: {
-    totalVisits: { value: number; change: number; previous: number };
-    uniqueGuests: { value: number; change: number; previous: number };
-    newGuests: { value: number; change: number; previous: number };
-    totalInvitations: { value: number; change: number; previous: number };
-    qrActivations: { value: number; change: number; previous: number };
-    overrideCount: number;
-    blacklistAdditions: number;
-    discountsSent: number;
-  };
-  conversions: {
-    invitationToActivation: number;
-    activationToVisit: number;
-    overallConversion: number;
-  };
-  topHosts: Array<{ id: string; name: string; email: string; visitCount: number }>;
-  demographics: {
-    countries: Array<{ country: string; count: number }>;
-    contactMethods: Array<{ method: string; count: number }>;
-  };
-  systemHealth: {
-    overrideRate: number;
-    blacklistGrowth: number;
-    emailDeliveryRate: number;
-  };
-  generatedAt: string;
-}
 
 interface ReportsTabProps {
   isActive?: boolean;
 }
 
 export default function ReportsTab({ isActive = false }: ReportsTabProps) {
-  const [executiveReport, setExecutiveReport] = useState<ExecutiveReport | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const { executiveReport, isLoadingReport, loadExecutiveReport } = useAdminData();
   const [reportPeriod, setReportPeriod] = useState('weekly');
-  const { toast } = useToast();
 
-  const loadExecutiveReport = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/admin/reports?period=${reportPeriod}`);
-      if (response.ok) {
-        const data = await response.json();
-        setExecutiveReport(data);
-        setHasLoaded(true);
-      }
-    } catch (error) {
-      console.error('Error loading executive report:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load executive report. Please refresh.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [reportPeriod, toast]);
-
+  // Load report when tab becomes active and we don't have cached data
   useEffect(() => {
-    if (isActive && !hasLoaded) {
-      loadExecutiveReport();
+    if (isActive && !executiveReport) {
+      loadExecutiveReport(reportPeriod);
     }
-  }, [isActive, hasLoaded, loadExecutiveReport]);
+  }, [isActive, executiveReport, loadExecutiveReport, reportPeriod]);
 
+  // Reload when period changes
   useEffect(() => {
-    if (isActive && hasLoaded) {
-      loadExecutiveReport();
+    if (isActive) {
+      loadExecutiveReport(reportPeriod);
     }
-  }, [reportPeriod, isActive, hasLoaded, loadExecutiveReport]);
+  }, [reportPeriod, isActive, loadExecutiveReport]);
 
-  if (!isActive || isLoading) {
+  // Show skeleton when tab is active and loading without data
+  if (isActive && isLoadingReport && !executiveReport) {
     return (
       <Card>
         <CardHeader>

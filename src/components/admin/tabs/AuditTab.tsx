@@ -1,61 +1,31 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
-
-interface OverrideRecord {
-  id: string;
-  guestName: string;
-  guestEmail: string;
-  hostName: string;
-  overrideReason: string;
-  overrideBy: string;
-  createdAt: string;
-}
+import { useAdminData } from '@/contexts/AdminDataContext';
 
 interface AuditTabProps {
-  recentOverrides?: OverrideRecord[];
+  recentOverrides?: any[];
   isActive?: boolean;
 }
 
 export default function AuditTab({ recentOverrides, isActive = false }: AuditTabProps) {
-  const [overrides, setOverrides] = useState<OverrideRecord[]>(recentOverrides || []);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(!!recentOverrides);
-  const { toast } = useToast();
-
-  const loadOverrides = useCallback(async () => {
-    if (recentOverrides) return; // Don't fetch if data is already provided
-    
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/admin/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setOverrides(data.recentOverrides || []);
-        setHasLoaded(true);
-      }
-    } catch (error) {
-      console.error('Error loading override records:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load audit records. Please refresh.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [recentOverrides, toast]);
-
+  const { stats, isLoadingStats, loadStats } = useAdminData();
+  
+  // Use provided overrides or from stats
+  const overrides = recentOverrides || stats?.recentOverrides || [];
+  
+  // Load stats when tab becomes active and we don't have cached data
   useEffect(() => {
-    if (isActive && !hasLoaded) {
-      loadOverrides();
+    if (isActive && !stats && !recentOverrides) {
+      loadStats();
     }
-  }, [isActive, hasLoaded, loadOverrides]);
+  }, [isActive, stats, recentOverrides, loadStats]);
 
-  if (!isActive || isLoading) {
+  // Show skeleton when tab is active and loading without data
+  if (isActive && isLoadingStats && !stats && !recentOverrides) {
     return (
       <Card>
         <CardHeader>
