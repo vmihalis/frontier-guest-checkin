@@ -242,7 +242,7 @@ export async function validateGuestAcceptance(guestId: string): Promise<Validati
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
   
-  if (acceptance.acceptedAt < oneYearAgo) {
+  if (acceptance.acceptedAt <= oneYearAgo) {
     return {
       isValid: false,
       error: "Guest's visitor agreement has expired. New terms acceptance required.",
@@ -263,7 +263,7 @@ export function validateQRToken(qrExpiresAt: Date | null): ValidationResult {
   }
 
   const now = nowInLA();
-  if (now > qrExpiresAt) {
+  if (now >= qrExpiresAt) {
     return {
       isValid: false,
       error: "This QR code has expired. Please generate a new invitation.",
@@ -334,10 +334,18 @@ export async function checkExistingActiveVisit(hostId: string, guestEmail: strin
     },
   });
 
+  if (crossHostActiveVisit) {
+    return {
+      hasActiveVisit: true,
+      activeVisit: crossHostActiveVisit,
+      crossHostVisit: true,
+    };
+  }
+
   return {
-    hasActiveVisit: !!crossHostActiveVisit,
-    activeVisit: crossHostActiveVisit || undefined,
-    crossHostVisit: !!crossHostActiveVisit,
+    hasActiveVisit: false,
+    activeVisit: undefined,
+    crossHostVisit: false,
   };
 }
 

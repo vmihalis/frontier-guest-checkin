@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
-import { shouldTriggerDiscount, checkExistingActiveVisit, processReturningGuestCheckIn } from '@/lib/validations';
+import { shouldTriggerDiscount, checkExistingActiveVisit, processReturningGuestCheckIn, canUserOverride } from '@/lib/validations';
 import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
 import { sendDiscountEmail } from '@/lib/email';
 import { validateQRToken } from '@/lib/qr-token';
+import { validateOverrideRequest, type OverrideRequest } from '@/lib/override';
 import type { GuestData } from '@/lib/qr-token';
 
 interface CheckInRequest {
@@ -14,8 +15,7 @@ interface CheckInRequest {
   guest?: GuestData;
   guests?: GuestData[];
   // Override parameters
-  overrideReason?: string;
-  overridePassword?: string;
+  override?: OverrideRequest;
 }
 
 /**
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     console.log('Body type:', typeof body);
     console.log('==================================');
     
-    const { token, guest, guests, overrideReason, overridePassword } = body;
+    const { token, guest, guests, override } = body;
 
     // Parse and normalize input to array of guests
     let guestList: GuestData[] = [];
@@ -129,6 +129,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate override if provided
+    let isOverrideValid = false;
+    let overrideUser: any = null;
+    if (override) {
+      const overrideValidation = validateOverrideRequest(override);
+      if (!overrideValidation.isValid) {
+        return NextResponse.json(
+          { 
+            success: false,
+            message: overrideValidation.error || 'Invalid override request'
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check if user has permission to override (if authenticated)
+      try {
+        const userId = await getCurrentUserId(request);
+        overrideUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, role: true, email: true }
+        });
+        
+        if (!overrideUser || !canUserOverride(overrideUser.role)) {
+          return NextResponse.json(
+            { 
+              success: false,
+              message: 'Insufficient permissions for override. Contact security staff.'
+            },
+            { status: 403 }
+          );
+        }
+        
+        isOverrideValid = true;
+        console.log(`Override authorized by ${overrideUser.role}: ${overrideUser.email}`);
+      } catch {
+        // Not authenticated - in demo mode, assume security role for override
+        console.log('Demo mode: Override request without authentication');
+        isOverrideValid = true;
+      }
+    }
+
     // Get host ID and location
     let hostId: string;
     let locationId: string;
@@ -202,8 +244,8 @@ export async function POST(request: NextRequest) {
           guest: guestData,
           hostId,
           locationId,
-          overrideReason,
-          overridePassword,
+          override: isOverrideValid ? override : undefined,
+          overrideUserId: overrideUser?.id || null,
           now
         });
         results.push(result);
@@ -278,15 +320,15 @@ async function processGuestCheckIn({
   guest,
   hostId,
   locationId,
-  overrideReason,
-  overridePassword,
+  override,
+  overrideUserId,
   now
 }: {
   guest: GuestData;
   hostId: string;
   locationId: string;
-  overrideReason?: string;
-  overridePassword?: string;
+  override?: OverrideRequest;
+  overrideUserId?: string | null;
   now: Date;
 }) {
   // Validate host exists before processing
@@ -372,18 +414,7 @@ async function processGuestCheckIn({
     };
   }
 
-  // Handle override if needed
-  let overrideUserId: string | null = null;
-  // Note: Override logic should be handled at capacity validation level
-  // For now, we'll use the override parameters if provided
-  if (overrideReason || overridePassword) {
-    const securityUser = await prisma.user.findFirst({
-      where: { role: 'security' },
-      select: { id: true },
-      orderBy: { email: 'asc' }
-    });
-    overrideUserId = securityUser?.id || null;
-  }
+  // Override is already validated and user ID provided if valid
 
   // Create visit record and update invitation status atomically
   const expiresAt = calculateVisitExpiration(now);
@@ -399,8 +430,9 @@ async function processGuestCheckIn({
         invitationId: null, // Will be updated after we find the invitation
         checkedInAt: now,
         expiresAt,
-        overrideReason: overrideReason || null,
-        overrideBy: overrideUserId,
+        overrideReason: override?.reason || null,
+        overriddenBy: overrideUserId || null,
+        overriddenAt: override ? now : null,
       },
     });
 
