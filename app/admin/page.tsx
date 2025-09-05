@@ -74,6 +74,8 @@ function AdminPageContent() {
     executiveReport,
     searchResults,
     selectedGuest,
+    selectedLocationId,
+    setSelectedLocationId,
     isLoadingStats,
     isLoadingActivities,
     isLoadingGuests,
@@ -188,7 +190,6 @@ function AdminPageContent() {
   const [showBlacklisted, setShowBlacklisted] = useState(false);
   const [reportPeriod, setReportPeriod] = useState('weekly');
   const [quickFilter, setQuickFilter] = useState('all');
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   
   const { toast } = useToast();
 

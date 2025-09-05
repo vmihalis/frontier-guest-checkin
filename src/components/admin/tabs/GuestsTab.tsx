@@ -75,8 +75,8 @@ export default function GuestsTab({ onViewJourney, isActive = false }: GuestsTab
   };
 
 
-  // Show skeleton when tab is active and loading without data
-  if (isActive && isLoadingGuests && guests.length === 0) {
+  // Show skeleton when loading (including when switching locations)
+  if (isLoadingGuests) {
     return (
       <Card>
         <CardHeader>

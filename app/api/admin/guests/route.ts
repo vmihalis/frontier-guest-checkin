@@ -7,11 +7,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query') || '';
     const showBlacklisted = searchParams.get('blacklisted') === 'true';
+    const locationId = searchParams.get('location');
 
     const whereClause: {
       AND: Array<{
         OR?: Array<{ name?: { contains: string; mode: 'insensitive' } } | { email?: { contains: string; mode: 'insensitive' } }>;
         blacklistedAt?: { not: null };
+        visits?: { some: { locationId: string } };
       }>;
     } = {
       AND: [
@@ -28,6 +30,13 @@ export async function GET(request: NextRequest) {
     if (showBlacklisted) {
       whereClause.AND.push({
         blacklistedAt: { not: null }
+      });
+    }
+    
+    // Filter by location if specified
+    if (locationId) {
+      whereClause.AND.push({
+        visits: { some: { locationId } }
       });
     }
 

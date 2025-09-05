@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q') || '';
     const type = searchParams.get('type') || 'all'; // all, guests, hosts, visits
     const limit = parseInt(searchParams.get('limit') || '10');
+    const locationId = searchParams.get('location');
 
     if (!query || query.length < 2) {
       return NextResponse.json({ results: [] });
@@ -24,14 +25,21 @@ export async function GET(request: NextRequest) {
 
     // Search guests
     if (type === 'all' || type === 'guests') {
+      const guestWhere: any = {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+          { country: { contains: query, mode: 'insensitive' } },
+        ],
+      };
+      
+      // If location filter is specified, only show guests who have visited that location
+      if (locationId) {
+        guestWhere.visits = { some: { locationId } };
+      }
+      
       const guests = await prisma.guest.findMany({
-        where: {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' } },
-            { email: { contains: query, mode: 'insensitive' } },
-            { country: { contains: query, mode: 'insensitive' } },
-          ],
-        },
+        where: guestWhere,
         select: {
           id: true,
           name: true,

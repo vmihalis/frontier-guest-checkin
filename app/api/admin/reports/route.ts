@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'daily'; // daily, weekly, monthly
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const locationId = searchParams.get('location');
 
     const now = nowInLA();
     let periodStart: Date;
@@ -37,6 +38,9 @@ export async function GET(request: NextRequest) {
     const periodLength = periodEnd.getTime() - periodStart.getTime();
     const previousPeriodEnd = new Date(periodStart);
     const previousPeriodStart = new Date(periodStart.getTime() - periodLength);
+    
+    // Create location filter for queries
+    const locationFilter = locationId ? { locationId } : {};
 
     // Current period statistics
     const [
@@ -59,7 +63,8 @@ export async function GET(request: NextRequest) {
             not: null,
             gte: periodStart,
             lte: periodEnd
-          }
+          },
+          ...locationFilter
         }
       }),
 
@@ -72,7 +77,8 @@ export async function GET(request: NextRequest) {
                 not: null,
                 gte: periodStart,
                 lte: periodEnd
-              }
+              },
+              ...locationFilter
             }
           }
         }

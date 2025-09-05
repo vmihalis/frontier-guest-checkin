@@ -1,12 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { nowInLA } from '@/lib/timezone';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const locationId = searchParams.get('location');
+    
     const now = nowInLA();
     const twentyFourHoursAgo = new Date(now);
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    
+    // Create location filter for queries
+    const locationFilter = locationId ? { locationId } : {};
 
     // Get recent check-ins
     const recentCheckins = await prisma.visit.findMany({
@@ -14,7 +20,8 @@ export async function GET() {
         checkedInAt: {
           not: null,
           gte: twentyFourHoursAgo
-        }
+        },
+        ...locationFilter
       },
       include: {
         guest: {

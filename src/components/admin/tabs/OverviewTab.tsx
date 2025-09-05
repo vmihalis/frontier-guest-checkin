@@ -12,7 +12,7 @@ interface OverviewTabProps {
 }
 
 export default function OverviewTab({ onDataLoaded }: OverviewTabProps) {
-  const { stats, isLoadingStats, loadStats } = useAdminData();
+  const { stats, isLoadingStats, loadStats, selectedLocationId } = useAdminData();
 
   // Load stats when component mounts, but only if we don't have cached data
   useEffect(() => {
@@ -23,8 +23,8 @@ export default function OverviewTab({ onDataLoaded }: OverviewTabProps) {
     onDataLoaded?.();
   }, [stats, loadStats, onDataLoaded]);
 
-  // Show skeleton when loading without data
-  if (isLoadingStats && !stats) {
+  // Show skeleton when loading (including when switching locations)
+  if (isLoadingStats) {
     return (
       <div className="space-y-6">
         {/* Stats Cards Skeleton */}
@@ -41,6 +41,54 @@ export default function OverviewTab({ onDataLoaded }: OverviewTabProps) {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Charts and Additional Stats Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Hosts Skeleton */}
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-32 bg-muted rounded animate-pulse mb-2" />
+              <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-muted rounded-full animate-pulse" />
+                      <div>
+                        <div className="h-4 w-32 bg-muted rounded animate-pulse mb-1" />
+                        <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="h-5 w-16 bg-muted rounded-full animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Weekly Trend Skeleton */}
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-32 bg-muted rounded animate-pulse mb-2" />
+              <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-2 bg-muted rounded animate-pulse" />
+                      <div className="h-4 w-8 bg-muted rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

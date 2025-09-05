@@ -29,8 +29,8 @@ export default function ReportsTab({ isActive = false }: ReportsTabProps) {
     }
   }, [reportPeriod, isActive, loadExecutiveReport]);
 
-  // Show skeleton when tab is active and loading without data
-  if (isActive && isLoadingReport && !executiveReport) {
+  // Show skeleton when loading (including when switching locations)
+  if (isLoadingReport) {
     return (
       <Card>
         <CardHeader>

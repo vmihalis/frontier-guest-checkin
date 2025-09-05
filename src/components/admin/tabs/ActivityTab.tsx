@@ -73,8 +73,8 @@ export default function ActivityTab({ isActive = false }: ActivityTabProps) {
     }
   };
 
-  // Show skeleton when tab is active and loading without data
-  if (isActive && isLoadingActivities && activities.length === 0) {
+  // Show skeleton when loading (including when switching locations)
+  if (isLoadingActivities) {
     return (
       <Card>
         <CardHeader>

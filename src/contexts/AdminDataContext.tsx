@@ -22,6 +22,10 @@ interface AdminDataContextType {
   searchResults: SearchResult[];
   selectedGuest: GuestJourney | null;
   
+  // Location state
+  selectedLocationId: string;
+  setSelectedLocationId: (locationId: string) => void;
+  
   // Loading states
   isLoadingStats: boolean;
   isLoadingActivities: boolean;
@@ -83,6 +87,9 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [selectedGuest, setSelectedGuest] = useState<GuestJourney | null>(null);
   
+  // Location state
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
+  
   // Loading states
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
@@ -104,13 +111,16 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   // Store query params for guests to check cache validity
   const guestsQueryRef = useRef({ query: '', blacklisted: false });
   const reportPeriodRef = useRef('weekly');
+  const locationRef = useRef('all');
   
   // Check if cache is still valid
-  const isCacheValid = useCallback((key: keyof typeof CACHE_DURATIONS) => {
+  const isCacheValid = useCallback((key: keyof typeof CACHE_DURATIONS, checkLocation = true) => {
     const lastFetchTime = lastFetch[key];
     if (!lastFetchTime) return false;
+    // Invalidate cache if location changed
+    if (checkLocation && locationRef.current !== selectedLocationId) return false;
     return Date.now() - lastFetchTime < CACHE_DURATIONS[key];
-  }, [lastFetch]);
+  }, [lastFetch, selectedLocationId]);
   
   // Load stats with caching
   const loadStats = useCallback(async (force = false) => {
@@ -125,14 +135,16 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    console.log('[AdminData] Loading fresh stats from API');
+    console.log('[AdminData] Loading fresh stats from API (location:', selectedLocationId, ')');
     try {
       setIsLoadingStats(true);
-      const response = await fetch('/api/admin/stats');
+      const locationParam = selectedLocationId && selectedLocationId !== 'all' ? `?location=${selectedLocationId}` : '';
+      const response = await fetch(`/api/admin/stats${locationParam}`);
       if (response.ok) {
         const data = await response.json();
         setStats(data);
         setLastFetch(prev => ({ ...prev, stats: Date.now() }));
+        locationRef.current = selectedLocationId;
       }
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -146,7 +158,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingStats(false);
     }
-  }, [stats, isLoadingStats, toast, isCacheValid]);
+  }, [stats, isLoadingStats, toast, isCacheValid, selectedLocationId]);
   
   // Load activities with caching
   const loadActivities = useCallback(async (force = false) => {
@@ -161,21 +173,23 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    console.log('[AdminData] Loading fresh activities from API');
+    console.log('[AdminData] Loading fresh activities from API (location:', selectedLocationId, ')');
     try {
       setIsLoadingActivities(true);
-      const response = await fetch('/api/admin/activity');
+      const locationParam = selectedLocationId && selectedLocationId !== 'all' ? `?location=${selectedLocationId}` : '';
+      const response = await fetch(`/api/admin/activity${locationParam}`);
       if (response.ok) {
         const data = await response.json();
         setActivities(data.activities || []);
         setLastFetch(prev => ({ ...prev, activities: Date.now() }));
+        locationRef.current = selectedLocationId;
       }
     } catch (error) {
       console.error('Error loading activities:', error);
     } finally {
       setIsLoadingActivities(false);
     }
-  }, [activities.length, isLoadingActivities, isCacheValid]);
+  }, [activities.length, isLoadingActivities, isCacheValid, selectedLocationId]);
   
   // Load guests with caching
   const loadGuests = useCallback(async (query = '', blacklisted = false, force = false) => {
@@ -199,18 +213,20 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       setIsLoadingGuests(true);
       guestsQueryRef.current = { query, blacklisted };
       
-      const response = await fetch(`/api/admin/guests?query=${query}&blacklisted=${blacklisted}`);
+      const locationParam = selectedLocationId && selectedLocationId !== 'all' ? `&location=${selectedLocationId}` : '';
+      const response = await fetch(`/api/admin/guests?query=${query}&blacklisted=${blacklisted}${locationParam}`);
       if (response.ok) {
         const data = await response.json();
         setGuests(data.guests || []);
         setLastFetch(prev => ({ ...prev, guests: Date.now() }));
+        locationRef.current = selectedLocationId;
       }
     } catch (error) {
       console.error('Error loading guests:', error);
     } finally {
       setIsLoadingGuests(false);
     }
-  }, [guests.length, isLoadingGuests, isCacheValid]);
+  }, [guests.length, isLoadingGuests, isCacheValid, selectedLocationId]);
   
   // Load policies with caching
   const loadPolicies = useCallback(async (force = false) => {
@@ -261,18 +277,20 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       setIsLoadingReport(true);
       reportPeriodRef.current = period;
       
-      const response = await fetch(`/api/admin/reports?period=${period}`);
+      const locationParam = selectedLocationId && selectedLocationId !== 'all' ? `&location=${selectedLocationId}` : '';
+      const response = await fetch(`/api/admin/reports?period=${period}${locationParam}`);
       if (response.ok) {
         const data = await response.json();
         setExecutiveReport(data);
         setLastFetch(prev => ({ ...prev, report: Date.now() }));
+        locationRef.current = selectedLocationId;
       }
     } catch (error) {
       console.error('Error loading report:', error);
     } finally {
       setIsLoadingReport(false);
     }
-  }, [executiveReport, isLoadingReport, isCacheValid]);
+  }, [executiveReport, isLoadingReport, isCacheValid, selectedLocationId]);
   
   // Search (no caching for search)
   const performSearch = useCallback(async (query: string) => {
@@ -283,7 +301,8 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     
     try {
       setIsSearching(true);
-      const response = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}&limit=20`);
+      const locationParam = selectedLocationId && selectedLocationId !== 'all' ? `&location=${selectedLocationId}` : '';
+      const response = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}&limit=20${locationParam}`);
       if (response.ok) {
         const data = await response.json();
         // Add a small delay in development to see loading state
@@ -297,7 +316,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [selectedLocationId]);
   
   // Load guest journey (no caching for individual journeys)
   const loadGuestJourney = useCallback(async (guestId: string) => {
@@ -454,6 +473,26 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     };
   }, [loadActivities, loadStats, activities.length, stats, lastFetch.activities, lastFetch.stats]);
   
+  // Invalidate caches and reload when location changes
+  useEffect(() => {
+    if (locationRef.current !== selectedLocationId) {
+      console.log('[AdminData] Location changed from', locationRef.current, 'to', selectedLocationId, '- invalidating caches');
+      // Clear cache timestamps to force reload
+      setLastFetch({
+        stats: null,
+        activities: null,
+        guests: null,
+        policies: null,
+        report: null,
+      });
+      // Trigger reload of currently visible data
+      if (stats) loadStats(true);
+      if (activities.length > 0) loadActivities(true);
+      if (guests.length > 0) loadGuests(guestsQueryRef.current.query, guestsQueryRef.current.blacklisted, true);
+      if (executiveReport) loadExecutiveReport(reportPeriodRef.current, true);
+    }
+  }, [selectedLocationId]);
+  
   const value: AdminDataContextType = {
     // Data
     stats,
@@ -463,6 +502,10 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
     executiveReport,
     searchResults,
     selectedGuest,
+    
+    // Location state
+    selectedLocationId,
+    setSelectedLocationId,
     
     // Loading states
     isLoadingStats,
