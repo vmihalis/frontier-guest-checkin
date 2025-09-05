@@ -36,13 +36,13 @@ export function PageCard({
     >
       <CardHeader className={cn(headerClassName)}>
         <CardTitle className={cn(
-          "flex items-center gap-2 text-2xl font-bold text-foreground"
+          "flex items-center gap-2 text-2xl font-bold text-foreground dark:text-foreground"
         )}>
           {Icon && <Icon className="h-6 w-6 text-primary" />}
           {title}
         </CardTitle>
         {description && (
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-muted-foreground dark:text-muted-foreground">
             {description}
           </CardDescription>
         )}
