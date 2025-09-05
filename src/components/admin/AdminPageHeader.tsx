@@ -71,9 +71,9 @@ export function AdminPageHeader({
           </div>
         )}
         
-        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 flex items-center gap-2">
-          <Shield className="h-4 w-4 text-green-600" />
-          <span className="text-sm font-medium text-green-800">Admin Access</span>
+        <div className="bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-lg px-4 py-2 flex items-center gap-2">
+          <Shield className="h-4 w-4 text-green-600 dark:text-green-500" />
+          <span className="text-sm font-medium text-green-700 dark:text-green-400">Admin Access</span>
         </div>
         
         <Button

@@ -51,7 +51,7 @@ export function StatCard({
           {trend && (
             <span className={cn(
               "ml-1 font-medium",
-              trend.positive ? "text-green-600" : "text-red-600"
+              trend.positive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
             )}>
               {trend.positive ? '+' : ''}{trend.value}
               {trend.label && ` ${trend.label}`}

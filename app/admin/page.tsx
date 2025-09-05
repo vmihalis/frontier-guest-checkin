@@ -111,12 +111,12 @@ function AdminPageContent() {
       render: (_, guest) => (
         <div className="flex gap-1">
           {guest.isBlacklisted && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-800 border border-red-200">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-700 border border-red-500/20 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30">
               Blacklisted
             </span>
           )}
           {guest.hasDiscount && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-800 border border-green-200">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-700 border border-green-500/20 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30">
               Discount
             </span>
           )}
@@ -261,10 +261,10 @@ function AdminPageContent() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'success': return 'text-green-600 bg-green-50';
-      case 'warning': return 'text-yellow-600 bg-yellow-50';
-      case 'error': return 'text-red-600 bg-red-50';
-      default: return 'text-blue-600 bg-blue-50';
+      case 'success': return 'text-green-600 bg-green-500/10 dark:text-green-400 dark:bg-green-500/20';
+      case 'warning': return 'text-yellow-600 bg-yellow-500/10 dark:text-yellow-400 dark:bg-yellow-500/20';
+      case 'error': return 'text-red-600 bg-red-500/10 dark:text-red-400 dark:bg-red-500/20';
+      default: return 'text-blue-600 bg-blue-500/10 dark:text-blue-400 dark:bg-blue-500/20';
     }
   };
 
