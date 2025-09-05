@@ -286,6 +286,10 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(`/api/admin/search?q=${encodeURIComponent(query)}&limit=20`);
       if (response.ok) {
         const data = await response.json();
+        // Add a small delay in development to see loading state
+        if (process.env.NODE_ENV === 'development') {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
         setSearchResults(data.results || []);
       }
     } catch (error) {

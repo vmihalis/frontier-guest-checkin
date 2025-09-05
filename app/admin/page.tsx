@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import './globals-responsive.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,6 +93,10 @@ function AdminPageContent() {
     clearSelectedGuest,
     refreshAll
   } = useAdminData();
+  
+  // Track if we're waiting for search (user has typed but debounce hasn't fired yet)
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Define columns for guest table
   const guestColumns: Column<Guest>[] = [
@@ -160,6 +164,27 @@ function AdminPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
+  
+  // Handle search input with typing detection
+  const handleSearchChange = useCallback((value: string) => {
+    // Clear any existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Show typing indicator immediately when user types
+    if (value && value !== globalSearchTerm) {
+      setIsTyping(true);
+      // Hide typing indicator after debounce completes
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+      }, 350); // Slightly longer than SearchInput's 300ms debounce
+    } else if (!value) {
+      setIsTyping(false);
+    }
+    
+    setGlobalSearchTerm(value);
+  }, [globalSearchTerm]);
   const [showBlacklisted, setShowBlacklisted] = useState(false);
   const [reportPeriod, setReportPeriod] = useState('weekly');
   const [quickFilter, setQuickFilter] = useState('all');
@@ -180,12 +205,9 @@ function AdminPageContent() {
 
   // Search and report period changes are now handled by individual tab components
 
-  // Global search with debounce
+  // Global search (debouncing handled by SearchInput component)
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      performSearch(globalSearchTerm);
-    }, 300);
-    return () => clearTimeout(debounceTimer);
+    performSearch(globalSearchTerm);
   }, [performSearch, globalSearchTerm]);
   
   // Update policy form when policies change
@@ -308,15 +330,35 @@ function AdminPageContent() {
             <SearchInput
               placeholder="Search guests, hosts, visits..."
               value={globalSearchTerm}
-              onChange={setGlobalSearchTerm}
+              onChange={handleSearchChange}
+              isLoading={isSearching}
               className="flex-1"
             />
           </div>
             
-          {searchResults.length > 0 && (
+          {/* Search Loading State - show when typing OR searching */}
+          {(isTyping || isSearching) && globalSearchTerm && (
+            <div className="mt-4 space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-3 border rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+                      <div className="h-3 w-48 bg-gray-200 rounded animate-pulse mb-1" />
+                      <div className="h-2 w-64 bg-gray-200 rounded animate-pulse" />
+                    </div>
+                    <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Search Results */}
+          {!isTyping && !isSearching && searchResults.length > 0 && (
             <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
               {searchResults.map((result) => (
-                <div key={`${result.type}-${result.id}`} className="p-3 border rounded-lg hover:bg-muted cursor-pointer"
+                <div key={`${result.type}-${result.id}`} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                      onClick={() => result.type === 'guest' && handleLoadGuestJourney(result.id)}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -330,6 +372,14 @@ function AdminPageContent() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* Empty State */}
+          {!isTyping && !isSearching && globalSearchTerm && searchResults.length === 0 && (
+            <div className="mt-4 p-8 text-center">
+              <p className="text-gray-600 mb-2">No results found for &ldquo;{globalSearchTerm}&rdquo;</p>
+              <p className="text-sm text-gray-500">Try different keywords or check the spelling</p>
             </div>
           )}
         </PageCard>

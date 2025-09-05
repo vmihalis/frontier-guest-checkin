@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SearchInputProps {
@@ -10,6 +10,7 @@ interface SearchInputProps {
   debounce?: number; // milliseconds to debounce input
   className?: string;
   disabled?: boolean;
+  isLoading?: boolean;
 }
 
 export function SearchInput({ 
@@ -18,7 +19,8 @@ export function SearchInput({
   onChange, 
   debounce = 300,
   className,
-  disabled = false
+  disabled = false,
+  isLoading = false
 }: SearchInputProps) {
   const [internalValue, setInternalValue] = useState(value);
 
@@ -40,7 +42,11 @@ export function SearchInput({
 
   return (
     <div className={cn("relative search-input-container", className)}>
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
+      {isLoading ? (
+        <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700 animate-spin" />
+      ) : (
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
+      )}
       <Input
         placeholder={placeholder}
         value={internalValue}
