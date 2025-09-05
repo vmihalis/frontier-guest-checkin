@@ -295,13 +295,13 @@ function AdminPageContent() {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
           <div className="mb-6">
             <Logo size="lg" className="mx-auto mb-4" />
           </div>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-800">Loading admin dashboard...</p>
+          <p className="text-lg text-foreground">Loading admin dashboard...</p>
         </div>
       </div>
     );
@@ -309,7 +309,7 @@ function AdminPageContent() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 admin-container">
+    <div className="min-h-screen bg-muted admin-container">
       <div className="container mx-auto px-4 py-8 space-y-8 main-content">
         {/* Header */}
         <AdminPageHeader 
@@ -343,11 +343,11 @@ function AdminPageContent() {
                 <div key={i} className="p-3 border rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2" />
-                      <div className="h-3 w-48 bg-gray-200 rounded animate-pulse mb-1" />
-                      <div className="h-2 w-64 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-4 w-32 bg-muted rounded animate-pulse mb-2" />
+                      <div className="h-3 w-48 bg-muted rounded animate-pulse mb-1" />
+                      <div className="h-2 w-64 bg-muted rounded animate-pulse" />
                     </div>
-                    <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
+                    <div className="h-6 w-16 bg-muted rounded-full animate-pulse" />
                   </div>
                 </div>
               ))}
@@ -358,15 +358,15 @@ function AdminPageContent() {
           {!isTyping && !isSearching && searchResults.length > 0 && (
             <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
               {searchResults.map((result) => (
-                <div key={`${result.type}-${result.id}`} className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                <div key={`${result.type}-${result.id}`} className="p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
                      onClick={() => result.type === 'guest' && handleLoadGuestJourney(result.id)}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{result.title}</p>
-                      <p className="text-sm text-gray-600">{result.subtitle}</p>
-                      <p className="text-xs text-gray-500">{result.description}</p>
+                      <p className="text-sm text-muted-foreground">{result.subtitle}</p>
+                      <p className="text-xs text-muted-foreground">{result.description}</p>
                     </div>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border">
                       {result.type}
                     </span>
                   </div>
@@ -378,8 +378,8 @@ function AdminPageContent() {
           {/* Empty State */}
           {!isTyping && !isSearching && globalSearchTerm && searchResults.length === 0 && (
             <div className="mt-4 p-8 text-center">
-              <p className="text-gray-600 mb-2">No results found for &ldquo;{globalSearchTerm}&rdquo;</p>
-              <p className="text-sm text-gray-500">Try different keywords or check the spelling</p>
+              <p className="text-muted-foreground mb-2">No results found for &ldquo;{globalSearchTerm}&rdquo;</p>
+              <p className="text-sm text-muted-foreground">Try different keywords or check the spelling</p>
             </div>
           )}
         </PageCard>

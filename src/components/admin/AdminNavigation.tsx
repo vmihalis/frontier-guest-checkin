@@ -26,7 +26,7 @@ export function AdminNavigation({ activeTab, onTabChange }: AdminNavigationProps
     <>
       {/* Mobile Navigation */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 bg-background border-b border-border">
           <Button
             variant="ghost"
             size="sm"
@@ -36,7 +36,7 @@ export function AdminNavigation({ activeTab, onTabChange }: AdminNavigationProps
             <Menu className="h-5 w-5" />
             <span className="ml-2">Menu</span>
           </Button>
-          <span className="font-medium text-gray-900">
+          <span className="font-medium text-foreground">
             {tabs.find(tab => tab.id === activeTab)?.label}
           </span>
         </div>
@@ -44,9 +44,9 @@ export function AdminNavigation({ activeTab, onTabChange }: AdminNavigationProps
         {/* Mobile Drawer */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 bg-black bg-opacity-50">
-            <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl">
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
+            <div className="fixed inset-y-0 left-0 w-64 bg-background shadow-xl">
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h2 className="text-lg font-semibold text-foreground">Navigation</h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -66,8 +66,8 @@ export function AdminNavigation({ activeTab, onTabChange }: AdminNavigationProps
                       }}
                       className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
                         activeTab === tab.id
-                          ? 'bg-blue-50 text-blue-700 font-medium'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       }`}
                     >
                       {tab.label}

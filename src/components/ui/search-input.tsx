@@ -43,9 +43,9 @@ export function SearchInput({
   return (
     <div className={cn("relative search-input-container", className)}>
       {isLoading ? (
-        <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700 animate-spin" />
+        <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
       ) : (
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       )}
       <Input
         placeholder={placeholder}

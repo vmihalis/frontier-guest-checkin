@@ -35,28 +35,28 @@ export function AdminPageHeader({
   onRefresh 
 }: AdminPageHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-b border-border">
       <div className="flex flex-col md:flex-row md:items-center md:gap-6">
         <div className="flex items-center gap-3 mb-2">
           <Logo size="sm" className="rounded-lg" />
           <div>
-            <h1 className="text-2xl md:text-4xl font-bold text-gray-800">Frontier Tower</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground">Frontier Tower</h1>
             {/* Show current section on mobile */}
-            <p className="text-sm md:hidden text-blue-600 font-medium capitalize">
+            <p className="text-sm md:hidden text-primary font-medium capitalize">
               {getActiveTabLabel(activeTab)}
             </p>
           </div>
         </div>
-        <p className="text-lg text-gray-800 hidden md:block">Tower Operations & Analytics</p>
+        <p className="text-lg text-foreground hidden md:block">Tower Operations & Analytics</p>
       </div>
       
       <div className="flex items-center gap-4">
         {/* Location Selector */}
         {locations && (
           <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-gray-600" />
+            <Globe className="h-4 w-4 text-muted-foreground" />
             <Select value={selectedLocationId} onValueChange={onLocationChange}>
-              <SelectTrigger className="w-48 bg-white location-selector">
+              <SelectTrigger className="w-48 bg-background location-selector">
                 <SelectValue placeholder="All Locations" />
               </SelectTrigger>
               <SelectContent>
