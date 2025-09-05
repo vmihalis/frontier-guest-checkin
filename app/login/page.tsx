@@ -93,14 +93,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-muted p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6 space-y-3">
           <div className="mx-auto mb-2 flex justify-center">
             <Logo size="md" priority className="rounded-xl" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">Frontier Tower</h1>
-          <p className="text-gray-600">Sign in to invite guests</p>
+          <h1 className="text-3xl font-bold text-foreground">Frontier Tower</h1>
+          <p className="text-muted-foreground">Sign in to invite guests</p>
         </div>
         
         <PageCard
@@ -110,7 +110,7 @@ export default function LoginPage() {
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -122,8 +122,8 @@ export default function LoginPage() {
 className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}
               />
               {emailError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p id="email-error" className="text-sm text-red-800" aria-live="polite">
+                <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-lg p-4">
+                  <p id="email-error" className="text-sm text-red-700 dark:text-red-400" aria-live="polite">
                     {emailError}
                   </p>
                 </div>
@@ -131,7 +131,7 @@ className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-200"
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -143,8 +143,8 @@ className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-200"
 className={passwordError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}
               />
               {passwordError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p id="password-error" className="text-sm text-red-800" aria-live="polite">
+                <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-lg p-4">
+                  <p id="password-error" className="text-sm text-red-700 dark:text-red-400" aria-live="polite">
                     {passwordError}
                   </p>
                 </div>
@@ -153,20 +153,20 @@ className={passwordError ? "border-red-500 focus:border-red-500 focus:ring-red-2
 
             <Button 
               type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-3 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
               disabled={!isFormValid}
             >
               Sign In
             </Button>
           </form>
 
-          <p className="text-xs text-gray-700 text-center">
+          <p className="text-xs text-muted-foreground text-center">
             By continuing you agree to the{" "}
-            <a href="#" className="underline text-blue-600 hover:text-blue-700">
+            <a href="#" className="underline text-primary hover:text-primary/80">
               Terms
             </a>{" "}
             &{" "}
-            <a href="#" className="underline text-blue-600 hover:text-blue-700">
+            <a href="#" className="underline text-primary hover:text-primary/80">
               Privacy
             </a>
             .
