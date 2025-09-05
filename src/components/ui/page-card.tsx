@@ -25,8 +25,10 @@ export function PageCard({
   return (
     <Card 
       className={cn(
-        // Standard Frontier Tower card styling
-        "bg-card border border-border rounded-lg shadow-lg",
+        // Standard Frontier Tower card styling with explicit colors for dark mode
+        "bg-card text-card-foreground border border-border rounded-lg shadow-lg",
+        // Ensure dark mode colors are applied correctly
+        "dark:bg-card dark:text-card-foreground dark:border-border",
         // Optional gradient for special cards (like invites page)
         gradient && "bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 border-primary/20",
         className

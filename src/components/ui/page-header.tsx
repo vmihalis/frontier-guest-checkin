@@ -27,11 +27,11 @@ export function PageHeader({
           <div className="flex items-center gap-3 mb-2">
             {showLogo && <Logo size="sm" className="rounded-lg" />}
             <div>
-              <h1 className="text-2xl md:text-4xl font-bold text-gray-800">
+              <h1 className="text-2xl md:text-4xl font-bold text-foreground">
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-lg text-gray-800 hidden md:block">
+                <p className="text-lg text-foreground hidden md:block">
                   {subtitle}
                 </p>
               )}

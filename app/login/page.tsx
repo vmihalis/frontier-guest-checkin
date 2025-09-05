@@ -106,7 +106,7 @@ export default function LoginPage() {
         <PageCard
           title="Sign In"
           description="Enter your credentials to access the host dashboard"
-          className="w-full shadow-lg"
+          className="w-full shadow-lg bg-card border-border"
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
