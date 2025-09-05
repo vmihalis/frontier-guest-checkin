@@ -1,0 +1,171 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { PageCard } from '@/components/ui/page-card';
+import { Calendar, Clock, UserCheck, RotateCcw } from 'lucide-react';
+import { InvitationGridSkeleton } from '@/components/skeletons';
+import { formatDateInLA, formatCountdown } from '@/lib/timezone';
+
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('auth-token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+interface Guest {
+  id: string;
+  name: string;
+  email: string;
+  termsAcceptedAt?: string;
+}
+
+interface Invitation {
+  id: string;
+  status: 'PENDING' | 'ACTIVATED' | 'CHECKED_IN' | 'EXPIRED';
+  inviteDate: string;
+  qrToken?: string;
+  qrIssuedAt?: string;
+  qrExpiresAt?: string;
+  guest: Guest;
+  createdAt: string;
+}
+
+interface InvitationsGridProps {
+  selectedDate: string;
+  refreshTrigger?: number;
+}
+
+export function InvitationsGrid({ selectedDate, refreshTrigger }: InvitationsGridProps) {
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadInvitations = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/invitations?date=${selectedDate}`, {
+          headers: getAuthHeaders()
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setInvitations(data.invitations || []);
+        }
+      } catch (error) {
+        console.error('Error loading invitations:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInvitations();
+  }, [selectedDate, refreshTrigger]);
+
+  // Systematic status components
+  const getPrimaryStatus = (invitation: Invitation) => {
+    const hasTerms = !!invitation.guest.termsAcceptedAt;
+    
+    if (invitation.status === 'CHECKED_IN') {
+      return {
+        badge: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 dark:border-green-500/30">
+            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+            Checked In
+          </span>
+        ),
+        action: null
+      };
+    }
+    
+    if (invitation.status === 'EXPIRED') {
+      return {
+        badge: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-500/20 dark:border-red-500/30">
+            <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+            Expired
+          </span>
+        ),
+        action: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30">
+            <RotateCcw className="h-3 w-3 mr-2" />
+            Generate New QR
+          </span>
+        )
+      };
+    }
+    
+    if (hasTerms) {
+      return {
+        badge: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30">
+            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+            Ready
+          </span>
+        ),
+        action: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 dark:border-green-500/30">
+            <UserCheck className="h-3 w-3 mr-2" />
+            On Your QR
+          </span>
+        )
+      };
+    }
+    
+    return {
+      badge: (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30">
+          <Clock className="h-3 w-3 mr-2" />
+          Awaiting Terms
+        </span>
+      ),
+      action: (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
+          <span>Email Sent</span>
+        </span>
+      )
+    };
+  };
+
+  return (
+    <PageCard
+      title="Today's Invitations"
+      description={formatDateInLA(new Date(selectedDate))}
+      icon={Calendar}
+    >
+      {isLoading ? (
+        <InvitationGridSkeleton count={6} />
+      ) : invitations.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="text-lg font-medium text-foreground mb-2">No invitations for this date</p>
+          <p className="text-muted-foreground">Create your first invitation above to get started.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {invitations.map((invitation) => (
+            <div key={invitation.id} className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02] p-3">
+              <div className="mb-2">
+                <h3 className="text-base font-semibold text-foreground mb-1 truncate">{invitation.guest.name}</h3>
+                <p className="text-xs text-muted-foreground mb-2 truncate">{invitation.guest.email}</p>
+                
+                <div className="space-y-2">
+                  {getPrimaryStatus(invitation).badge}
+                  {getPrimaryStatus(invitation).action && (
+                    <div>{getPrimaryStatus(invitation).action}</div>
+                  )}
+                </div>
+              </div>
+              
+              {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
+                <div className="text-xs text-muted-foreground border-t border-border pt-2 mt-2">
+                  Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </PageCard>
+  );
+}
