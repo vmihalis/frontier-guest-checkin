@@ -273,7 +273,8 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run as script if not in Jest environment
+if (typeof jest === 'undefined' && import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 

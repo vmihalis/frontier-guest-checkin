@@ -4,6 +4,13 @@
 
 import '@testing-library/jest-dom';
 
+// Polyfill import.meta for Jest compatibility
+if (typeof globalThis.importMeta === 'undefined') {
+  globalThis.importMeta = {
+    url: `file://${__filename}`,
+  };
+}
+
 // Set longer timeout for integration tests
 jest.setTimeout(30000);
 

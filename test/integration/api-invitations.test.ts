@@ -155,6 +155,7 @@ async function runTests() {
   process.exit(0);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run as script if not in Jest environment
+if (typeof jest === 'undefined' && import.meta.url === `file://${process.argv[1]}`) {
   runTests();
 }
