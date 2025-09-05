@@ -328,7 +328,7 @@ export default function AcceptTermsPage() {
                   </ul>
                 </div>
                 
-                <div className="bg-muted border-l-4 border-gray-500 p-4">
+                <div className="bg-muted border-l-4 border-muted-foreground p-4">
                   <h3 className="font-bold text-foreground mb-2 flex items-center">
                     <span className="mr-2">🔐</span> Data Collection & Privacy
                   </h3>

@@ -549,12 +549,12 @@ export default function CheckInPage() {
               </div>
             </div>
           ) : checkInState === 'success' ? (
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <div className="bg-card border border-border rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center mb-6">
                 <div className="text-green-500 text-6xl mb-4">
                   ✨
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
                   {checkInResult?.reEntry ? "Welcome Back!" : "You're All Set!"}
                 </h2>
                 {checkInResult?.guest && (
