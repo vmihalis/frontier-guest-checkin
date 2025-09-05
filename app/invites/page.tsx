@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { PageCard } from '@/components/ui/page-card';
 import { SearchInput } from '@/components/ui/search-input';
 import { DataTable, type Column } from '@/components/ui/data-table';
+import { InvitesSkeleton } from '@/components/invites/InvitesSkeleton';
 
 // Helper function to get auth headers
 function getAuthHeaders(): HeadersInit {
@@ -66,10 +67,18 @@ export default function InvitesPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [guestHistory, setGuestHistory] = useState<GuestHistoryItem[]>([]);
   const [activeGuestCount, setActiveGuestCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  
+  // Granular loading states
+  const [loadingStates, setLoadingStates] = useState({
+    user: true,
+    invitations: true,
+    guestHistory: true,
+    hostQR: true,
+    initialLoad: true
+  });
   const { toast } = useToast();
 
   // Guest history table columns
@@ -135,15 +144,17 @@ export default function InvitesPage() {
   // Load data
   const loadData = useCallback(async () => {
     try {
-      setIsLoading(true);
+      // Keep initialLoad true only on first load
       
       // Load current user if not already loaded
       if (!currentUser) {
+        setLoadingStates(prev => ({ ...prev, user: true }));
         // Try to load from localStorage first
         const storedUser = localStorage.getItem('current-user');
         if (storedUser) {
           try {
             setCurrentUser(JSON.parse(storedUser));
+            setLoadingStates(prev => ({ ...prev, user: false }));
           } catch {
             // If parsing fails, fetch from API
             const userRes = await fetch('/api/auth/me', {
@@ -153,6 +164,7 @@ export default function InvitesPage() {
               const userData = await userRes.json();
               setCurrentUser(userData.user);
             }
+            setLoadingStates(prev => ({ ...prev, user: false }));
           }
         } else {
           // No stored user, fetch from API
@@ -163,10 +175,12 @@ export default function InvitesPage() {
             const userData = await userRes.json();
             setCurrentUser(userData.user);
           }
+          setLoadingStates(prev => ({ ...prev, user: false }));
         }
       }
       
       // Load today's invitations
+      setLoadingStates(prev => ({ ...prev, invitations: true, hostQR: true }));
       const invitesRes = await fetch(`/api/invitations?date=${selectedDate}`, {
         headers: getAuthHeaders()
       });
@@ -174,6 +188,7 @@ export default function InvitesPage() {
       
       if (invitesRes.ok) {
         setInvitations(invitesData.invitations || []);
+        setLoadingStates(prev => ({ ...prev, invitations: false }));
         
         // Calculate active guest count
         const activeCount = invitesData.invitations?.filter((inv: Invitation) => 
@@ -199,9 +214,13 @@ export default function InvitesPage() {
         } else {
           setHostQRData(null);
         }
+        setLoadingStates(prev => ({ ...prev, hostQR: false }));
+      } else {
+        setLoadingStates(prev => ({ ...prev, invitations: false, hostQR: false }));
       }
       
       // Load guest history
+      setLoadingStates(prev => ({ ...prev, guestHistory: true }));
       const historyRes = await fetch(`/api/guests/history?query=${searchTerm}`, {
         headers: getAuthHeaders()
       });
@@ -210,11 +229,21 @@ export default function InvitesPage() {
       if (historyRes.ok) {
         setGuestHistory(historyData.guests || []);
       }
+      setLoadingStates(prev => ({ ...prev, guestHistory: false }));
     } catch (error) {
       console.error('Error loading data:', error);
       toast({ title: 'Error loading data', description: 'Please try again.' });
+      // Set all loading states to false on error
+      setLoadingStates({
+        user: false,
+        invitations: false,
+        guestHistory: false,
+        hostQR: false,
+        initialLoad: false
+      });
     } finally {
-      setIsLoading(false);
+      // Mark initial load as complete
+      setLoadingStates(prev => ({ ...prev, initialLoad: false }));
     }
   }, [selectedDate, searchTerm, currentUser, toast]);
 
@@ -361,15 +390,9 @@ export default function InvitesPage() {
   };
 
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
+  // Show skeleton during initial load
+  if (loadingStates.initialLoad) {
+    return <InvitesSkeleton showHostQR={true} />;
   }
 
   return (
