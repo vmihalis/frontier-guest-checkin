@@ -434,10 +434,10 @@ export default function CheckInPage() {
 
   if (hasPermission === null || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen bg-muted">
         <div className="text-center p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg">Checking camera permissions...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-foreground">Checking camera permissions...</p>
         </div>
       </div>
     );
@@ -445,16 +445,16 @@ export default function CheckInPage() {
 
   if (hasPermission === false) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+      <div className="flex items-center justify-center min-h-screen bg-muted">
+        <div className="text-center p-8 bg-card rounded-lg shadow-lg max-w-md">
           <div className="text-red-500 text-6xl mb-4">📷</div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Camera Access Required</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-foreground mb-4">Camera Access Required</h1>
+          <p className="text-muted-foreground mb-6">
             Please allow camera access to scan QR codes for guest check-in.
           </p>
           <button 
             onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium"
           >
             Retry Camera Access
           </button>
@@ -464,7 +464,7 @@ export default function CheckInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-muted">
       <div className="container mx-auto px-4 py-4 sm:py-8 max-w-2xl">
         <div className="text-center mb-8">
           {/* Logo */}
@@ -472,28 +472,28 @@ export default function CheckInPage() {
             <Logo size="lg" priority className="h-12 sm:h-16 md:h-20 lg:h-24" />
           </div>
           
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">Guest Check-In</h1>
-          <p className="text-sm sm:text-base text-gray-600">Scan QR code to check in guests</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2">Guest Check-In</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Scan QR code to check in guests</p>
         </div>
 
         <div className="w-full max-w-lg mx-auto">
           {checkInState === 'scanning' ? (
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <div className="bg-card border border-border rounded-lg shadow-lg p-4 sm:p-6">
               <div className="mb-4">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Scan QR Code</h2>
-                <p className="text-sm text-gray-600 mb-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Scan QR Code</h2>
+                <p className="text-sm text-muted-foreground mb-4">
                   Position the QR code within the camera view
                 </p>
                 
                 {cameras.length > 1 && (
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Select Camera:
                     </label>
                     <select 
                       value={selectedCamera || ''}
                       onChange={(e) => handleCameraChange(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full p-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
                     >
                       {cameras.map((camera) => (
                         <option key={camera.deviceId} value={camera.deviceId}>
@@ -526,7 +526,7 @@ export default function CheckInPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsScanning(false)}
-                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+                  className="flex-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground px-4 py-2 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -539,11 +539,11 @@ export default function CheckInPage() {
               onCancel={resetScanner}
             />
           ) : checkInState === 'processing' ? (
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <div className="bg-card border border-border rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Processing Check-In</h2>
-                <p className="text-sm text-gray-600">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Processing Check-In</h2>
+                <p className="text-sm text-muted-foreground">
                   {selectedGuest ? `Checking in ${selectedGuest.n}...` : 'Processing your check-in...'}
                 </p>
               </div>
@@ -558,7 +558,7 @@ export default function CheckInPage() {
                   {checkInResult?.reEntry ? "Welcome Back!" : "You're All Set!"}
                 </h2>
                 {checkInResult?.guest && (
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     {checkInResult.reEntry ? `Good to see you again, ${checkInResult.guest.name}!` : `Enjoy your visit, ${checkInResult.guest.name}!`}
                   </p>
                 )}
@@ -571,8 +571,8 @@ export default function CheckInPage() {
 
               {checkInResult?.message && (
                 <div className="mb-6">
-                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-center">
-                    <p className="text-sm text-green-800 leading-relaxed">{checkInResult.message}</p>
+                  <div className="bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 p-4 rounded-lg text-center">
+                    <p className="text-sm text-green-700 dark:text-green-400 leading-relaxed">{checkInResult.message}</p>
                   </div>
                 </div>
               )}
@@ -580,23 +580,23 @@ export default function CheckInPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={resetScanner}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg"
                 >
                   Check In Another Guest
                 </button>
               </div>
             </div>
           ) : checkInState === 'error' ? (
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <div className="bg-card border border-border rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center mb-6">
                 <div className="text-red-500 text-6xl mb-4">{getErrorIcon(errorMessage)}</div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">{getErrorTitle(errorMessage)}</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">{getErrorTitle(errorMessage)}</h2>
               </div>
 
               {errorMessage && (
                 <div className="mb-6">
-                  <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-                    <p className="text-sm text-red-800">{errorMessage}</p>
+                  <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 p-4 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-400">{errorMessage}</p>
                   </div>
                 </div>
               )}
@@ -604,24 +604,24 @@ export default function CheckInPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={resetScanner}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg"
                 >
                   Try Again
                 </button>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <div className="bg-card border border-border rounded-lg shadow-lg p-4 sm:p-6">
               <div className="text-center mb-6">
                 <div className="text-green-500 text-6xl mb-4">✅</div>
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">QR Code Scanned!</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">QR Code Scanned!</h2>
               </div>
 
               {scannedData && (
                 <div className="mb-6">
-                  <h3 className="text-base sm:text-lg font-medium text-gray-800 mb-2">Scanned Data:</h3>
-                  <div className="bg-gray-100 p-4 rounded-lg">
-                    <code className="text-sm text-gray-700 break-all">
+                  <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">Scanned Data:</h3>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <code className="text-sm text-muted-foreground break-all">
                       {scannedData}
                     </code>
                   </div>
@@ -631,7 +631,7 @@ export default function CheckInPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={resetScanner}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg"
                 >
                   Scan Another
                 </button>
@@ -641,10 +641,10 @@ export default function CheckInPage() {
         </div>
 
         <div className="text-center mt-6 sm:mt-8">
-          <p className="text-xs sm:text-sm text-gray-700 mb-2">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-2">
             Compatible with QR codes, barcodes, and all major code formats
           </p>
-          <p className="text-xs text-gray-700">
+          <p className="text-xs text-muted-foreground">
             Optimized for iPad Safari compatibility
           </p>
         </div>

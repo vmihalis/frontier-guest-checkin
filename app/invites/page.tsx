@@ -102,8 +102,8 @@ export default function InvitesPage() {
       render: (value) => (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
           value
-            ? 'bg-green-50 text-green-800 border border-green-200'
-            : 'bg-gray-100 text-gray-800 border border-gray-200'
+            ? 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 dark:border-green-500/30'
+            : 'bg-muted text-muted-foreground border border-border'
         }`}>
           {value ? 'Yes' : 'No'}
         </span>
@@ -302,7 +302,7 @@ export default function InvitesPage() {
     if (invitation.status === 'CHECKED_IN') {
       return {
         badge: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 dark:border-green-500/30">
             <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
             Checked In
           </span>
@@ -314,13 +314,13 @@ export default function InvitesPage() {
     if (invitation.status === 'EXPIRED') {
       return {
         badge: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-500/20 dark:border-red-500/30">
             <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
             Expired
           </span>
         ),
         action: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30">
             <RotateCcw className="h-3 w-3 mr-2" />
             Generate New QR
           </span>
@@ -331,13 +331,13 @@ export default function InvitesPage() {
     if (hasTerms) {
       return {
         badge: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30">
             <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
             Ready
           </span>
         ),
         action: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 dark:border-green-500/30">
             <UserCheck className="h-3 w-3 mr-2" />
             On Your QR
           </span>
@@ -347,13 +347,13 @@ export default function InvitesPage() {
     
     return {
       badge: (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30">
           <Clock className="h-3 w-3 mr-2" />
           Awaiting Terms
         </span>
       ),
       action: (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
           <span>Email Sent</span>
         </span>
       )
@@ -373,7 +373,7 @@ export default function InvitesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header */}
         <PageHeader
@@ -381,11 +381,11 @@ export default function InvitesPage() {
           subtitle={`Welcome, ${currentUser?.name || 'Host'}`}
           actions={
             <>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center gap-2">
-                <Users className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-800">Active Guests: {activeGuestCount}/3</span>
+              <div className="bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 dark:border-blue-500/30 rounded-lg px-4 py-2 flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Active Guests: {activeGuestCount}/3</span>
               </div>
-              <p className="text-xs text-gray-700">
+              <p className="text-xs text-muted-foreground">
                 Times shown in {TIMEZONE_DISPLAY}
               </p>
             </>
@@ -401,16 +401,16 @@ export default function InvitesPage() {
             gradient={true}
           >
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-foreground">
                 <p className="mb-2">This QR code contains all guests who have accepted the terms.</p>
-                <p className="text-xs text-gray-600">Show this at the kiosk to check in your guests.</p>
+                <p className="text-xs text-muted-foreground">Show this at the kiosk to check in your guests.</p>
               </div>
               <Button
                 onClick={() => setQrModalData({ 
                   isOpen: true, 
                   hostQR: hostQRData
                 })}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <QrCode className="h-4 w-4 mr-2" />
                 Show QR Code
@@ -428,7 +428,7 @@ export default function InvitesPage() {
             <form onSubmit={handleCreateInvitation} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name *</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-foreground">Full Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -438,7 +438,7 @@ export default function InvitesPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email *</Label>
+                  <Label htmlFor="email" className="text-sm font-medium text-foreground">Email *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -449,7 +449,7 @@ export default function InvitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="country" className="text-sm font-medium text-gray-700">Country *</Label>
+                  <Label htmlFor="country" className="text-sm font-medium text-foreground">Country *</Label>
                   <Input
                     id="country"
                     value={formData.country}
@@ -459,7 +459,7 @@ export default function InvitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Contact Method *</Label>
+                  <Label className="text-sm font-medium text-foreground">Contact Method *</Label>
                   <div className="flex gap-2">
                     <Select 
                       value={formData.contactMethod}
@@ -467,7 +467,7 @@ export default function InvitesPage() {
                         setFormData({ ...formData, contactMethod: value })
                       }
                     >
-                      <SelectTrigger className="w-32 border border-gray-300 rounded-lg">
+                      <SelectTrigger className="w-32 border border-border rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -485,7 +485,7 @@ export default function InvitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="inviteDate" className="text-sm font-medium text-gray-700">Invite Date</Label>
+                  <Label htmlFor="inviteDate" className="text-sm font-medium text-foreground">Invite Date</Label>
                   <Input
                     id="inviteDate"
                     type="date"
@@ -496,15 +496,15 @@ export default function InvitesPage() {
               </div>
 
               <div className="pt-4 border-t">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
+                <div className="bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 dark:border-blue-500/30 rounded-lg p-4">
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
                     <strong>📧 Email Workflow:</strong> After creating the invitation, your guest will receive 
                     an email to accept the Terms & Conditions and Visitor Agreement before you can generate their QR code.
                   </p>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors">
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-3 rounded-lg font-medium text-sm transition-colors">
                 Create Invitation
               </Button>
             </form>
@@ -518,20 +518,20 @@ export default function InvitesPage() {
         >
             {invitations.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="h-8 w-8 text-gray-500" />
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="text-lg font-medium text-gray-800 mb-2">No invitations for this date</p>
-                <p className="text-gray-600">Create your first invitation above to get started.</p>
+                <p className="text-lg font-medium text-foreground mb-2">No invitations for this date</p>
+                <p className="text-muted-foreground">Create your first invitation above to get started.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {invitations.map((invitation) => (
-                  <div key={invitation.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02] p-3">
+                  <div key={invitation.id} className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02] p-3">
                     {/* Compact Guest Header */}
                     <div className="mb-2">
-                      <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">{invitation.guest.name}</h3>
-                      <p className="text-xs text-gray-600 mb-2 truncate">{invitation.guest.email}</p>
+                      <h3 className="text-base font-semibold text-foreground mb-1 truncate">{invitation.guest.name}</h3>
+                      <p className="text-xs text-muted-foreground mb-2 truncate">{invitation.guest.email}</p>
                       
                       {/* Status & Action in Stack */}
                       <div className="space-y-2">
@@ -544,7 +544,7 @@ export default function InvitesPage() {
                     
                     {/* Compact Expiry Info */}
                     {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
-                      <div className="text-xs text-gray-500 border-t pt-2 mt-2">
+                      <div className="text-xs text-muted-foreground border-t border-border pt-2 mt-2">
                         Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
                       </div>
                     )}
@@ -578,12 +578,12 @@ export default function InvitesPage() {
           open={qrModalData.isOpen} 
           onOpenChange={(open) => setQrModalData({ isOpen: open })}
         >
-          <DialogContent className="sm:max-w-md bg-white border-gray-300">
+          <DialogContent className="sm:max-w-md bg-card border border-border">
             <DialogHeader>
-              <DialogTitle className="text-gray-800">
+              <DialogTitle className="text-foreground">
                 {qrModalData.hostQR ? 'Your Check-in QR Code' : `QR Code - ${qrModalData.invitation?.guest.name}`}
               </DialogTitle>
-              <DialogDescription className="text-gray-700">
+              <DialogDescription className="text-muted-foreground">
                 {qrModalData.hostQR 
                   ? 'Show this QR code at the kiosk to check in your guests' 
                   : 'Show this QR code to the guest for check-in'}
@@ -592,7 +592,7 @@ export default function InvitesPage() {
             
             {(qrModalData.invitation || qrModalData.hostQR) && (
               <div className="space-y-4">
-                <div className="p-8 bg-white border border-gray-200 rounded-lg">
+                <div className="p-8 bg-card border border-border rounded-lg">
                   <div className="text-center flex flex-col items-center justify-center">
                     {(qrModalData.hostQR || qrModalData.invitation?.qrToken) ? (
                       <QRCodeComponent 
@@ -610,12 +610,12 @@ export default function InvitesPage() {
                     ) : (
                       <div className="text-center">
                         <div className="text-6xl mb-4">❌</div>
-                        <p className="text-sm text-gray-800">No QR data available</p>
+                        <p className="text-sm text-foreground">No QR data available</p>
                       </div>
                     )}
                     {!qrModalData.hostQR && (
-                      <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                        <p className="text-xs font-mono text-gray-700 break-all leading-relaxed">
+                      <div className="mt-4 p-3 bg-muted border border-border rounded-lg">
+                        <p className="text-xs font-mono text-muted-foreground break-all leading-relaxed">
                           {qrModalData.invitation?.qrToken || 'No token available'}
                         </p>
                       </div>
@@ -625,19 +625,19 @@ export default function InvitesPage() {
                 
                 {!qrModalData.hostQR && qrModalData.countdown && (
                   qrModalData.countdown === 'EXPIRED' ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 dark:border-red-500/30 rounded-lg p-4">
                       <div className="text-center">
-                        <p className="text-sm text-red-800 mb-1">Time remaining:</p>
-                        <p className="text-2xl font-mono font-semibold text-red-600">
+                        <p className="text-sm text-red-700 dark:text-red-400 mb-1">Time remaining:</p>
+                        <p className="text-2xl font-mono font-semibold text-red-600 dark:text-red-400">
                           EXPIRED
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 dark:border-green-500/30 rounded-lg p-4">
                       <div className="text-center">
-                        <p className="text-sm text-green-800 mb-1">Time remaining:</p>
-                        <p className="text-2xl font-mono font-semibold text-green-800">
+                        <p className="text-sm text-green-700 dark:text-green-400 mb-1">Time remaining:</p>
+                        <p className="text-2xl font-mono font-semibold text-green-700 dark:text-green-400">
                           {qrModalData.countdown || '00:00'}
                         </p>
                       </div>
