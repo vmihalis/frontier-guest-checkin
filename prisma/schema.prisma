@@ -89,6 +89,7 @@ model Visit {
   location     Location    @relation(fields: [locationId], references: [id])
   invitation   Invitation? @relation(fields: [invitationId], references: [id])
   overrideUser User?       @relation("OverrideVisits", fields: [overrideBy], references: [id])
+  acceptances  Acceptance[] // Visit-scoped acceptances
 
   // Indexes
   @@index([guestId, checkedInAt])
@@ -122,10 +123,11 @@ model Invitation {
   updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  guest    Guest    @relation(fields: [guestId], references: [id])
-  host     User     @relation("HostInvitations", fields: [hostId], references: [id])
-  location Location @relation(fields: [locationId], references: [id])
-  visits   Visit[]
+  guest       Guest        @relation(fields: [guestId], references: [id])
+  host        User         @relation("HostInvitations", fields: [hostId], references: [id])
+  location    Location     @relation(fields: [locationId], references: [id])
+  visits      Visit[]
+  acceptances Acceptance[] // Invitation-linked acceptances
 
   // Indexes
   @@index([hostId, inviteDate])
@@ -138,15 +140,24 @@ model Invitation {
 model Acceptance {
   id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   guestId               String   @map("guest_id") @db.Uuid
+  visitId               String?  @map("visit_id") @db.Uuid // Optional for transition period
+  invitationId          String?  @map("invitation_id") @db.Uuid // Link to invitation
   termsVersion          String   @map("terms_version")
   visitorAgreementVersion String @map("visitor_agreement_version")
   acceptedAt            DateTime @default(now()) @map("accepted_at") @db.Timestamptz
+  expiresAt             DateTime? @map("expires_at") @db.Timestamptz // When acceptance expires
 
   // Relations
-  guest Guest @relation(fields: [guestId], references: [id])
+  guest      Guest       @relation(fields: [guestId], references: [id])
+  visit      Visit?      @relation(fields: [visitId], references: [id])
+  invitation Invitation? @relation(fields: [invitationId], references: [id])
 
   // Indexes
   @@index([guestId])
+  @@index([visitId])
+  @@index([invitationId])
+  @@index([expiresAt])
+  @@index([guestId, visitId, expiresAt]) // Compound index for visit-scoped lookups
   @@map("acceptances")
 }
 

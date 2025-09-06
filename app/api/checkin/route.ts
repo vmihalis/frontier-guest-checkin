@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/auth';
-import { shouldTriggerDiscount, checkExistingActiveVisit, processReturningGuestCheckIn, canUserOverride } from '@/lib/validations';
+import { shouldTriggerDiscount, checkExistingActiveVisit, processReturningGuestCheckIn, canUserOverride, createVisitScopedAcceptance } from '@/lib/validations';
 import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
 import { sendDiscountEmail } from '@/lib/email';
 import { validateQRToken } from '@/lib/qr-token';
@@ -419,8 +419,8 @@ async function processGuestCheckIn({
   // Create visit record and update invitation status atomically
   const expiresAt = calculateVisitExpiration(now);
   
-  // Use transaction to ensure visit creation and invitation update are atomic
-  const { visit } = await prisma.$transaction(async (tx) => {
+  // Use transaction to ensure visit creation, acceptance, and invitation update are atomic
+  const { visit, acceptanceCreated } = await prisma.$transaction(async (tx) => {
     // Create the visit
     const visit = await tx.visit.create({
       data: {
@@ -502,7 +502,49 @@ async function processGuestCheckIn({
       console.log(`⚠️  No matching invitation found for guest ${guest.e} - treating as walk-in`);
     }
 
-    return { visit, updatedInvitation };
+    // Create visit-scoped acceptance (auto-renew for returning guests)
+    let acceptanceCreated = false;
+    try {
+      // Check if we need to create a visit-scoped acceptance
+      const hasValidAcceptance = await tx.acceptance.findFirst({
+        where: {
+          guestId: guestRecord.id,
+          OR: [
+            { visitId: visit.id }, // Already linked to this visit
+            { 
+              invitationId: invitation?.id || undefined,
+              expiresAt: { gt: now }
+            }, // Valid invitation-linked acceptance
+            {
+              visitId: null,
+              invitationId: null,
+              acceptedAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } // Recent general acceptance
+            }
+          ]
+        }
+      });
+
+      if (!hasValidAcceptance) {
+        // Create new visit-scoped acceptance
+        await tx.acceptance.create({
+          data: {
+            guestId: guestRecord.id,
+            visitId: visit.id,
+            invitationId: invitation?.id || undefined,
+            expiresAt, // Same expiration as visit
+            termsVersion: "1.0",
+            visitorAgreementVersion: "1.0"
+          }
+        });
+        acceptanceCreated = true;
+        console.log(`✅ Created visit-scoped acceptance for guest ${guest.e}, expires at ${expiresAt}`);
+      }
+    } catch (acceptanceError) {
+      console.error('Error creating visit-scoped acceptance:', acceptanceError);
+      // Don't fail the check-in if acceptance creation fails
+    }
+
+    return { visit, updatedInvitation, acceptanceCreated };
   });
 
   // Check for discount eligibility

@@ -61,30 +61,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if guest has already accepted terms (allow re-acceptance for demo purposes)
+    // Check if guest has already accepted terms for this invitation
     const existingAcceptance = await prisma.acceptance.findFirst({
-      where: { guestId: invitation.guestId },
+      where: { 
+        guestId: invitation.guestId,
+        invitationId: invitationId 
+      },
       orderBy: { acceptedAt: 'desc' },
     });
 
     let acceptance;
+    const now = new Date();
+    // Set acceptance expiration to 24 hours from now (pre-visit acceptance)
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    
     if (existingAcceptance) {
-      // Update existing acceptance with new timestamp
+      // Update existing acceptance with new timestamp and expiration
       acceptance = await prisma.acceptance.update({
         where: { id: existingAcceptance.id },
         data: {
           termsVersion,
           visitorAgreementVersion,
-          acceptedAt: new Date(),
+          acceptedAt: now,
+          expiresAt,
         },
       });
     } else {
-      // Create new acceptance record
+      // Create new invitation-scoped acceptance record
       acceptance = await prisma.acceptance.create({
         data: {
           guestId: invitation.guestId,
+          invitationId: invitationId,
           termsVersion,
           visitorAgreementVersion,
+          expiresAt, // Will be extended when visit is created
         },
       });
     }

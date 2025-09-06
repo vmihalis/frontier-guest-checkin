@@ -222,8 +222,58 @@ export async function validateGuestBlacklist(guestEmail: string): Promise<Valida
 }
 
 /**
- * Check if guest has accepted terms and visitor agreement
- * For returning guests, acceptance is valid if within the last 365 days
+ * Check if guest has valid acceptance for a specific visit context
+ * Visit-scoped acceptances expire with the visit
+ */
+export async function validateVisitScopedAcceptance(
+  guestId: string,
+  invitationId?: string | null,
+  locationId?: string
+): Promise<ValidationResult> {
+  const now = nowInLA();
+  
+  // First check for visit-scoped acceptance (new model)
+  const visitAcceptance = await prisma.acceptance.findFirst({
+    where: {
+      guestId,
+      invitationId: invitationId || undefined,
+      OR: [
+        { expiresAt: null }, // No expiration set
+        { expiresAt: { gt: now } } // Not expired
+      ]
+    },
+    orderBy: { acceptedAt: 'desc' },
+  });
+
+  if (visitAcceptance) {
+    return { isValid: true };
+  }
+
+  // Fallback: Check for recent general acceptance (legacy support)
+  const generalAcceptance = await prisma.acceptance.findFirst({
+    where: {
+      guestId,
+      visitId: null, // No visit association (legacy acceptance)
+      acceptedAt: {
+        gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) // Within last 24 hours for visit context
+      }
+    },
+    orderBy: { acceptedAt: 'desc' },
+  });
+
+  if (generalAcceptance) {
+    return { isValid: true };
+  }
+
+  return {
+    isValid: false,
+    error: "Guest needs to accept visitor terms for this visit. Email will be sent.",
+  };
+}
+
+/**
+ * Legacy: Check if guest has accepted terms and visitor agreement
+ * For backward compatibility during transition
  */
 export async function validateGuestAcceptance(guestId: string): Promise<ValidationResult> {
   const acceptance = await prisma.acceptance.findFirst({
@@ -238,11 +288,11 @@ export async function validateGuestAcceptance(guestId: string): Promise<Validati
     };
   }
 
-  // Check if acceptance is within last 365 days (annual renewal)
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  // For visit-scoped model, check shorter validity (24 hours instead of 365 days)
+  const validityPeriod = acceptance.visitId ? 24 * 60 * 60 * 1000 : 365 * 24 * 60 * 60 * 1000;
+  const expiryDate = new Date(acceptance.acceptedAt.getTime() + validityPeriod);
   
-  if (acceptance.acceptedAt <= oneYearAgo) {
+  if (nowInLA() > expiryDate) {
     return {
       isValid: false,
       error: "Guest's visitor agreement has expired. New terms acceptance required.",
@@ -373,10 +423,14 @@ export async function validateActivateQR(
   guestId: string,
   guestEmail: string
 ): Promise<ValidationResult> {
-  // Check if guest has accepted terms
-  const acceptanceResult = await validateGuestAcceptance(guestId);
+  // Check if guest has accepted terms (visit-scoped or general)
+  const acceptanceResult = await validateVisitScopedAcceptance(guestId, null, locationId);
   if (!acceptanceResult.isValid) {
-    return acceptanceResult;
+    // Try legacy validation as fallback
+    const legacyResult = await validateGuestAcceptance(guestId);
+    if (!legacyResult.isValid) {
+      return acceptanceResult; // Return the visit-scoped error message
+    }
   }
 
   // Check guest rolling limit
@@ -438,8 +492,8 @@ export async function validateAdmitGuestWithRenewal(
     return rollingLimitResult;
   }
 
-  // Check if guest has recent accepted terms
-  const acceptanceResult = await validateGuestAcceptance(guestId);
+  // Check if guest has recent accepted terms (visit-scoped)
+  const acceptanceResult = await validateVisitScopedAcceptance(guestId, null, locationId);
   if (!acceptanceResult.isValid) {
     // For returning guests, check if they had previous acceptance (expired)
     const hasAnyAcceptance = await prisma.acceptance.findFirst({
@@ -548,17 +602,47 @@ export async function shouldTriggerDiscount(guestId: string): Promise<boolean> {
 }
 
 /**
- * Auto-renew terms acceptance for returning guests
- * Creates a new acceptance record with current timestamp and versions
+ * Create visit-scoped acceptance for a guest
+ * Links acceptance to specific visit and sets expiration
  */
-export async function renewGuestAcceptance(
+export async function createVisitScopedAcceptance(
   guestId: string,
+  visitId: string,
+  invitationId?: string | null,
+  expiresAt?: Date | null,
   termsVersion: string = "1.0",
   visitorAgreementVersion: string = "1.0"
 ): Promise<void> {
   await prisma.acceptance.create({
     data: {
       guestId,
+      visitId,
+      invitationId: invitationId || undefined,
+      expiresAt: expiresAt || undefined,
+      termsVersion,
+      visitorAgreementVersion,
+    },
+  });
+}
+
+/**
+ * Auto-renew terms acceptance for returning guests
+ * Creates a new acceptance record with current timestamp and versions
+ */
+export async function renewGuestAcceptance(
+  guestId: string,
+  termsVersion: string = "1.0",
+  visitorAgreementVersion: string = "1.0",
+  invitationId?: string | null
+): Promise<void> {
+  // For visit-scoped model, set expiration to 24 hours
+  const expiresAt = new Date(nowInLA().getTime() + 24 * 60 * 60 * 1000);
+  
+  await prisma.acceptance.create({
+    data: {
+      guestId,
+      invitationId: invitationId || undefined,
+      expiresAt,
       termsVersion,
       visitorAgreementVersion,
     },
