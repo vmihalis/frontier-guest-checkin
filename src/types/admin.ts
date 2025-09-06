@@ -83,7 +83,17 @@ export interface GuestJourney {
     phone?: string;
     createdAt: string;
     blacklistedAt?: string;
-    termsAcceptedAt?: string;
+    termsAcceptedAt?: string; // Legacy field
+    acceptanceStatus?: {
+      hasValidAcceptance: boolean;
+      status: 'valid' | 'expired' | 'none';
+      type?: 'visit-scoped' | 'invitation-scoped' | 'general';
+      expiresAt?: Date | string | null;
+      acceptedAt?: Date | string;
+      termsVersion?: string;
+      daysUntilExpiry?: number;
+      isExpired?: boolean;
+    };
   };
   timeline: Activity[];
   summary: {

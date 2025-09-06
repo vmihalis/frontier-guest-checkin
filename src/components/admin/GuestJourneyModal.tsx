@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAdminData } from '@/contexts/AdminDataContext';
+import { getAcceptanceStatusDescription, getAcceptanceStatusColor } from '@/lib/acceptance-helpers';
 import { 
   UserCheck, 
   Activity, 
@@ -204,15 +205,46 @@ export default function GuestJourneyModal({ isOpen, guestId, onClose }: GuestJou
 
                 {/* Status Indicators */}
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
-                  {selectedGuest.guest.termsAcceptedAt ? (
-                    <Badge variant="outline" className="text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/30">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Terms Accepted
-                    </Badge>
+                  {/* Dynamic Acceptance Status Badge */}
+                  {selectedGuest.guest.acceptanceStatus ? (
+                    (() => {
+                      const status = selectedGuest.guest.acceptanceStatus;
+                      const colors = getAcceptanceStatusColor(status);
+                      const description = getAcceptanceStatusDescription(status);
+                      
+                      return (
+                        <Badge 
+                          variant="outline" 
+                          className={`${colors.text} ${colors.bg} ${colors.border}`}
+                          title={description}
+                        >
+                          {status.status === 'valid' ? (
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                          ) : status.status === 'expired' ? (
+                            <Activity className="h-3 w-3 mr-1" />
+                          ) : null}
+                          {status.status === 'valid' && status.type === 'visit-scoped' && status.daysUntilExpiry !== undefined && status.daysUntilExpiry <= 1
+                            ? 'Terms Expiring Soon'
+                            : status.status === 'valid' 
+                            ? 'Terms Accepted'
+                            : status.status === 'expired'
+                            ? 'Terms Expired'
+                            : 'No Terms'}
+                        </Badge>
+                      );
+                    })()
                   ) : (
-                    <Badge variant="outline" className="text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/30">
-                      Terms Pending
-                    </Badge>
+                    // Fallback to legacy field
+                    selectedGuest.guest.termsAcceptedAt ? (
+                      <Badge variant="outline" className="text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/20 border-green-200 dark:border-green-500/30">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Terms Accepted
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/20 border-yellow-200 dark:border-yellow-500/30">
+                        Terms Pending
+                      </Badge>
+                    )
                   )}
                   
                   {selectedGuest.summary.isBlacklisted && (
@@ -339,6 +371,21 @@ export default function GuestJourneyModal({ isOpen, guestId, onClose }: GuestJou
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+                        
+                        {/* Acceptance Expiration Info */}
+                        {event.type === 'terms_acceptance' && (event.data as any)?.expiresAt && (
+                          <div className="mt-1">
+                            <span className={`text-xs ${
+                              (event.data as any).isExpired 
+                                ? 'text-red-600 dark:text-red-400' 
+                                : 'text-muted-foreground'
+                            }`}>
+                              {(event.data as any).isExpired 
+                                ? '⚠️ This acceptance has expired'
+                                : `Valid until ${new Date((event.data as any).expiresAt).toLocaleDateString()}`}
+                            </span>
+                          </div>
+                        )}
                         
                         {/* Additional Host Context */}
                         {(event.data as any)?.invitationHost && (event.data as any)?.isHostMismatch && (

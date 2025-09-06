@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getGuestAcceptanceStatus } from '@/lib/acceptance-helpers';
 
 export async function GET(
   request: NextRequest,
@@ -69,18 +70,33 @@ export async function GET(
       }
     });
 
-    // Terms acceptance events
+    // Terms acceptance events with expiration info
     guest.acceptances.forEach(acceptance => {
+      const type = acceptance.visitId ? 'Visit-scoped' : 
+                   acceptance.invitationId ? 'Invitation-scoped' : 'General';
+      
+      let description = `${type} acceptance of terms v${acceptance.termsVersion}`;
+      if (acceptance.expiresAt) {
+        const isExpired = new Date(acceptance.expiresAt) < new Date();
+        description += isExpired 
+          ? ` • Expired ${new Date(acceptance.expiresAt).toLocaleDateString()}`
+          : ` • Expires ${new Date(acceptance.expiresAt).toLocaleDateString()}`;
+      }
+      
       timeline.push({
         type: 'terms_acceptance',
         timestamp: acceptance.acceptedAt,
         title: 'Terms Accepted',
-        description: `Accepted terms v${acceptance.termsVersion} and visitor agreement v${acceptance.visitorAgreementVersion}`,
+        description,
         icon: 'file-check',
-        severity: 'success',
+        severity: acceptance.expiresAt && new Date(acceptance.expiresAt) < new Date() ? 'warning' : 'success',
         data: {
           termsVersion: acceptance.termsVersion,
-          visitorAgreementVersion: acceptance.visitorAgreementVersion
+          visitorAgreementVersion: acceptance.visitorAgreementVersion,
+          visitId: acceptance.visitId,
+          invitationId: acceptance.invitationId,
+          expiresAt: acceptance.expiresAt,
+          isExpired: acceptance.expiresAt ? new Date(acceptance.expiresAt) < new Date() : false
         }
       });
     });
@@ -212,6 +228,9 @@ export async function GET(
     // Sort timeline by timestamp (most recent first)
     timeline.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+    // Get current acceptance status
+    const acceptanceStatus = getGuestAcceptanceStatus(guest.acceptances);
+
     // Calculate summary statistics
     const summary = {
       totalVisits: guest.visits.filter(v => v.checkedInAt).length,
@@ -238,7 +257,9 @@ export async function GET(
         contactMethod: guest.contactMethod,
         contactValue: guest.contactValue,
         createdAt: guest.createdAt,
-        blacklistedAt: guest.blacklistedAt
+        blacklistedAt: guest.blacklistedAt,
+        termsAcceptedAt: guest.termsAcceptedAt, // Legacy field for backward compatibility
+        acceptanceStatus // New detailed acceptance status
       },
       timeline,
       summary

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getGuestStats } from '@/lib/validations';
+import { getGuestAcceptanceStatus } from '@/lib/acceptance-helpers';
+import { thirtyDaysAgoInLA } from '@/lib/timezone';
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest) {
         blacklistedAt: true,
         createdAt: true,
         termsAcceptedAt: true,
+        acceptances: true, // Include acceptances for status calculation
       },
       orderBy: {
         createdAt: 'desc',
@@ -110,19 +113,25 @@ export async function GET(request: NextRequest) {
     const recentVisitCountMap = new Map(recentVisitStats.map(v => [v.guestId, v._count]));
     const discountMap = new Set(discounts.map(d => d.guestId));
     
-    // Combine data
-    const guestsWithStats = guests.map(guest => ({
-      id: guest.id,
-      name: guest.name,
-      email: guest.email,
-      country: guest.country,
-      isBlacklisted: !!guest.blacklistedAt,
-      hasAcceptedTerms: !!guest.termsAcceptedAt,
-      lifetimeVisits: visitCountMap.get(guest.id) || 0,
-      recentVisits: recentVisitCountMap.get(guest.id) || 0,
-      hasDiscount: discountMap.has(guest.id),
-      createdAt: guest.createdAt
-    }));
+    // Combine data with acceptance status
+    const guestsWithStats = guests.map(guest => {
+      const acceptanceStatus = getGuestAcceptanceStatus(guest.acceptances);
+      
+      return {
+        id: guest.id,
+        name: guest.name,
+        email: guest.email,
+        country: guest.country,
+        isBlacklisted: !!guest.blacklistedAt,
+        hasAcceptedTerms: !!guest.termsAcceptedAt, // Legacy field
+        hasValidAcceptance: acceptanceStatus.hasValidAcceptance, // New field
+        acceptanceStatus: acceptanceStatus.status, // 'valid', 'expired', or 'none'
+        lifetimeVisits: visitCountMap.get(guest.id) || 0,
+        recentVisits: recentVisitCountMap.get(guest.id) || 0,
+        hasDiscount: discountMap.has(guest.id),
+        createdAt: guest.createdAt
+      };
+    });
 
     return NextResponse.json({ 
       guests: guestsWithStats,
