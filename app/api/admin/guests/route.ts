@@ -61,6 +61,15 @@ export async function GET(request: NextRequest) {
 
     // Get all guest IDs for bulk stats query
     const guestIds = guests.map(g => g.id);
+    
+    // Early return if no guests to avoid unnecessary queries
+    if (guestIds.length === 0) {
+      return NextResponse.json({ 
+        guests: [],
+        total: 0 
+      });
+    }
+    
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     

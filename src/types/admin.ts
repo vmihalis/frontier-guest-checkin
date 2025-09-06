@@ -80,8 +80,10 @@ export interface GuestJourney {
     country?: string;
     contactMethod?: string;
     contactValue?: string;
+    phone?: string;
     createdAt: string;
     blacklistedAt?: string;
+    termsAcceptedAt?: string;
   };
   timeline: Activity[];
   summary: {
@@ -92,7 +94,13 @@ export interface GuestJourney {
     lastVisit?: string;
     firstVisit?: string;
     averageVisitsPerMonth: number;
-    mostFrequentHost?: { name: string; count: number };
+    hostTransferCount: number;
+    uniqueHosts: {
+      total: number;
+      list: Array<{ name: string; email: string; visitCount: number }>;
+    };
+    mostFrequentHost?: { name: string; email: string; count: number };
+    mostFrequentInviter?: { name: string; email: string; count: number };
   };
 }
 
@@ -188,7 +196,3 @@ export interface AuditTabProps {
   recentOverrides: AdminStats['recentOverrides'];
 }
 
-export interface JourneyTabProps {
-  selectedGuest: GuestJourney | null;
-  onClose: () => void;
-}

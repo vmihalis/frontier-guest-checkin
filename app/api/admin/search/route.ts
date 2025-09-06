@@ -201,6 +201,8 @@ export async function GET(request: NextRequest) {
           description,
           data: {
             ...visit,
+            guestId: visit.guestId,
+            guest: visit.guest,
             isHostTransfer,
             invitationHost
           },

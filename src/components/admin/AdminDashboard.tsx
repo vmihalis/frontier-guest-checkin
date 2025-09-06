@@ -26,7 +26,9 @@ const GuestsTab = lazy(() => import('./tabs/GuestsTab'));
 const ReportsTab = lazy(() => import('./tabs/ReportsTab'));
 const PoliciesTab = lazy(() => import('./tabs/PoliciesTab'));
 const AuditTab = lazy(() => import('./tabs/AuditTab'));
-const JourneyTab = lazy(() => import('./tabs/JourneyTab'));
+
+// Import modal component for guest journey
+import GuestJourneyModal from './GuestJourneyModal';
 
 // Loading component for lazy-loaded tabs
 const TabLoading = () => (
@@ -48,10 +50,13 @@ interface SearchResult {
 export default function AdminDashboard() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
-  const [selectedGuestId, setSelectedGuestId] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState('overview');
   const [isOverviewDataLoaded, setIsOverviewDataLoaded] = useState(false);
   const [prefetchedTabs, setPrefetchedTabs] = useState<Set<string>>(new Set());
+  
+  // Modal state for guest journey
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
   
 
   const performGlobalSearch = useCallback(async () => {
@@ -92,9 +97,6 @@ export default function AdminDashboard() {
         case 'audit':
           await import('./tabs/AuditTab');
           break;
-        case 'journey':
-          await import('./tabs/JourneyTab');
-          break;
       }
       setPrefetchedTabs(prev => new Set([...prev, tabName]));
     } catch (error) {
@@ -110,11 +112,10 @@ export default function AdminDashboard() {
     const prefetchMap: Record<string, string[]> = {
       overview: ['activity', 'guests'], // Most common flow
       activity: ['guests', 'reports'],
-      guests: ['journey', 'reports'],
+      guests: ['reports'],
       reports: ['policies'],
       policies: ['audit'],
-      audit: [],
-      journey: ['guests']
+      audit: []
     };
     
     prefetchMap[tabName]?.forEach(nextTab => {
@@ -125,7 +126,12 @@ export default function AdminDashboard() {
 
   const handleGuestJourneyView = (guestId: string) => {
     setSelectedGuestId(guestId);
-    handleTabChange('journey');
+    setIsGuestModalOpen(true);
+  };
+
+  const handleCloseGuestModal = () => {
+    setIsGuestModalOpen(false);
+    setSelectedGuestId(null);
   };
 
   const handleRefreshAll = () => {
@@ -235,14 +241,13 @@ export default function AdminDashboard() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="activity">Live Activity</TabsTrigger>
             <TabsTrigger value="guests">Guest Management</TabsTrigger>
             <TabsTrigger value="reports">Executive Reports</TabsTrigger>
             <TabsTrigger value="policies">System Policies</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
-            <TabsTrigger value="journey">Guest Journey</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -292,18 +297,14 @@ export default function AdminDashboard() {
             </TabErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="journey" className="space-y-6">
-            <TabErrorBoundary tabName="Guest Journey">
-              <Suspense fallback={<TabLoading />}>
-                <JourneyTab 
-                  selectedGuestId={selectedGuestId}
-                  onClose={() => setSelectedGuestId(undefined)}
-                  isActive={activeTab === 'journey'}
-                />
-              </Suspense>
-            </TabErrorBoundary>
-          </TabsContent>
         </Tabs>
+        
+        {/* Guest Journey Modal */}
+        <GuestJourneyModal
+          isOpen={isGuestModalOpen}
+          guestId={selectedGuestId}
+          onClose={handleCloseGuestModal}
+        />
       </div>
     </div>
   );

@@ -24,7 +24,8 @@ import GuestsTab from '@/components/admin/tabs/GuestsTab';
 import ReportsTab from '@/components/admin/tabs/ReportsTab';
 import PoliciesTab from '@/components/admin/tabs/PoliciesTab';
 import AuditTab from '@/components/admin/tabs/AuditTab';
-import JourneyTab from '@/components/admin/tabs/JourneyTab';
+// Import modal component for guest journey
+import GuestJourneyModal from '@/components/admin/GuestJourneyModal';
 import { 
   Users, 
   UserCheck, 
@@ -82,17 +83,14 @@ function AdminPageContent() {
     isLoadingPolicies,
     isLoadingReport,
     isSearching,
-    isLoadingJourney,
     loadStats,
     loadActivities,
     loadGuests,
     loadPolicies,
     loadExecutiveReport,
     performSearch,
-    loadGuestJourney,
     updatePolicies,
     blacklistToggle,
-    clearSelectedGuest,
     refreshAll
   } = useAdminData();
   
@@ -236,10 +234,20 @@ function AdminPageContent() {
     }
   };
 
-  // Wrap loadGuestJourney to also switch to journey tab
-  const handleLoadGuestJourney = async (guestId: string) => {
-    await loadGuestJourney(guestId);
-    setActiveTab('journey');
+  // Modal state for guest journey
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [selectedGuestModalId, setSelectedGuestModalId] = useState<string | null>(null);
+
+  // Handle opening guest journey modal
+  const handleLoadGuestJourney = (guestId: string) => {
+    console.log('[Admin] Opening guest journey modal for guest:', guestId);
+    setSelectedGuestModalId(guestId);
+    setIsGuestModalOpen(true);
+  };
+
+  const handleCloseGuestModal = () => {
+    setIsGuestModalOpen(false);
+    setSelectedGuestModalId(null);
   };
 
   const getIconComponent = (iconName: string) => {
@@ -360,7 +368,21 @@ function AdminPageContent() {
             <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
               {searchResults.map((result) => (
                 <div key={`${result.type}-${result.id}`} className="p-3 border rounded-lg hover:bg-accent cursor-pointer transition-colors"
-                     onClick={() => result.type === 'guest' && handleLoadGuestJourney(result.id)}>
+                     onClick={() => {
+                       console.log('[Admin] Search result clicked:', result.type, result.id, result.data);
+                       if (result.type === 'guest') {
+                         handleLoadGuestJourney(result.id);
+                       } else if (result.type === 'visit' && result.data) {
+                         // For visit results, extract the guest ID from the data
+                         const visitData = result.data as any;
+                         // Check both guestId field and guest.id from the included relation
+                         const guestId = visitData.guestId || visitData.guest?.id;
+                         console.log('[Admin] Visit data guestId:', guestId);
+                         if (guestId) {
+                           handleLoadGuestJourney(guestId);
+                         }
+                       }
+                     }}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{result.title}</p>
@@ -430,15 +452,14 @@ function AdminPageContent() {
             />
           </TabsContent>
 
-          {/* Guest Journey Tab */}
-          <TabsContent value="journey" className="space-y-6">
-            <JourneyTab 
-              selectedGuestId={selectedGuest?.guest?.id} 
-              onClose={clearSelectedGuest}
-              isActive={activeTab === 'journey'}
-            />
-          </TabsContent>
         </Tabs>
+        
+        {/* Guest Journey Modal */}
+        <GuestJourneyModal
+          isOpen={isGuestModalOpen}
+          guestId={selectedGuestModalId}
+          onClose={handleCloseGuestModal}
+        />
       </div>
     </div>
   );

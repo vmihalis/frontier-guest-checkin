@@ -16,7 +16,6 @@ const tabs = [
   { id: 'reports', label: 'Analytics Reports' },
   { id: 'policies', label: 'System Policies' },
   { id: 'audit', label: 'Access Log' },
-  { id: 'journey', label: 'Guest Journey' },
 ];
 
 export function AdminNavigation({ activeTab, onTabChange }: AdminNavigationProps) {
