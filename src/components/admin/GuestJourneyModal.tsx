@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import './modal-scrollbar.css';
 import { 
   Dialog, 
   DialogContent, 
@@ -88,6 +89,7 @@ export default function GuestJourneyModal({ isOpen, guestId, onClose }: GuestJou
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           <DialogHeader>
+            <DialogTitle className="sr-only">Loading Guest Profile</DialogTitle>
             <div className="h-6 w-48 bg-muted rounded animate-pulse mb-2" />
             <div className="h-4 w-64 bg-muted rounded animate-pulse" />
           </DialogHeader>
@@ -162,7 +164,7 @@ export default function GuestJourneyModal({ isOpen, guestId, onClose }: GuestJou
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 pr-2">
+        <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Guest Profile Section */}
           <div className="lg:col-span-1 space-y-4">
@@ -314,7 +316,7 @@ export default function GuestJourneyModal({ isOpen, guestId, onClose }: GuestJou
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3 max-h-[500px] overflow-y-auto overflow-x-hidden">
+                <div className="space-y-3 max-h-[500px] overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
                   {selectedGuest.timeline.map((event, index) => (
                     <div key={index} className={`flex items-start gap-3 p-3 rounded-lg border ${getSeverityColor(event.severity)}`}>
                       <div className="p-2 rounded-full bg-white dark:bg-gray-800 border">
