@@ -7,34 +7,14 @@ import { prisma } from "@/lib/prisma";
 import { logConversionEvent } from "@/lib/analytics";
 import { sendEmail } from "@/lib/email";
 import { nowInLA, thirtyDaysAgoInLA } from "@/lib/timezone";
-import type { VisitorTier, Guest, FrequentVisitor } from "@prisma/client";
+import type { VisitorTier, Guest, FrequentVisitor, Visit } from "@prisma/client";
+import type { 
+  TierBenefits, 
+  VisitorProgramData as VisitorProgram,
+  VisitData
+} from "@/types/visitor-program";
 
-export interface TierBenefits {
-  name: string;
-  visitThreshold: number;
-  benefits: string[];
-  rewards: {
-    welcomeBonus?: string;
-    monthlyReward?: string;
-    specialAccess?: string[];
-  };
-  nextTier?: {
-    name: string;
-    visitsNeeded: number;
-  };
-}
-
-export interface VisitorProgram {
-  currentTier: TierBenefits;
-  progress: {
-    visitsThisMonth: number;
-    totalVisits: number;
-    visitStreak: number;
-    daysUntilNextReward: number;
-  };
-  availableRewards: string[];
-  achievements: string[];
-}
+export type { TierBenefits, VisitorProgram };
 
 export const TIER_BENEFITS: Record<VisitorTier, TierBenefits> = {
   BRONZE: {
@@ -373,7 +353,7 @@ function checkStreakMilestones(visitStreak: number): string[] {
 /**
  * Calculate days until next reward
  */
-function calculateDaysUntilNextReward(visits: Array<{ checkedInAt: Date }>): number {
+function calculateDaysUntilNextReward(visits: Array<{ checkedInAt: Date | null }>): number {
   if (visits.length === 0) return 0;
   
   const now = nowInLA();
@@ -389,7 +369,7 @@ function calculateDaysUntilNextReward(visits: Array<{ checkedInAt: Date }>): num
 /**
  * Check if guest should earn monthly reward
  */
-function shouldEarnMonthlyReward(visits: Array<{ checkedInAt: Date }>): boolean {
+function shouldEarnMonthlyReward(visits: Array<{ checkedInAt: Date | null }>): boolean {
   if (visits.length === 0) return false;
   
   const thirtyDaysAgo = thirtyDaysAgoInLA();

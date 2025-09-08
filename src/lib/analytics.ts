@@ -6,51 +6,22 @@
 import { prisma } from "@/lib/prisma";
 import { nowInLA, thirtyDaysAgoInLA } from "@/lib/timezone";
 import type { Guest, Visit, VisitorTier, ConversionEventType } from "@prisma/client";
+import type { 
+  ConversionScore, 
+  GuestAnalytics,
+  ConversionEventData,
+  ProfileCompletionData,
+  SurveyResponseData,
+  ReferralData,
+  CheckinData,
+  EngagementData 
+} from "@/types/analytics";
 
-export interface ConversionScore {
-  score: number; // 0-100 conversion likelihood
-  tier: VisitorTier;
-  factors: {
-    visitFrequency: number;
-    engagementLevel: number; 
-    networkEffect: number;
-    businessContext: number;
-    recency: number;
-  };
-  recommendations: string[];
-  nextActions: string[];
-}
-
-export interface GuestAnalytics {
-  guestId: string;
-  email: string;
-  name: string | null;
-  company: string | null;
-  
-  // Visit metrics
-  totalVisits: number;
-  recentVisits: number; // Last 30 days
-  averageStayMinutes: number;
-  lastVisitDate: Date | null;
-  visitStreak: number;
-  
-  // Engagement metrics
-  uniqueHostsCount: number;
-  conversionScore: number;
-  currentTier: VisitorTier;
-  satisfactionScore: number | null;
-  npsScore: number | null;
-  
-  // Business context
-  jobTitle: string | null;
-  industry: string | null;
-  companySize: string | null;
-  
-  // Conversion tracking
-  conversionInterest: number;
-  lastOutreachAt: Date | null;
-  becameHostAt: Date | null;
-}
+export type { 
+  ConversionScore, 
+  GuestAnalytics,
+  ConversionEventData 
+};
 
 /**
  * Calculate AI-powered conversion score for a guest
@@ -357,7 +328,7 @@ export async function logConversionEvent(
   eventType: ConversionEventType,
   touchpoint?: string,
   outcome?: string,
-  eventData?: Record<string, unknown>
+  eventData?: ConversionEventData
 ): Promise<void> {
   await prisma.conversionEvent.create({
     data: {

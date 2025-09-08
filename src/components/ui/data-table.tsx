@@ -22,11 +22,16 @@ interface DataTableProps<T> {
   containerClassName?: string;
 }
 
-function getNestedValue(obj: any, path: string) {
-  return path.split('.').reduce((current, key) => current?.[key], obj);
+function getNestedValue(obj: unknown, path: string): unknown {
+  return path.split('.').reduce((current, key) => {
+    if (current && typeof current === 'object' && key in current) {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
 }
 
-export function DataTable<T extends Record<string, any>>({ 
+export function DataTable<T extends Record<string, unknown>>({ 
   data, 
   columns, 
   searchable = false,
