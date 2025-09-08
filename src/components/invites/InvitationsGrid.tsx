@@ -61,82 +61,91 @@ export function InvitationsGrid({ selectedDate, refreshTrigger }: InvitationsGri
     loadInvitations();
   }, [selectedDate, refreshTrigger]);
 
-  // Systematic status components
-  const getPrimaryStatus = (invitation: Invitation) => {
+  // Enhanced visual status system with card backgrounds and prominent badges
+  const getCardStyling = (invitation: Invitation) => {
     const hasProfileCompleted = invitation.guest.profileCompleted;
     const hasTerms = !!invitation.guest.termsAcceptedAt;
     
     if (invitation.status === 'CHECKED_IN') {
       return {
-        badge: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 dark:border-green-500/30">
-            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-            Checked In
-          </span>
+        cardClasses: 'bg-green-50/80 dark:bg-green-950/40 border-green-200 dark:border-green-800/50 shadow-green-100/50 dark:shadow-green-900/20',
+        primaryBadge: (
+          <div className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white shadow-lg">
+            <span className="w-3 h-3 bg-white rounded-full mr-2 animate-pulse"></span>
+            CHECKED IN
+          </div>
         ),
-        action: null
+        secondaryInfo: null,
+        statusText: 'Guest is currently in the building'
       };
     }
     
     if (invitation.status === 'EXPIRED') {
       return {
-        badge: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-500/20 dark:border-red-500/30">
-            <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-            Expired
-          </span>
+        cardClasses: 'bg-red-50/80 dark:bg-red-950/40 border-red-200 dark:border-red-800/50 shadow-red-100/50 dark:shadow-red-900/20',
+        primaryBadge: (
+          <div className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white shadow-lg">
+            <span className="w-3 h-3 bg-white rounded-full mr-2"></span>
+            EXPIRED
+          </div>
         ),
-        action: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30">
-            <RotateCcw className="h-3 w-3 mr-2" />
+        secondaryInfo: (
+          <div className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+            <RotateCcw className="h-3 w-3 mr-1" />
             Generate New QR
-          </span>
-        )
+          </div>
+        ),
+        statusText: 'QR code has expired - create new invitation'
       };
     }
 
-    // New status for pending profile completion
     if (!hasProfileCompleted) {
       return {
-        badge: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30">
-            <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
-            Awaiting Profile
-          </span>
+        cardClasses: 'bg-orange-50/80 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800/50 shadow-orange-100/50 dark:shadow-orange-900/20',
+        primaryBadge: (
+          <div className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-orange-600 text-white shadow-lg">
+            <span className="w-3 h-3 bg-white rounded-full mr-2"></span>
+            AWAITING PROFILE
+          </div>
         ),
-        action: null
+        secondaryInfo: null,
+        statusText: 'Guest needs to complete their profile first'
       };
     }
     
     if (hasTerms) {
       return {
-        badge: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30">
-            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-            Ready
-          </span>
+        cardClasses: 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 shadow-emerald-100/50 dark:shadow-emerald-900/20',
+        primaryBadge: (
+          <div className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white shadow-lg">
+            <span className="w-3 h-3 bg-white rounded-full mr-2 animate-pulse"></span>
+            READY FOR CHECK-IN
+          </div>
         ),
-        action: (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/20 dark:border-green-500/30">
-            <UserCheck className="h-3 w-3 mr-2" />
-            On Your QR
-          </span>
-        )
+        secondaryInfo: (
+          <div className="inline-flex items-center px-3 py-2 rounded-md text-sm font-bold bg-green-600 text-white border-2 border-green-500 shadow-md">
+            <UserCheck className="h-4 w-4 mr-2" />
+            ✓ ON YOUR QR CODE
+          </div>
+        ),
+        statusText: 'Guest accepted terms - included in your check-in QR'
       };
     }
     
     return {
-      badge: (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30">
-          <Clock className="h-3 w-3 mr-2" />
-          Awaiting Terms
-        </span>
+      cardClasses: 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50 shadow-amber-100/50 dark:shadow-amber-900/20',
+      primaryBadge: (
+        <div className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-amber-600 text-white shadow-lg">
+          <Clock className="h-4 w-4 mr-2" />
+          AWAITING TERMS
+        </div>
       ),
-      action: (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
-          <span>Email Sent</span>
-        </span>
-      )
+      secondaryInfo: (
+        <div className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+          <span>Email invitation sent</span>
+        </div>
+      ),
+      statusText: 'Waiting for guest to accept terms and conditions'
     };
   };
 
@@ -157,30 +166,45 @@ export function InvitationsGrid({ selectedDate, refreshTrigger }: InvitationsGri
           <p className="text-muted-foreground">Create your first invitation above to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {invitations.map((invitation) => (
-            <div key={invitation.id} className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02] p-3">
-              <div className="mb-2">
-                <h3 className="text-base font-semibold text-foreground mb-1 truncate">
-                  {invitation.guest.name || 'Pending Registration'}
-                </h3>
-                <p className="text-xs text-muted-foreground mb-2 truncate">{invitation.guest.email}</p>
-                
-                <div className="space-y-2">
-                  {getPrimaryStatus(invitation).badge}
-                  {getPrimaryStatus(invitation).action && (
-                    <div>{getPrimaryStatus(invitation).action}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {invitations.map((invitation) => {
+            const styling = getCardStyling(invitation);
+            return (
+              <div key={invitation.id} className={`rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] p-6 border-2 ${styling.cardClasses}`}>
+                <div className="space-y-4">
+                  {/* Guest Info Header */}
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
+                      {invitation.guest.name || 'Pending Registration'}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate font-medium">{invitation.guest.email}</p>
+                  </div>
+                  
+                  {/* Primary Status Badge */}
+                  <div className="flex flex-col gap-3">
+                    {styling.primaryBadge}
+                    
+                    {/* Secondary Action/Info */}
+                    {styling.secondaryInfo && (
+                      <div className="flex justify-start">{styling.secondaryInfo}</div>
+                    )}
+                  </div>
+                  
+                  {/* Status Description */}
+                  <p className="text-xs text-gray-600 dark:text-gray-400 italic leading-relaxed">
+                    {styling.statusText}
+                  </p>
+                  
+                  {/* QR Expiration Info */}
+                  {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
+                    <div className="text-xs text-gray-500 dark:text-gray-500 border-t border-gray-200 dark:border-gray-700 pt-3 mt-3 font-mono">
+                      ⏰ Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
+                    </div>
                   )}
                 </div>
               </div>
-              
-              {invitation.qrExpiresAt && invitation.status === 'ACTIVATED' && (
-                <div className="text-xs text-muted-foreground border-t border-border pt-2 mt-2">
-                  Expires {formatCountdown(new Date(invitation.qrExpiresAt))}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </PageCard>

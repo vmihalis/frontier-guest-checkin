@@ -22,11 +22,19 @@ model User {
   locationId String?  @map("location_id") @db.Uuid // Primary location for host
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
+  // Referral tracking for hosts
+  referralCount    Int       @default(0) @map("referral_count") // Total successful referrals
+  conversionCount  Int       @default(0) @map("conversion_count") // Guests converted to hosts
+  rewardBalance    Float     @default(0) @map("reward_balance") // Earned referral rewards
+  hostTier         HostTier  @default(BRONZE) @map("host_tier") // Bronze/Silver/Gold status
+
   // Relations
   location        Location? @relation(fields: [locationId], references: [id])
   hostedVisits    Visit[] @relation("HostVisits")
   overrideVisits  Visit[] @relation("OverrideVisits")
   hostedInvitations Invitation[] @relation("HostInvitations")
+  convertedGuests Guest[] @relation("ConvertedGuests") // Guests who became hosts
+  referralEvents  ReferralEvent[] // Track referral activities
 
   @@map("users")
 }
@@ -44,11 +52,34 @@ model Guest {
   blacklistedAt    DateTime? @map("blacklisted_at") @db.Timestamptz
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
+  // Business context fields for conversion tracking
+  company          String?   // Company name
+  jobTitle         String?   @map("job_title") // Role/position
+  industry         String?   // Industry sector
+  companySize      String?   @map("company_size") // Startup, SME, Enterprise
+  interests        String[]  @default([]) // Areas of interest
+  
+  // Conversion tracking
+  conversionInterest  Float?    @default(0) @map("conversion_interest") // 0-10 interest score
+  lastOutreachAt      DateTime? @map("last_outreach_at") @db.Timestamptz
+  becameHostAt        DateTime? @map("became_host_at") @db.Timestamptz
+  hostUserId          String?   @map("host_user_id") @db.Uuid // If converted to host
+  
+  // Survey responses
+  satisfactionScore   Int?      @map("satisfaction_score") // 1-5 rating
+  npsScore           Int?       @map("nps_score") // Net Promoter Score 0-10
+  feedbackText       String?    @map("feedback_text") // Open-ended feedback
+
   // Relations
   visits      Visit[]
   invitations Invitation[]
   acceptances Acceptance[]
   discounts   Discount[]
+  frequentVisitor FrequentVisitor?
+  conversionEvents ConversionEvent[]
+  hostUser    User?        @relation("ConvertedGuests", fields: [hostUserId], references: [id])
+  surveys     EngagementSurvey[]
+  referralEvents ReferralEvent[] @relation("GuestReferrals")
 
   @@map("guests")
 }
@@ -91,6 +122,7 @@ model Visit {
   invitation   Invitation? @relation(fields: [invitationId], references: [id])
   overrideUser User?       @relation("OverrideVisits", fields: [overrideBy], references: [id])
   acceptances  Acceptance[] // Visit-scoped acceptances
+  surveys      EngagementSurvey[] // Post-visit surveys
 
   // Indexes
   @@index([guestId, checkedInAt])
@@ -175,6 +207,157 @@ model Discount {
   // Indexes
   @@index([guestId])
   @@map("discounts")
+}
+
+// New analytics and conversion tracking models
+model FrequentVisitor {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guestId         String   @unique @map("guest_id") @db.Uuid
+  visitCount      Int      @default(0) @map("visit_count") // Total completed visits
+  totalDuration   Int      @default(0) @map("total_duration") // Total minutes spent in building
+  averageStay     Float    @default(0) @map("average_stay") // Average visit duration
+  
+  // Engagement metrics
+  lastVisitAt         DateTime? @map("last_visit_at") @db.Timestamptz
+  visitStreak         Int       @default(0) @map("visit_streak") // Consecutive months with visits
+  longestStreak       Int       @default(0) @map("longest_streak") // Longest streak achieved
+  currentTier         VisitorTier @default(BRONZE) @map("current_tier")
+  tierAchievedAt      DateTime? @map("tier_achieved_at") @db.Timestamptz
+
+  // Network effects
+  uniqueHostsCount    Int       @default(0) @map("unique_hosts_count") // Different hosts visited
+  colleaguesInBuilding Int      @default(0) @map("colleagues_in_building") // Estimated colleagues
+  networkScore        Float     @default(0) @map("network_score") // Social connectivity
+
+  // Conversion prediction
+  conversionScore     Float     @default(0) @map("conversion_score") // AI-calculated likelihood
+  lastScoreUpdate     DateTime  @default(now()) @map("last_score_update") @db.Timestamptz
+  
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  @@index([conversionScore])
+  @@index([currentTier, visitCount])
+  @@index([lastVisitAt])
+  @@map("frequent_visitors")
+}
+
+model ConversionEvent {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guestId     String            @map("guest_id") @db.Uuid
+  eventType   ConversionEventType @map("event_type")
+  eventData   Json?             @map("event_data") // Flexible data storage
+  touchpoint  String?           // Email, survey, meeting, etc.
+  outcome     String?           // Positive, negative, neutral
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  guest Guest @relation(fields: [guestId], references: [id])
+
+  @@index([guestId, eventType])
+  @@index([createdAt])
+  @@map("conversion_events")
+}
+
+model ReferralEvent {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostId          String        @map("host_id") @db.Uuid
+  referredGuestId String        @map("referred_guest_id") @db.Uuid
+  eventType       ReferralEventType @map("event_type")
+  rewardAmount    Float         @default(0) @map("reward_amount")
+  status          ReferralStatus @default(PENDING)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  completedAt     DateTime?     @map("completed_at") @db.Timestamptz
+
+  // Relations  
+  host          User  @relation(fields: [hostId], references: [id])
+  referredGuest Guest @relation("GuestReferrals", fields: [referredGuestId], references: [id])
+
+  @@index([hostId, status])
+  @@index([createdAt])
+  @@map("referral_events")
+}
+
+model EngagementSurvey {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guestId           String    @map("guest_id") @db.Uuid
+  visitId           String?   @map("visit_id") @db.Uuid
+  surveyType        SurveyType
+  
+  // Survey responses
+  satisfactionScore Int?      @map("satisfaction_score") // 1-5 rating
+  npsScore         Int?       @map("nps_score") // Net Promoter Score 0-10
+  hostingInterest  Int?       @map("hosting_interest") // 1-5 interest in hosting
+  amenityRatings   Json?      @map("amenity_ratings") // Gym, cafeteria, etc.
+  improvementSuggestions String? @map("improvement_suggestions")
+  openFeedback     String?    @map("open_feedback")
+  
+  // Follow-up tracking
+  followUpRequested Boolean   @default(false) @map("follow_up_requested")
+  salesContactOk   Boolean   @default(false) @map("sales_contact_ok")
+  
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  completedAt      DateTime? @map("completed_at") @db.Timestamptz
+
+  // Relations
+  guest Guest @relation(fields: [guestId], references: [id])
+  visit Visit? @relation(fields: [visitId], references: [id])
+
+  @@index([guestId, surveyType])
+  @@index([completedAt])
+  @@map("engagement_surveys")
+}
+
+// New enums for analytics system
+enum HostTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum VisitorTier {
+  BRONZE    // 1-2 visits
+  SILVER    // 3-5 visits  
+  GOLD      // 6-10 visits
+  PLATINUM  // 11+ visits
+  VIP       // Special status
+}
+
+enum ConversionEventType {
+  SURVEY_COMPLETED
+  OUTREACH_EMAIL_SENT
+  OUTREACH_EMAIL_OPENED
+  OUTREACH_EMAIL_CLICKED
+  FOLLOW_UP_MEETING
+  DEMO_SCHEDULED
+  TRIAL_HOSTING_STARTED
+  CONVERSION_COMPLETED
+  CONVERSION_DECLINED
+}
+
+enum ReferralEventType {
+  GUEST_INVITED
+  GUEST_VISITED
+  GUEST_CONVERTED
+  REWARD_EARNED
+}
+
+enum ReferralStatus {
+  PENDING
+  QUALIFIED
+  COMPLETED
+  EXPIRED
+}
+
+enum SurveyType {
+  POST_VISIT
+  MONTHLY_CHECK_IN
+  CONVERSION_INTEREST
+  EXIT_INTERVIEW
 }
 
 enum UserRole {

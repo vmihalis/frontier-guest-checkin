@@ -6,6 +6,8 @@ import { nowInLA, calculateVisitExpiration } from '@/lib/timezone';
 import { sendDiscountEmail } from '@/lib/email';
 import { validateQRToken } from '@/lib/qr-token';
 import { validateOverrideRequest, type OverrideRequest } from '@/lib/override';
+import { updateFrequentVisitorMetrics, logConversionEvent } from '@/lib/analytics';
+import { processTierProgression } from '@/lib/visitor-program';
 import type { GuestData } from '@/lib/qr-token';
 
 interface CheckInRequest {
@@ -266,6 +268,47 @@ export async function POST(request: NextRequest) {
     const totalCount = results.length;
     const overallSuccess = successCount === totalCount;
 
+    // Analytics: Track check-in session
+    if (successCount > 0) {
+      try {
+        // Log conversion event for successful check-ins
+        const checkInMethod = token ? 'qr_token' : (guest ? 'single_guest' : 'batch_guests');
+        
+        // Track events for each successful guest
+        for (const result of results.filter(r => r.success)) {
+          if (result.guestId) {
+            await logConversionEvent(
+              result.guestId,
+              'GUEST_VISITED',
+              checkInMethod,
+              'success',
+              {
+                hostId,
+                locationId,
+                overrideUsed: isOverrideValid,
+                visitId: result.visitId,
+                returningGuest: result.isReturning || false,
+                discountTriggered: result.discountSent || false
+              }
+            );
+
+            // Update frequent visitor metrics asynchronously
+            updateFrequentVisitorMetrics(result.guestId).catch(error => 
+              console.error('Error updating visitor metrics:', error)
+            );
+
+            // Process tier progression and rewards
+            processTierProgression(result.guestId).catch(error =>
+              console.error('Error processing tier progression:', error)
+            );
+          }
+        }
+      } catch (error) {
+        // Don't let analytics errors block check-in
+        console.error('Error tracking check-in analytics:', error);
+      }
+    }
+
     const responseMessage = totalCount === 1
       ? (overallSuccess ? `${results[0].guestName} checked in successfully` : results[0].message)
       : `${successCount}/${totalCount} guests checked in successfully`;
@@ -381,11 +424,13 @@ async function processGuestCheckIn({
         message: `${guest.n} is already enjoying their visit with ${activeVisit.host.name}! 🎉`,
         guestEmail: guest.e,
         guestName: guest.n,
+        guestId: activeVisit.guest.id,
         visitId: activeVisit.id,
         checkedInAt: activeVisit.checkedInAt,
         expiresAt: activeVisit.expiresAt,
         reason: 'cross-host-active',
-        currentHost: activeVisit.host.name
+        currentHost: activeVisit.host.name,
+        isReturning: true
       };
     } else {
       return {
@@ -393,10 +438,12 @@ async function processGuestCheckIn({
         message: `Welcome back, ${guest.n}! You're already all set ✨`,
         guestEmail: guest.e,
         guestName: guest.n,
+        guestId: activeVisit.guest.id,
         visitId: activeVisit.id,
         checkedInAt: activeVisit.checkedInAt,
         expiresAt: activeVisit.expiresAt,
-        reason: 're-entry'
+        reason: 're-entry',
+        isReturning: true
       };
     }
   }
@@ -569,10 +616,12 @@ async function processGuestCheckIn({
     message,
     guestEmail: guest.e,
     guestName: guest.n,
+    guestId: guestRecord.id,
     visitId: visit.id,
     checkedInAt: visit.checkedInAt,
     expiresAt: visit.expiresAt,
     discountSent: shouldSendDiscount,
-    acceptanceRenewed: validation.acceptanceRenewed || false
+    acceptanceRenewed: validation.acceptanceRenewed || false,
+    isReturning: validation.acceptanceRenewed || false
   };
 }

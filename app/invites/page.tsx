@@ -242,15 +242,16 @@ export default function InvitesPage() {
         ) : (
           hostQRData && (
             <PageCard
-              title="Your Check-in QR Code"
-              description={`${invitations.filter(inv => inv.guest.termsAcceptedAt && inv.status !== 'EXPIRED').length} guest(s) available for check-in`}
+              title="🎯 Your Check-in QR Code"
+              description={`⚡ ${invitations.filter(inv => inv.guest.termsAcceptedAt && inv.status !== 'EXPIRED').length} guest(s) READY FOR INSTANT CHECK-IN`}
               icon={QrCode}
               gradient={true}
             >
               <div className="flex items-center justify-between">
                 <div className="text-sm text-foreground">
-                  <p className="mb-2">This QR code contains all guests who have accepted the terms.</p>
-                  <p className="text-xs text-muted-foreground">Show this at the kiosk to check in your guests.</p>
+                  <p className="mb-2 font-semibold text-green-700 dark:text-green-400">✅ This QR code contains ALL guests who accepted terms</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">📱 Show this at the kiosk → Scan once → Check in everyone instantly</p>
+                  <p className="text-xs text-muted-foreground mt-1 italic">No need for individual QR codes - one scan does it all!</p>
                 </div>
                 <Button
                   onClick={() => setQrModalData({ 
