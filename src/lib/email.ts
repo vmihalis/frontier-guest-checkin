@@ -108,8 +108,7 @@ export async function sendInvitationEmail(
   guestEmail: string,
   guestName: string,
   hostName: string,
-  invitationId: string,
-  hostId: string
+  invitationId: string
 ): Promise<EmailResult> {
   // Direct link to guest registration page (no token needed, just invitation ID)
   const acceptanceUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontiertower.com'}/guest/register/${invitationId}`;

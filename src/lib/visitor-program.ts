@@ -373,7 +373,7 @@ function checkStreakMilestones(visitStreak: number): string[] {
 /**
  * Calculate days until next reward
  */
-function calculateDaysUntilNextReward(visits: any[]): number {
+function calculateDaysUntilNextReward(visits: Array<{ checkedInAt: Date }>): number {
   if (visits.length === 0) return 0;
   
   const now = nowInLA();
@@ -389,7 +389,7 @@ function calculateDaysUntilNextReward(visits: any[]): number {
 /**
  * Check if guest should earn monthly reward
  */
-function shouldEarnMonthlyReward(visits: any[]): boolean {
+function shouldEarnMonthlyReward(visits: Array<{ checkedInAt: Date }>): boolean {
   if (visits.length === 0) return false;
   
   const thirtyDaysAgo = thirtyDaysAgoInLA();

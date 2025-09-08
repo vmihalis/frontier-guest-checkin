@@ -227,8 +227,7 @@ export async function validateGuestBlacklist(guestEmail: string): Promise<Valida
  */
 export async function validateVisitScopedAcceptance(
   guestId: string,
-  invitationId?: string | null,
-  locationId?: string
+  invitationId?: string | null
 ): Promise<ValidationResult> {
   const now = nowInLA();
   

@@ -5,7 +5,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { nowInLA, thirtyDaysAgoInLA } from "@/lib/timezone";
-import type { Guest, Visit, FrequentVisitor, VisitorTier, ConversionEventType } from "@prisma/client";
+import type { Guest, Visit, VisitorTier, ConversionEventType } from "@prisma/client";
 
 export interface ConversionScore {
   score: number; // 0-100 conversion likelihood
@@ -154,7 +154,7 @@ export async function calculateConversionScore(guestId: string): Promise<Convers
 /**
  * Estimate colleagues in building based on email domain
  */
-async function estimateColleaguesInBuilding(email: string, company: string | null): Promise<number> {
+async function estimateColleaguesInBuilding(email: string): Promise<number> {
   if (!email || !email.includes('@')) return 0;
   
   const domain = email.split('@')[1];
@@ -357,7 +357,7 @@ export async function logConversionEvent(
   eventType: ConversionEventType,
   touchpoint?: string,
   outcome?: string,
-  eventData?: Record<string, any>
+  eventData?: Record<string, unknown>
 ): Promise<void> {
   await prisma.conversionEvent.create({
     data: {
