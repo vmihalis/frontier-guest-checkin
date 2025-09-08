@@ -13,8 +13,9 @@ function getAuthHeaders(): HeadersInit {
 
 interface Guest {
   id: string;
-  name: string;
+  name?: string; // Now nullable since guest fills this later
   email: string;
+  profileCompleted?: boolean;
   termsAcceptedAt?: string;
 }
 
@@ -62,6 +63,7 @@ export function InvitationsGrid({ selectedDate, refreshTrigger }: InvitationsGri
 
   // Systematic status components
   const getPrimaryStatus = (invitation: Invitation) => {
+    const hasProfileCompleted = invitation.guest.profileCompleted;
     const hasTerms = !!invitation.guest.termsAcceptedAt;
     
     if (invitation.status === 'CHECKED_IN') {
@@ -90,6 +92,19 @@ export function InvitationsGrid({ selectedDate, refreshTrigger }: InvitationsGri
             Generate New QR
           </span>
         )
+      };
+    }
+
+    // New status for pending profile completion
+    if (!hasProfileCompleted) {
+      return {
+        badge: (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30">
+            <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
+            Awaiting Profile
+          </span>
+        ),
+        action: null
       };
     }
     
@@ -146,7 +161,9 @@ export function InvitationsGrid({ selectedDate, refreshTrigger }: InvitationsGri
           {invitations.map((invitation) => (
             <div key={invitation.id} className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-[1.02] p-3">
               <div className="mb-2">
-                <h3 className="text-base font-semibold text-foreground mb-1 truncate">{invitation.guest.name}</h3>
+                <h3 className="text-base font-semibold text-foreground mb-1 truncate">
+                  {invitation.guest.name || 'Pending Registration'}
+                </h3>
                 <p className="text-xs text-muted-foreground mb-2 truncate">{invitation.guest.email}</p>
                 
                 <div className="space-y-2">

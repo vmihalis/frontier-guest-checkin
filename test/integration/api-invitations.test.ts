@@ -1,3 +1,4 @@
+import './setup';
 import assert from 'node:assert';
 import { NextRequest } from 'next/server';
 import { POST as invitationsPOST } from '../../app/api/invitations/route';
@@ -156,6 +157,8 @@ async function runTests() {
 }
 
 // Run as script if not in Jest environment
-if (typeof jest === 'undefined' && import.meta.url === `file://${process.argv[1]}`) {
+// Skip execution in Jest environment
+if (typeof jest === 'undefined') {
+  // Only run if executed directly
   runTests();
 }

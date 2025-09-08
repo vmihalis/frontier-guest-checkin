@@ -3,6 +3,8 @@
  * Tests foreign key constraints, returning guests, and all edge cases
  */
 
+import './setup';
+
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

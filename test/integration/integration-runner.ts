@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 
+import './setup'
 import { IntegrationDatabaseTests } from './IntegrationDatabaseTests'
 import { InvitationQRFlow } from './InvitationQRFlow'
 
@@ -80,6 +81,8 @@ async function main() {
 }
 
 // Run as script if not in Jest environment
-if (typeof jest === 'undefined' && import.meta.url === `file://${process.argv[1]}`) {
+// Skip execution in Jest environment
+if (typeof jest === 'undefined') {
+  // Only run if executed directly
   main()
 }

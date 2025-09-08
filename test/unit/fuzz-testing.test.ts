@@ -121,9 +121,15 @@ describe('Fuzz Testing Patterns', () => {
         let testData;
         
         try {
-          testData = typeof pattern() === 'string' ? pattern() : JSON.stringify(pattern());
+          const generated = pattern();
+          testData = typeof generated === 'string' ? generated : JSON.stringify(generated);
         } catch {
           testData = generateRandomString(100);
+        }
+        
+        // Ensure testData is always a string
+        if (typeof testData !== 'string') {
+          testData = String(testData);
         }
         
         const result = parseQRData(testData);

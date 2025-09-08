@@ -34,11 +34,12 @@ model User {
 model Guest {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email            String    @unique
-  name             String
+  name             String?   // Now nullable - guest fills this in
   phone            String?
-  country          String?
+  country          String?   // Now nullable - guest fills this in
   contactMethod    ContactMethod?  @map("contact_method")
   contactValue     String?         @map("contact_value")
+  profileCompleted Boolean   @default(false) @map("profile_completed") // Track if guest completed profile
   termsAcceptedAt  DateTime? @map("terms_accepted_at") @db.Timestamptz
   blacklistedAt    DateTime? @map("blacklisted_at") @db.Timestamptz
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz

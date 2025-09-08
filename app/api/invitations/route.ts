@@ -4,7 +4,6 @@ import { getCurrentUserId } from '@/lib/auth';
 import { validateCreateInvitation } from '@/lib/validations';
 import { todayInLA } from '@/lib/timezone';
 import { sendInvitationEmail } from '@/lib/email';
-import type { ContactMethod } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,23 +42,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     const { 
-      name, 
       email, 
-      country, 
-      contactMethod, 
-      contactValue,
       inviteDate
     } = body;
 
-    // Validate required fields
-    if (!name || !email || !country || !contactMethod || !contactValue) {
+    // Validate required fields - now only email is required
+    if (!email) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Email is required' },
         { status: 400 }
       );
     }
-
-    // Terms acceptance will be handled via email link
 
     // Validate business rules
     const validation = await validateCreateInvitation(hostId, email);
@@ -72,24 +65,18 @@ export async function POST(request: NextRequest) {
 
     const inviteDateParsed = new Date(inviteDate || todayInLA());
 
-    // Map contactMethod string to enum value
-    const contactMethodEnum = contactMethod.toUpperCase() as ContactMethod;
-
-    // Upsert guest
+    // Create or update guest with minimal information
+    // Guest will complete their profile via the email link
     const guest = await prisma.guest.upsert({
       where: { email },
       update: {
-        name,
-        country,
-        contactMethod: contactMethodEnum,
-        contactValue,
+        // Don't update anything if guest already exists
+        // They will update their own profile via the link
       },
       create: {
         email,
-        name,
-        country,
-        contactMethod: contactMethodEnum,
-        contactValue,
+        // All other fields are nullable and will be filled by the guest
+        profileCompleted: false,
       },
     });
 
@@ -120,16 +107,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Note: Guest acceptance will be handled by separate acceptance flow
-
-    // Send invitation email (non-blocking - don't fail creation if email fails)
-    // TODO: Get actual host name from user record when auth is implemented
-    const hostName = 'Your Host'; // Mock - replace with actual host name
+    // Get host name for the email
+    const hostUser = await prisma.user.findUnique({
+      where: { id: hostId },
+      select: { name: true }
+    });
+    const hostName = hostUser?.name || 'Your Host';
     
+    // Send invitation email (non-blocking - don't fail creation if email fails)
     try {
       const emailResult = await sendInvitationEmail(
         guest.email,
-        guest.name,
+        guest.name || 'Guest', // Use 'Guest' if name not yet provided
         hostName,
         invitation.id,
         hostId

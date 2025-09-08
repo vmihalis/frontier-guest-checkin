@@ -63,12 +63,13 @@ export default function InvitationEmail({
                 as="h3"
                 style={{ marginTop: '0', color: '#007bff', fontSize: '18px' }}
               >
-                Next Steps:
+                Complete Your Registration:
               </Heading>
               <Text style={{ margin: '10px 0', color: '#333' }}>
-                1. Click the link below to accept our Terms and Visitor Agreement<br />
-                2. Once accepted, your host will generate your QR code<br />
-                3. Present the QR code at the Frontier Tower check-in kiosk
+                1. Click the link below to complete your profile<br />
+                2. Accept our Terms and Visitor Agreement<br />
+                3. Your host will then generate your QR code<br />
+                4. Present the QR code at the Frontier Tower check-in kiosk
               </Text>
             </Section>
             
@@ -85,7 +86,7 @@ export default function InvitationEmail({
                   fontWeight: 'bold',
                 }}
               >
-                Accept Terms & Continue
+                Complete Registration
               </Button>
             </Section>
             
@@ -99,8 +100,8 @@ export default function InvitationEmail({
                 border: '1px solid #ffeaa7',
               }}
             >
-              <strong>Important:</strong> You must accept the Terms and Visitor Agreement before your visit. 
-              Your host will generate the QR code once you have completed the acceptance process.
+              <strong>Important:</strong> You must complete your profile and accept the Terms and Visitor Agreement before your visit. 
+              Your host will generate the QR code once you have completed the registration process.
             </Text>
             
             <Hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '30px 0' }} />

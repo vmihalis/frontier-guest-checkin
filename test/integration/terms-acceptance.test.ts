@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 
+import './setup';
 import { generateAcceptanceToken, verifyAcceptanceToken, isAcceptanceTokenExpired } from '@/lib/acceptance-token';
 import { DatabaseHelpers } from '../utils/DatabaseHelpers';
 import { prisma } from '@/lib/prisma';
@@ -274,7 +275,9 @@ async function main() {
 }
 
 // Run as script if not in Jest environment
-if (typeof jest === 'undefined' && import.meta.url === `file://${process.argv[1]}`) {
+// Skip execution in Jest environment
+if (typeof jest === 'undefined') {
+  // Only run if executed directly
   main();
 }
 

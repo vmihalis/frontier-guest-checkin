@@ -76,6 +76,11 @@ export function validateQRToken(token: string): { isValid: boolean; data?: QRTok
  * Parse QR code data to determine if it's single-guest or batch format
  */
 export function parseQRData(qrData: string): ParsedQRData {
+  // Type guard to ensure we have a string
+  if (typeof qrData !== 'string') {
+    throw new Error('Invalid QR data: expected string');
+  }
+  
   console.log('Parsing QR data:', qrData.substring(0, 100), '...');
   
   // First, try to parse as direct JSON (guest batch or direct single-guest format)

@@ -111,11 +111,8 @@ export async function sendInvitationEmail(
   invitationId: string,
   hostId: string
 ): Promise<EmailResult> {
-  // Generate secure JWT token for terms acceptance
-  const { generateAcceptanceToken } = await import('./acceptance-token');
-  const acceptanceToken = await generateAcceptanceToken(invitationId, guestEmail, hostId);
-  
-  const acceptanceUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontiertower.com'}/accept/${acceptanceToken}`;
+  // Direct link to guest registration page (no token needed, just invitation ID)
+  const acceptanceUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://frontiertower.com'}/guest/register/${invitationId}`;
 
   // Dynamically import the React Email template
   const { default: InvitationEmail } = await import('./email-templates/InvitationEmail');
