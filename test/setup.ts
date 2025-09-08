@@ -5,8 +5,8 @@
 import '@testing-library/jest-dom';
 
 // Polyfill import.meta for Jest compatibility
-if (typeof globalThis.importMeta === 'undefined') {
-  globalThis.importMeta = {
+if (typeof (globalThis as any).importMeta === 'undefined') {
+  (globalThis as any).importMeta = {
     url: `file://${__filename}`,
   };
 }

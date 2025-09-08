@@ -22,6 +22,6 @@ if (typeof globalThis.fetch === 'undefined') {
 }
 
 // Set test environment variables
-process.env.NODE_ENV = 'test';
+// Note: NODE_ENV is readonly in TypeScript strict mode, handled by test runner
 process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only';
 process.env.OVERRIDE_PASSWORD = 'test-override-password-123';

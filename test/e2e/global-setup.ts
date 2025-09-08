@@ -11,7 +11,7 @@ async function globalSetup(config: FullConfig) {
     
     try {
       // Health check - wait for the app to be ready
-      await page.goto(config.use?.baseURL || 'http://localhost:3001');
+      await page.goto((config as any).use?.baseURL || 'http://localhost:3001');
       await page.waitForLoadState('networkidle');
       console.log('✅ Application server is ready');
     } catch (error) {

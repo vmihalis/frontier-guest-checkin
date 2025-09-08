@@ -12,7 +12,7 @@ if (typeof globalThis.crypto === 'undefined') {
 
 // Add TextEncoder/TextDecoder if missing
 if (typeof globalThis.TextEncoder === 'undefined') {
-  globalThis.TextEncoder = TextEncoder;
+  globalThis.TextEncoder = TextEncoder as any;
   globalThis.TextDecoder = TextDecoder as any;
 }
 

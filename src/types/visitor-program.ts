@@ -108,7 +108,7 @@ export interface VisitorProgramResponse {
 export interface ReferralResponse {
   success: boolean;
   referral?: ReferralData;
-  rewards?: any[];
+  rewards?: unknown[];
   error?: string;
 }
 

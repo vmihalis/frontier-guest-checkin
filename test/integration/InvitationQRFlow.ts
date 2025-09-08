@@ -259,7 +259,11 @@ export class InvitationQRFlow {
       take: guestCount
     })
 
-    guests.push(...existingGuests)
+    guests.push(...existingGuests.filter(guest => guest.name !== null).map(guest => ({
+      id: guest.id,
+      email: guest.email,
+      name: guest.name!
+    })))
 
     // Create additional guests if needed
     const needed = guestCount - guests.length
@@ -269,7 +273,11 @@ export class InvitationQRFlow {
           email: `multi.guest.${Date.now()}.${i}@frontier.test`,
         })
       })
-      guests.push(newGuest)
+      guests.push({
+        id: newGuest.id,
+        email: newGuest.email,
+        name: newGuest.name || 'Test User'
+      })
     }
 
     console.log(`🏢 Host: ${host.name}`)
