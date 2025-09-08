@@ -118,8 +118,7 @@ export async function GET(request: NextRequest) {
     const funnelMetrics = await calculateConversionFunnel(locationFilter, periodStart);
 
     // Get score distribution
-    const scoreDistribution = await prisma.frequentVisitor.groupBy({
-      by: [],
+    const scoreDistribution = await prisma.frequentVisitor.aggregate({
       where: {
         guest: {
           visits: { some: { ...locationFilter } }
@@ -148,10 +147,10 @@ export async function GET(request: NextRequest) {
         eventStats: conversionEventStats,
         tierDistribution,
         scoreDistribution: {
-          average: scoreDistribution[0]?._avg?.conversionScore || 0,
-          min: scoreDistribution[0]?._min?.conversionScore || 0,
-          max: scoreDistribution[0]?._max?.conversionScore || 0,
-          total: scoreDistribution[0]?._count?.id || 0
+          average: scoreDistribution._avg?.conversionScore || 0,
+          min: scoreDistribution._min?.conversionScore || 0,
+          max: scoreDistribution._max?.conversionScore || 0,
+          total: scoreDistribution._count?.id || 0
         }
       }
     });

@@ -102,7 +102,7 @@ function AdminPageContent() {
   const guestColumns: Column<Guest>[] = [
     { key: 'name', label: 'Guest', className: 'font-medium' },
     { key: 'email', label: 'Email' },
-    { key: 'country', label: 'Country', render: (value) => value || 'Unknown' },
+    { key: 'country', label: 'Country', render: (value) => <>{value || 'Unknown'}</> },
     { key: 'recentVisits', label: 'Visits (30d)' },
     { key: 'lifetimeVisits', label: 'Total Visits' },
     {
@@ -447,7 +447,18 @@ function AdminPageContent() {
           {/* Audit Log Tab */}
           <TabsContent value="audit" className="space-y-6">
             <AuditTab 
-              recentOverrides={stats?.recentOverrides} 
+              recentOverrides={stats?.recentOverrides?.map(override => ({
+                id: override.id,
+                createdAt: override.createdAt,
+                overriddenBy: { email: override.overrideBy },
+                reason: override.overrideReason,
+                visit: {
+                  guest: {
+                    name: override.guestName,
+                    email: override.guestEmail
+                  }
+                }
+              }))} 
               isActive={activeTab === 'audit'}
             />
           </TabsContent>

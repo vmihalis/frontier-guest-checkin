@@ -72,7 +72,7 @@ export function GuestHistorySection() {
     {
       key: 'lastVisitDate',
       label: 'Last Visit',
-      render: (value) => value ? formatDateInLA(new Date(value)) : 'Never'
+      render: (value) => <>{value ? formatDateInLA(new Date(value)) : 'Never'}</>
     },
     {
       key: 'hasDiscount',
