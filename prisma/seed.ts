@@ -7,7 +7,10 @@ const prisma = new PrismaClient()
 // Commented out for lint compliance
 
 // Helper function to get location for a host
-function getLocationForHost(host: any, activeLocations: any[], mainLocation: any) {
+type LocationType = { id: string; name: string; [key: string]: unknown };
+type HostType = { locationId?: string | null; [key: string]: unknown };
+
+function getLocationForHost(host: HostType, activeLocations: LocationType[], mainLocation: LocationType) {
   return host.locationId 
     ? activeLocations.find(loc => loc.id === host.locationId) || mainLocation
     : mainLocation

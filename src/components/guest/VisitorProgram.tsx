@@ -36,7 +36,7 @@ interface TierInfo {
   visitThreshold: number;
   benefits: string[];
   color: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   rewards: {
     welcomeBonus?: string;
     monthlyReward?: string;
@@ -255,7 +255,7 @@ export default function VisitorProgram({ guestEmail }: VisitorProgramProps) {
                 </p>
               ) : (
                 <p className="text-sm text-green-600 text-center font-medium">
-                  🎉 Congratulations! You've reached {nextTier.name} status!
+                  🎉 Congratulations! You&apos;ve reached {nextTier.name} status!
                 </p>
               )}
             </div>
