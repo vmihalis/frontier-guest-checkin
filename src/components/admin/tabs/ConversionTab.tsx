@@ -145,26 +145,30 @@ export default function ConversionTab() {
         <StatCard
           title="Total Guests"
           value={analytics.overview.totalGuests.toString()}
-          icon={<Users className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: true }}
+          description="All registered guests"
+          icon={Users}
+          trend={{ value: 0, positive: true }}
         />
         <StatCard
           title="Converted Guests"
           value={analytics.overview.convertedGuests.toString()}
-          icon={<Target className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: true }}
+          description="Guests who became hosts"
+          icon={Target}
+          trend={{ value: 0, positive: true }}
         />
         <StatCard
           title="Conversion Rate"
           value={`${analytics.overview.conversionRate}%`}
-          icon={<TrendingUp className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: true }}
+          description="Guest to host conversion"
+          icon={TrendingUp}
+          trend={{ value: 0, positive: true }}
         />
         <StatCard
           title="Avg. Conversion Time"
           value={`${Math.round(analytics.overview.averageConversionTime)} days`}
-          icon={<Clock className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: false }}
+          description="Average conversion time"
+          icon={Clock}
+          trend={{ value: 0, positive: false }}
         />
       </div>
 

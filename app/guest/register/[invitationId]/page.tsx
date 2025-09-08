@@ -144,7 +144,7 @@ export default function GuestRegistrationPage() {
       <div className="min-h-screen bg-background">
         <PageHeader 
           title="Loading..."
-          description="Please wait while we load your invitation"
+          subtitle="Please wait while we load your invitation"
         />
       </div>
     );
@@ -155,7 +155,7 @@ export default function GuestRegistrationPage() {
       <div className="min-h-screen bg-background">
         <PageHeader 
           title="Invalid Invitation"
-          description="This invitation could not be found"
+          subtitle="This invitation could not be found"
         />
       </div>
     );
@@ -165,7 +165,7 @@ export default function GuestRegistrationPage() {
     <div className="min-h-screen bg-background">
       <PageHeader 
         title="Complete Your Profile"
-        description={`Welcome! You&apos;ve been invited by ${invitation.host.name} to visit Frontier Tower.`}
+        subtitle={`Welcome! You&apos;ve been invited by ${invitation.host.name} to visit Frontier Tower.`}
       />
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">

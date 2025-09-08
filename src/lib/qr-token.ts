@@ -108,7 +108,7 @@ export function parseQRData(qrData: string): ParsedQRData {
     
     // If JSON parsed but doesn't match expected formats
     console.log('JSON parsed but unknown format:', Object.keys(parsed));
-    return null; // Return null for unknown JSON format
+    throw new Error('Unknown QR code format');
   } catch (jsonError) {
     console.log('JSON parsing failed:', jsonError instanceof Error ? jsonError.message : 'Unknown');
     
@@ -126,12 +126,12 @@ export function parseQRData(qrData: string): ParsedQRData {
       }
       
       console.log('Base64 decoded but missing required fields:', Object.keys(decoded));
-      return null; // Return null for invalid base64 decoded data
+      throw new Error('Invalid QR token data');
     } catch (base64Error) {
       console.error('QR parsing failed - JSON error:', jsonError instanceof Error ? jsonError.message : 'Unknown');
       console.error('QR parsing failed - Base64 error:', base64Error instanceof Error ? base64Error.message : 'Unknown');
       console.error('Raw QR data (first 200 chars):', qrData.substring(0, 200));
-      return null; // Return null for invalid data instead of throwing
+      throw new Error('Unable to parse QR code data');
     }
   }
 }

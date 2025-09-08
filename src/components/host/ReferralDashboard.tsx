@@ -17,7 +17,8 @@ import {
   Star,
   Mail,
   MessageSquare,
-  Calendar
+  Calendar,
+  type LucideIcon
 } from "lucide-react";
 
 interface ReferralData {
@@ -63,7 +64,7 @@ interface ReferralData {
 interface TierInfo {
   name: string;
   color: string;
-  icon: React.ComponentType;
+  icon: LucideIcon;
   benefits: string[];
 }
 
@@ -157,7 +158,7 @@ export default function ReferralDashboard() {
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold">Referral Dashboard</h1>
           <Badge className={tierInfo.color}>
-            <TierIcon className="h-4 w-4 mr-1" />
+            {TierIcon && <TierIcon className="h-4 w-4 mr-1" />}
             {tierInfo.name}
           </Badge>
         </div>
@@ -171,26 +172,30 @@ export default function ReferralDashboard() {
         <StatCard
           title="Total Referrals"
           value={data.hostInfo.totalReferrals.toString()}
-          icon={<Users className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: true }}
+          description="Guests you've referred"
+          icon={Users}
+          trend={{ value: 0, positive: true }}
         />
         <StatCard
           title="Conversions"
           value={data.hostInfo.totalConversions.toString()}
-          icon={<Trophy className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: true }}
+          description="Referrals who became hosts"
+          icon={Trophy}
+          trend={{ value: 0, positive: true }}
         />
         <StatCard
           title="Conversion Rate"
           value={`${data.hostInfo.conversionRate}%`}
-          icon={<TrendingUp className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: true }}
+          description="Success rate"
+          icon={TrendingUp}
+          trend={{ value: 0, positive: true }}
         />
         <StatCard
           title="Reward Balance"
           value={`$${data.hostInfo.rewardBalance.toFixed(0)}`}
-          icon={<DollarSign className="h-5 w-5" />}
-          trend={{ value: 0, isPositive: true }}
+          description="Available rewards"
+          icon={DollarSign}
+          trend={{ value: 0, positive: true }}
         />
       </div>
 

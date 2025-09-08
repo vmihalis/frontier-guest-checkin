@@ -24,6 +24,8 @@ We prefer a single DB var: `DATABASE_URL`. Optional: `DIRECT_URL` (Prisma migrat
 ### Scripts
 ```bash
 npm run dev            # Next.js dev (Turbopack)
+npm run dev:https      # HTTPS dev server (for iPad camera)
+npm run setup:https    # Generate SSL certificates
 npm run build          # Production build
 npm run start          # Serve build
 
@@ -48,6 +50,13 @@ npm run test:staging   # Integration (requires non-prod DB)
 - This is a production-style guest check‑in for offices with security desks.
 - Optimizes for kiosk/iPad scanning, fast admits, and auditable overrides.
 - Encodes business rules in one place so policy changes are predictable and testable.
+
+### iPad/iOS Camera Setup
+For camera access on iPad/iOS devices, HTTPS is required:
+1. Run `npm run setup:https` to generate certificates
+2. Run `npm run dev:https` to start HTTPS server
+3. Access via `https://[your-ip]:3000/checkin` on iPad
+4. Install certificate on iPad (see IPAD-CAMERA-SETUP.md for details)
 
 ### Personas
 - **Host**: invites guests, sees visit history.

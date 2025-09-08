@@ -5,6 +5,8 @@
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:https": "node scripts/dev-https.js",
+    "setup:https": "node scripts/setup-https.js",
     "build": "prisma generate && next build --turbopack",
     "start": "next start",
     "lint": "eslint",

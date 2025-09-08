@@ -7,6 +7,7 @@ import { sendDiscountEmail } from '@/lib/email';
 import { validateQRToken } from '@/lib/qr-token';
 import { validateOverrideRequest, type OverrideRequest } from '@/lib/override';
 import { updateFrequentVisitorMetrics, logConversionEvent } from '@/lib/analytics';
+import type { CheckinData } from '@/types/analytics';
 import { processTierProgression } from '@/lib/visitor-program';
 import type { GuestData } from '@/lib/qr-token';
 
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        guestList = [{ e: guestRecord.email, n: guestRecord.name }];
+        guestList = [{ e: guestRecord.email, n: guestRecord.name || 'Guest' }];
       }
     } else if (guest) {
       // Single guest direct format
@@ -276,20 +277,17 @@ export async function POST(request: NextRequest) {
         
         // Track events for each successful guest
         for (const result of results.filter(r => r.success)) {
-          if (result.guestId) {
+          if ('guestId' in result && result.guestId) {
             await logConversionEvent(
               result.guestId,
               'GUEST_VISITED',
               checkInMethod,
               'success',
               {
-                hostId,
-                locationId,
-                overrideUsed: isOverrideValid,
-                visitId: result.visitId,
-                returningGuest: result.isReturning || false,
-                discountTriggered: result.discountSent || false
-              }
+                method: 'qr',
+                location: locationId,
+                overrideApplied: isOverrideValid
+              } as CheckinData
             );
 
             // Update frequent visitor metrics asynchronously
@@ -478,8 +476,7 @@ async function processGuestCheckIn({
         checkedInAt: now,
         expiresAt,
         overrideReason: override?.reason || null,
-        overriddenBy: overrideUserId || null,
-        overriddenAt: override ? now : null,
+        overrideBy: overrideUserId || null,
       },
     });
 

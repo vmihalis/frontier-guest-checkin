@@ -14,7 +14,8 @@ import type {
   SurveyResponseData,
   ReferralData,
   CheckinData,
-  EngagementData 
+  EngagementData,
+  GuestWithAnalytics
 } from "@/types/analytics";
 
 export type { 
@@ -67,7 +68,7 @@ export async function calculateConversionScore(guestId: string): Promise<Convers
 
   // 3. Network Effect Score (0-25 points)
   const uniqueHosts = new Set(guest.visits.map(v => v.hostId)).size;
-  const colleaguesEstimate = await estimateColleaguesInBuilding(guest.email, guest.company);
+  const colleaguesEstimate = await estimateColleaguesInBuilding(guest.email);
   const networkEffect = Math.min(25, (uniqueHosts * 4) + (colleaguesEstimate * 2));
 
   // 4. Business Context Score (0-25 points)
@@ -265,7 +266,7 @@ export async function updateFrequentVisitorMetrics(guestId: string): Promise<voi
       conversionScore: conversionData.score,
       currentTier: conversionData.tier,
       lastScoreUpdate: nowInLA(),
-      colleaguesInBuilding: await estimateColleaguesInBuilding(guest.email, guest.company),
+      colleaguesInBuilding: await estimateColleaguesInBuilding(guest.email),
       networkScore: conversionData.factors.networkEffect
     },
     create: {
@@ -279,10 +280,78 @@ export async function updateFrequentVisitorMetrics(guestId: string): Promise<voi
       uniqueHostsCount,
       conversionScore: conversionData.score,
       currentTier: conversionData.tier,
-      colleaguesInBuilding: await estimateColleaguesInBuilding(guest.email, guest.company),
+      colleaguesInBuilding: await estimateColleaguesInBuilding(guest.email),
       networkScore: conversionData.factors.networkEffect
     }
   });
+}
+
+/**
+ * Determine company size category
+ */
+function determineCompanySize(size: string | null): 'small' | 'medium' | 'large' | 'enterprise' {
+  if (!size) return 'small';
+  if (size === 'Enterprise' || size === 'enterprise') return 'enterprise';
+  if (size === 'Large' || size === 'large') return 'large';
+  if (size === 'Medium' || size === 'medium' || size === 'SME') return 'medium';
+  return 'small';
+}
+
+/**
+ * Estimate employee count based on company size
+ */
+function estimateEmployeeCount(size: string | null): number {
+  if (!size) return 10;
+  if (size === 'Enterprise' || size === 'enterprise') return 1000;
+  if (size === 'Large' || size === 'large') return 500;
+  if (size === 'Medium' || size === 'medium' || size === 'SME') return 100;
+  return 10;
+}
+
+/**
+ * Determine potential value
+ */
+function determinePotentialValue(size: string | null, visitCount: number): 'low' | 'medium' | 'high' {
+  const sizeCategory = determineCompanySize(size);
+  if (sizeCategory === 'enterprise' && visitCount >= 3) return 'high';
+  if (sizeCategory === 'large' && visitCount >= 5) return 'high';
+  if (sizeCategory === 'medium' && visitCount >= 3) return 'medium';
+  if (visitCount >= 6) return 'medium';
+  return 'low';
+}
+
+/**
+ * Calculate average days between visits
+ */
+function calculateAverageDaysBetweenVisits(visits: Visit[]): number {
+  if (visits.length < 2) return 0;
+  
+  const sortedVisits = visits
+    .filter(v => v.checkedInAt)
+    .sort((a, b) => b.checkedInAt!.getTime() - a.checkedInAt!.getTime());
+  
+  if (sortedVisits.length < 2) return 0;
+  
+  let totalDays = 0;
+  for (let i = 0; i < sortedVisits.length - 1; i++) {
+    const daysBetween = Math.floor(
+      (sortedVisits[i].checkedInAt!.getTime() - sortedVisits[i + 1].checkedInAt!.getTime()) / 
+      (1000 * 60 * 60 * 24)
+    );
+    totalDays += daysBetween;
+  }
+  
+  return Math.round(totalDays / (sortedVisits.length - 1));
+}
+
+/**
+ * Determine visit pattern based on frequency
+ */
+function determineVisitPattern(totalVisits: number, monthlyVisits: number): 'frequent' | 'regular' | 'occasional' | 'rare' {
+  if (monthlyVisits >= 4) return 'frequent';
+  if (monthlyVisits >= 2) return 'regular';
+  if (totalVisits >= 3) return 'occasional';
+  return 'rare';
 }
 
 /**
@@ -378,27 +447,62 @@ export async function getGuestAnalytics(guestId: string): Promise<GuestAnalytics
   const averageStayMinutes = guest.visits.length > 0 ? totalDuration / guest.visits.length : 0;
   const latestSurvey = guest.surveys[0];
 
+  // Get conversion score details
+  const conversionScore = await calculateConversionScore(guestId);
+  
+  // Get timeline of conversion events
+  const timeline = await prisma.conversionEvent.findMany({
+    where: { guestId },
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  });
+
   return {
-    guestId: guest.id,
-    email: guest.email,
-    name: guest.name,
-    company: guest.company,
-    totalVisits: guest.visits.length,
-    recentVisits,
-    averageStayMinutes,
-    lastVisitDate: guest.visits[0]?.checkedInAt || null,
-    visitStreak: guest.frequentVisitor?.visitStreak || 0,
-    uniqueHostsCount,
-    conversionScore: guest.frequentVisitor?.conversionScore || 0,
-    currentTier: guest.frequentVisitor?.currentTier || 'BRONZE',
-    satisfactionScore: latestSurvey?.satisfactionScore || null,
-    npsScore: latestSurvey?.npsScore || null,
-    jobTitle: guest.jobTitle,
-    industry: guest.industry,
-    companySize: guest.companySize,
-    conversionInterest: guest.conversionInterest || 0,
-    lastOutreachAt: guest.lastOutreachAt,
-    becameHostAt: guest.becameHostAt
+    guest: {
+      id: guest.id,
+      email: guest.email,
+      name: guest.name,
+      company: guest.company,
+      jobTitle: guest.jobTitle,
+      industry: guest.industry,
+      companySize: guest.companySize,
+      lastVisitDate: guest.visits[0]?.checkedInAt || null,
+      becameHostAt: guest.becameHostAt,
+      visits: guest.visits,
+      frequentVisitor: guest.frequentVisitor,
+      surveys: guest.surveys
+    } as unknown as GuestWithAnalytics,
+    visitFrequency: {
+      totalVisits: guest.visits.length,
+      monthlyVisits: recentVisits,
+      averageDaysBetweenVisits: calculateAverageDaysBetweenVisits(guest.visits),
+      lastVisitDaysAgo: guest.visits[0]?.checkedInAt 
+        ? Math.floor((nowInLA().getTime() - guest.visits[0].checkedInAt.getTime()) / (1000 * 60 * 60 * 24))
+        : 999,
+      visitPattern: determineVisitPattern(guest.visits.length, recentVisits)
+    },
+    network: {
+      uniqueHosts: uniqueHostsCount,
+      repeatHost: uniqueHostsCount < guest.visits.length,
+      domainColleagues: await estimateColleaguesInBuilding(guest.email),
+      referralCount: 0, // TODO: Implement referral counting
+      networkScore: guest.frequentVisitor?.networkScore || 0
+    },
+    engagement: {
+      profileCompleted: !!(guest.company && guest.jobTitle),
+      surveyCompleted: guest.surveys.length > 0,
+      hasReferrals: false, // TODO: Implement referral check
+      programEnrolled: !!guest.frequentVisitor,
+      engagementScore: latestSurvey?.satisfactionScore || 0
+    },
+    business: {
+      companySize: determineCompanySize(guest.companySize),
+      industry: guest.industry || undefined,
+      employeeCount: estimateEmployeeCount(guest.companySize),
+      potentialValue: determinePotentialValue(guest.companySize, guest.visits.length)
+    },
+    conversion: conversionScore,
+    timeline
   };
 }
 

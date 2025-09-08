@@ -80,15 +80,23 @@ export default function AuditTab({ recentOverrides, isActive = false }: AuditTab
                 <TableRow key={override.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{override.guestName}</p>
-                      <p className="text-sm text-muted-foreground">{override.guestEmail}</p>
+                      <p className="font-medium">
+                        {'guestName' in override ? override.guestName : override.visit?.guest?.name || 'Unknown Guest'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {'guestEmail' in override ? override.guestEmail : override.visit?.guest?.email || 'No email'}
+                      </p>
                     </div>
                   </TableCell>
-                  <TableCell>{override.hostName}</TableCell>
+                  <TableCell>{'hostName' in override ? override.hostName : 'N/A'}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{override.overrideReason}</Badge>
+                    <Badge variant="outline">
+                      {'overrideReason' in override ? override.overrideReason : override.reason}
+                    </Badge>
                   </TableCell>
-                  <TableCell>{override.overrideBy}</TableCell>
+                  <TableCell>
+                    {'overrideBy' in override ? override.overrideBy : override.overriddenBy?.email || 'Unknown'}
+                  </TableCell>
                   <TableCell>
                     {new Date(override.createdAt).toLocaleString()}
                   </TableCell>

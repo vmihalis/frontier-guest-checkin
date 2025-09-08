@@ -4,11 +4,9 @@
 
 import type { 
   VisitorTier,
-  VisitorProgram as PrismaVisitorProgram,
-  ReferralReward,
-  Achievement,
   Guest,
-  Visit
+  Visit,
+  FrequentVisitor
 } from '@prisma/client';
 
 // Visit data structure for type safety
@@ -110,7 +108,7 @@ export interface VisitorProgramResponse {
 export interface ReferralResponse {
   success: boolean;
   referral?: ReferralData;
-  rewards?: ReferralReward[];
+  rewards?: any[];
   error?: string;
 }
 

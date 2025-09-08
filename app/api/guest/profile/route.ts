@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { updateFrequentVisitorMetrics, logConversionEvent } from '@/lib/analytics';
+import type { SurveyResponseData } from '@/types/analytics';
 
 /**
  * POST /api/guest/profile
@@ -81,11 +82,14 @@ export async function POST(request: NextRequest) {
       'profile_registration',
       'success',
       {
-        hasCompany: !!company,
-        hasJobTitle: !!jobTitle,
-        hasIndustry: !!industry,
-        interestCount: interests?.length || 0
-      }
+        responses: [
+          { question: 'Company', answer: company || 'Not provided' },
+          { question: 'Job Title', answer: jobTitle || 'Not provided' },
+          { question: 'Industry', answer: industry || 'Not provided' },
+          { question: 'Interests', answer: interests?.join(', ') || 'None' }
+        ],
+        completedAt: new Date().toISOString()
+      } as SurveyResponseData
     );
 
     return NextResponse.json({
@@ -122,7 +126,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const whereClause = email ? { email } : { id: guestId };
+    const whereClause = email ? { email } : { id: guestId! };
     const guest = await prisma.guest.findUnique({
       where: whereClause,
       include: {

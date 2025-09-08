@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logConversionEvent, updateFrequentVisitorMetrics } from '@/lib/analytics';
+import type { SurveyResponseData } from '@/types/analytics';
 import { sendEmail } from '@/lib/email';
 
 /**
@@ -71,13 +72,16 @@ export async function POST(request: NextRequest) {
       'post_visit_survey',
       'success',
       {
-        surveyType,
-        satisfactionScore,
-        npsScore,
-        hostingInterest,
-        followUpRequested,
-        salesContactOk
-      }
+        responses: [
+          { question: 'Survey Type', answer: surveyType },
+          { question: 'Satisfaction', answer: satisfactionScore || 'Not rated', rating: satisfactionScore },
+          { question: 'NPS Score', answer: npsScore || 'Not rated', rating: npsScore },
+          { question: 'Hosting Interest', answer: hostingInterest },
+          { question: 'Follow-up Requested', answer: followUpRequested ? 'Yes' : 'No' },
+          { question: 'Sales Contact OK', answer: salesContactOk ? 'Yes' : 'No' }
+        ],
+        completedAt: new Date().toISOString()
+      } as SurveyResponseData
     );
 
     // Trigger follow-up actions based on responses
@@ -181,7 +185,10 @@ async function processSurveyTriggers(
       'OUTREACH_EMAIL_SENT',
       'high_interest_survey',
       'scheduled',
-      { hostingInterest: responses.hostingInterest }
+      {
+        responses: [{ question: 'Hosting Interest', answer: String(responses.hostingInterest), rating: responses.hostingInterest }],
+        completedAt: new Date().toISOString()
+      } as SurveyResponseData
     );
 
     // Mark for high-priority outreach
@@ -201,7 +208,10 @@ async function processSurveyTriggers(
       'FOLLOW_UP_MEETING',
       'nps_promoter',
       'scheduled',
-      { npsScore: responses.npsScore }
+      {
+        responses: [{ question: 'NPS Score', answer: String(responses.npsScore), rating: responses.npsScore }],
+        completedAt: new Date().toISOString()
+      } as SurveyResponseData
     );
   }
 
@@ -212,7 +222,10 @@ async function processSurveyTriggers(
       'SURVEY_COMPLETED',
       'low_satisfaction',
       'needs_attention',
-      { satisfactionScore: responses.satisfactionScore }
+      {
+        responses: [{ question: 'Satisfaction Score', answer: String(responses.satisfactionScore), rating: responses.satisfactionScore }],
+        completedAt: new Date().toISOString()
+      } as SurveyResponseData
     );
   }
 

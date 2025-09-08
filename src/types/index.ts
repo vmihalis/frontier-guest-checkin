@@ -11,21 +11,16 @@ export type {
   Invitation,
   Acceptance,
   Discount,
-  LocationCapacity,
   ConversionEvent,
   FrequentVisitor,
-  Survey,
-  VisitorProgram,
-  ReferralReward,
-  Achievement,
-  Activity,
+  EngagementSurvey,
   
   // Enums
   UserRole,
   InvitationStatus,
   VisitorTier,
   ConversionEventType,
-  AcceptanceType
+  HostTier
 } from '@prisma/client';
 
 // Analytics types
@@ -120,7 +115,7 @@ export interface UserSession {
   id: string;
   email: string;
   name: string;
-  role: UserRole;
+  role: import('@prisma/client').UserRole;
   locationId?: string;
 }
 

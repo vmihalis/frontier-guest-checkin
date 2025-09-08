@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAdminData } from '@/contexts/AdminDataContext';
-import { getAcceptanceStatusDescription, getAcceptanceStatusColor } from '@/lib/acceptance-helpers';
+import { getAcceptanceStatusDescription, getAcceptanceStatusColor, type AcceptanceStatus } from '@/lib/acceptance-helpers';
 import { 
   UserCheck, 
   Activity, 
@@ -208,7 +208,16 @@ export default function GuestJourneyModal({ isOpen, guestId, onClose }: GuestJou
                   {/* Dynamic Acceptance Status Badge */}
                   {selectedGuest.guest.acceptanceStatus ? (
                     (() => {
-                      const status = selectedGuest.guest.acceptanceStatus;
+                      const rawStatus = selectedGuest.guest.acceptanceStatus;
+                      const status: AcceptanceStatus = {
+                        ...rawStatus,
+                        expiresAt: rawStatus.expiresAt 
+                          ? new Date(rawStatus.expiresAt) 
+                          : null,
+                        acceptedAt: rawStatus.acceptedAt 
+                          ? new Date(rawStatus.acceptedAt) 
+                          : undefined
+                      };
                       const colors = getAcceptanceStatusColor(status);
                       const description = getAcceptanceStatusDescription(status);
                       

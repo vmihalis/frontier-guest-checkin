@@ -70,7 +70,7 @@ export function DataTable<T extends Record<string, unknown>>({
             </TableHeader>
             <TableBody>
               {data.map((item, index) => (
-                <TableRow key={item.id || index}>
+                <TableRow key={(item.id as string | number) || index}>
                   {columns.map((column, colIndex) => {
                     const value = typeof column.key === 'string' && column.key.includes('.') 
                       ? getNestedValue(item, column.key as string)
@@ -81,7 +81,7 @@ export function DataTable<T extends Record<string, unknown>>({
                         key={String(column.key) + colIndex} 
                         className={column.className}
                       >
-                        {column.render ? column.render(value, item) : value}
+                        {column.render ? column.render(value, item) : (value as React.ReactNode)}
                       </TableCell>
                     );
                   })}

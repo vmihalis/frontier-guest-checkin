@@ -72,7 +72,7 @@ export function GuestHistorySection() {
     {
       key: 'lastVisitDate',
       label: 'Last Visit',
-      render: (value) => <>{value ? formatDateInLA(new Date(value)) : 'Never'}</>
+      render: (value) => <>{value ? formatDateInLA(new Date(value as string | number)) : 'Never'}</>
     },
     {
       key: 'hasDiscount',
@@ -110,8 +110,8 @@ export function GuestHistorySection() {
           />
         ) : (
           <DataTable
-            data={guestHistory}
-            columns={columns}
+            data={guestHistory as unknown as Record<string, unknown>[]}
+            columns={columns as unknown as Column<Record<string, unknown>>[]}
             emptyMessage={searchTerm ? 'No guests found matching your search.' : 'No guest history available.'}
           />
         )}

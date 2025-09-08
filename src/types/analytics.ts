@@ -14,10 +14,8 @@ import type {
   ConversionEventType,
   InvitationStatus,
   UserRole,
-  LocationCapacity,
-  VisitorProgram,
-  ReferralReward,
-  Achievement
+  FrequentVisitor,
+  EngagementSurvey
 } from '@prisma/client';
 
 // Event data schemas for conversion events
@@ -55,13 +53,20 @@ export interface EngagementData {
   metadata?: Record<string, string | number | boolean>;
 }
 
+export interface ConversionCompletionData {
+  convertedBy?: string;
+  newHostId?: string;
+  conversionMethod?: string;
+}
+
 // Union type for all possible event data
 export type ConversionEventData = 
   | ProfileCompletionData 
   | SurveyResponseData 
   | ReferralData 
   | CheckinData 
-  | EngagementData;
+  | EngagementData
+  | ConversionCompletionData;
 
 // Visit with strict typing
 export interface VisitWithRelations extends Visit {
@@ -72,11 +77,10 @@ export interface VisitWithRelations extends Visit {
 
 // Guest with analytics
 export interface GuestWithAnalytics extends Guest {
-  visits: VisitWithRelations[];
+  visits: Visit[];
   conversionEvents: ConversionEvent[];
-  visitorProgram?: VisitorProgram | null;
-  referralRewards: ReferralReward[];
-  achievements: Achievement[];
+  frequentVisitor: FrequentVisitor | null;
+  surveys: EngagementSurvey[];
   discounts: Discount[];
   acceptances: Acceptance[];
 }

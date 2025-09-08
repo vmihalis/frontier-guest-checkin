@@ -337,6 +337,7 @@ enum ConversionEventType {
   TRIAL_HOSTING_STARTED
   CONVERSION_COMPLETED
   CONVERSION_DECLINED
+  GUEST_VISITED
 }
 
 enum ReferralEventType {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+// import { Progress } from "@/components/ui/progress"; // Component not available
 import { 
   Award, 
   Gift, 
@@ -248,7 +248,13 @@ export default function VisitorProgram({ guestEmail }: VisitorProgramProps) {
                 <span>Current Progress</span>
                 <span>{profile.visitCount} / {nextTier.visitThreshold} visits</span>
               </div>
-              <Progress value={progress} className="w-full" />
+              {/* Progress bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
               {visitsUntilNext > 0 ? (
                 <p className="text-sm text-gray-600 text-center">
                   {visitsUntilNext} more visit{visitsUntilNext !== 1 ? 's' : ''} to reach {nextTier.name}!

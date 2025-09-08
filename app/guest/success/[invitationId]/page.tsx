@@ -54,7 +54,7 @@ export default function GuestSuccessPage() {
     <div className="min-h-screen bg-background">
       <PageHeader 
         title="Registration Complete!"
-        description="You're all set for your visit to Frontier Tower"
+        subtitle="You're all set for your visit to Frontier Tower"
       />
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">

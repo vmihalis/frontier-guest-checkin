@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
       const guestWhere: {
         OR: Array<{ name?: { contains: string; mode: 'insensitive' } } | 
                   { email?: { contains: string; mode: 'insensitive' } } | 
-                  { country?: { contains: string; mode: 'insensitive' } }>
+                  { country?: { contains: string; mode: 'insensitive' } }>;
+        visits?: { some: { locationId: string } };
       } = {
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
         results.push({
           type: 'guest',
           id: guest.id,
-          title: guest.name,
+          title: guest.name || 'Unknown Guest',
           subtitle: guest.email,
           description,
           data: {

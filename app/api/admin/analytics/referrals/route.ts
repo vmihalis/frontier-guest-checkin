@@ -296,7 +296,7 @@ async function calculatePendingRewards(locationFilter: { locationId?: string } |
   const pendingReferrals = await prisma.referralEvent.aggregate({
     where: {
       status: 'PENDING',
-      host: locationFilter.locationId ? { locationId: locationFilter.locationId } : {}
+      host: locationFilter?.locationId ? { locationId: locationFilter.locationId } : {}
     },
     _sum: { rewardAmount: true }
   });

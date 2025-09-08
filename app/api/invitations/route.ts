@@ -120,8 +120,7 @@ export async function POST(request: NextRequest) {
         guest.email,
         guest.name || 'Guest', // Use 'Guest' if name not yet provided
         hostName,
-        invitation.id,
-        hostId
+        invitation.id
       );
       
       if (!emailResult.success) {

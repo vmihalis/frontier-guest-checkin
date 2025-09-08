@@ -135,7 +135,7 @@ export default function GuestAcceptancePage() {
       <div className="min-h-screen bg-background">
         <PageHeader 
           title="Loading..."
-          description="Please wait while we load your invitation"
+          subtitle="Please wait while we load your invitation"
         />
       </div>
     );
@@ -146,7 +146,7 @@ export default function GuestAcceptancePage() {
       <div className="min-h-screen bg-background">
         <PageHeader 
           title="Invalid Invitation"
-          description="This invitation could not be found"
+          subtitle="This invitation could not be found"
         />
       </div>
     );
@@ -156,7 +156,7 @@ export default function GuestAcceptancePage() {
     <div className="min-h-screen bg-background">
       <PageHeader 
         title="Accept Terms & Conditions"
-        description={`Welcome ${invitation.guest.name || 'Guest'}! Please review and accept the terms below.`}
+        subtitle={`Welcome ${invitation.guest.name || 'Guest'}! Please review and accept the terms below.`}
       />
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">

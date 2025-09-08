@@ -105,10 +105,12 @@ export default function CheckInPage() {
   const [parsedQRData, setParsedQRData] = useState<ParsedQRData | null>(null);
   const [selectedGuest, setSelectedGuest] = useState<GuestData | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isHttps, setIsHttps] = useState(true);
   const [checkInState, setCheckInState] = useState<'scanning' | 'guest-selection' | 'processing' | 'success' | 'error' | 'override-required'>('scanning');
   const [overrideData, setOverrideData] = useState<{
     guestData?: GuestData | string;
@@ -133,38 +135,82 @@ export default function CheckInPage() {
   useEffect(() => {
     const initializeScanner = async () => {
       try {
+        // Check HTTPS requirement for iOS
+        const isSecureContext = window.isSecureContext;
+        const protocol = window.location.protocol;
+        setIsHttps(isSecureContext || protocol === 'https:');
+        
+        if (!isSecureContext && protocol !== 'https:') {
+          // Check if this is iOS/Safari
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+          
+          if (isIOS || isSafari) {
+            setPermissionError('Camera access requires HTTPS on iOS devices. Please use HTTPS or see setup instructions.');
+            setHasPermission(false);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
         // Check if QR scanner is supported
         const hasCamera = await QrScanner.hasCamera();
         if (!hasCamera) {
+          setPermissionError('No camera detected on this device.');
           setHasPermission(false);
           setIsLoading(false);
           return;
         }
 
-        setHasPermission(true);
-        
-        // Get available cameras
-        const availableCameras = await QrScanner.listCameras(true);
-        const cameraDevices = availableCameras.map(camera => ({
-          deviceId: camera.id,
-          label: camera.label
-        }));
-        
-        setCameras(cameraDevices);
-        
-        // Prefer back camera
-        const backCamera = availableCameras.find(camera => 
-          camera.label.toLowerCase().includes('back') || 
-          camera.label.toLowerCase().includes('rear') ||
-          camera.label.toLowerCase().includes('environment')
-        );
-        
-        const preferredCamera = backCamera || availableCameras[0];
-        setSelectedCamera(preferredCamera?.id || null);
+        // Request camera permission explicitly for iOS
+        try {
+          // iOS Safari requires user interaction for camera permission
+          // Try to get camera access
+          const availableCameras = await QrScanner.listCameras(true);
+          
+          if (availableCameras.length === 0) {
+            throw new Error('No cameras available');
+          }
+          
+          const cameraDevices = availableCameras.map(camera => ({
+            deviceId: camera.id,
+            label: camera.label
+          }));
+          
+          setCameras(cameraDevices);
+          
+          // Prefer back camera for mobile devices
+          const backCamera = availableCameras.find(camera => 
+            camera.label.toLowerCase().includes('back') || 
+            camera.label.toLowerCase().includes('rear') ||
+            camera.label.toLowerCase().includes('environment')
+          );
+          
+          const preferredCamera = backCamera || availableCameras[0];
+          setSelectedCamera(preferredCamera?.id || null);
+          setHasPermission(true);
+          setPermissionError(null);
+        } catch (permError) {
+          console.error('Camera permission error:', permError);
+          
+          // Provide specific error messages
+          const error = permError as Error & { name?: string };
+          if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            setPermissionError('Camera permission was denied. Please allow camera access in your browser settings.');
+          } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+            setPermissionError('No camera found. Please ensure your device has a working camera.');
+          } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+            setPermissionError('Camera is already in use by another application. Please close other apps using the camera.');
+          } else {
+            setPermissionError('Unable to access camera. Please check your browser settings.');
+          }
+          setHasPermission(false);
+        }
         
         setIsLoading(false);
       } catch (error) {
         console.error('Scanner initialization error:', error);
+        setPermissionError('Failed to initialize camera. Please refresh and try again.');
         setHasPermission(false);
         setIsLoading(false);
       }
@@ -377,21 +423,40 @@ export default function CheckInPage() {
         qrScannerRef.current.destroy();
       }
 
-      // Create new scanner
+      // iOS-specific: ensure video element is properly configured
+      const video = videoRef.current;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      video.setAttribute('muted', 'true');
+      video.setAttribute('autoplay', 'true');
+
+      // Create new scanner with iOS-optimized settings
       qrScannerRef.current = new QrScanner(
-        videoRef.current,
+        video,
         handleScanSuccess,
         {
           onDecodeError: handleScanError,
           preferredCamera: selectedCamera,
           highlightScanRegion: true,
           highlightCodeOutline: true,
+          // iOS-specific: higher max scans for better performance
+          maxScansPerSecond: 10,
         }
       );
 
       await qrScannerRef.current.start();
     } catch (error) {
       console.error('Failed to start scanner:', error);
+      
+      // Provide more specific error feedback
+      const err = error as Error & { name?: string };
+      if (err.name === 'NotAllowedError') {
+        setPermissionError('Camera permission denied. Please allow camera access and refresh.');
+      } else if (err.name === 'NotReadableError') {
+        setPermissionError('Camera is in use by another app. Please close other camera apps.');
+      } else {
+        setPermissionError('Failed to start camera. Please refresh and try again.');
+      }
       setHasPermission(false);
     }
   }, [selectedCamera, handleScanSuccess]);
@@ -449,15 +514,73 @@ export default function CheckInPage() {
         <div className="text-center p-8 bg-card rounded-lg shadow-lg max-w-md">
           <div className="text-red-500 text-6xl mb-4">📷</div>
           <h1 className="text-2xl font-bold text-foreground mb-4">Camera Access Required</h1>
+          
+          {permissionError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-700 dark:text-red-400">{permissionError}</p>
+            </div>
+          )}
+          
+          {!isHttps && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6 text-left">
+              <h3 className="font-semibold text-yellow-800 dark:text-yellow-400 mb-2">📱 iPad/iOS Users:</h3>
+              <p className="text-sm text-yellow-700 dark:text-yellow-500 mb-3">
+                Safari requires HTTPS for camera access. To fix this:
+              </p>
+              <ol className="text-sm text-yellow-700 dark:text-yellow-500 space-y-2 list-decimal list-inside">
+                <li>Run <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">npm run setup:https</code> on your computer</li>
+                <li>Install the certificate on your iPad</li>
+                <li>Access via <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">https://[computer-ip]:3000</code></li>
+              </ol>
+            </div>
+          )}
+          
           <p className="text-muted-foreground mb-6">
-            Please allow camera access to scan QR codes for guest check-in.
+            {isHttps 
+              ? "Please allow camera access when prompted or check your browser settings."
+              : "Camera access requires proper setup for iOS devices."
+            }
           </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium"
-          >
-            Retry Camera Access
-          </button>
+          
+          <div className="space-y-3">
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium"
+            >
+              Retry Camera Access
+            </button>
+            
+            {/* iOS specific help */}
+            {/iPad|iPhone|iPod/.test(navigator.userAgent) && (
+              <button 
+                onClick={() => {
+                  // Try to request permission again with user gesture
+                  navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(() => window.location.reload())
+                    .catch((err) => {
+                      console.error('Permission request failed:', err);
+                      alert('Please allow camera access in Settings > Safari > Camera');
+                    });
+                }}
+                className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-lg font-medium"
+              >
+                Request Permission
+              </button>
+            )}
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-border">
+            <details className="text-left">
+              <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                Troubleshooting Guide
+              </summary>
+              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <p><strong>iOS/Safari:</strong> Settings → Safari → Camera → Allow</p>
+                <p><strong>Chrome:</strong> Click lock icon → Site settings → Camera → Allow</p>
+                <p><strong>Still not working?</strong> Try opening in Safari or Chrome</p>
+              </div>
+            </details>
+          </div>
         </div>
       </div>
     );

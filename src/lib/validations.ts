@@ -364,7 +364,21 @@ export async function checkExistingActiveVisit(hostId: string, guestEmail: strin
   if (sameHostActiveVisit) {
     return {
       hasActiveVisit: true,
-      activeVisit: sameHostActiveVisit,
+      activeVisit: {
+        id: sameHostActiveVisit.id,
+        checkedInAt: sameHostActiveVisit.checkedInAt,
+        expiresAt: sameHostActiveVisit.expiresAt,
+        guest: {
+          id: sameHostActiveVisit.guest.id,
+          name: sameHostActiveVisit.guest.name || '',
+          email: sameHostActiveVisit.guest.email
+        },
+        host: {
+          id: sameHostActiveVisit.host.id,
+          name: sameHostActiveVisit.host.name,
+          email: sameHostActiveVisit.host.email
+        }
+      },
       crossHostVisit: false,
     };
   }
@@ -386,7 +400,21 @@ export async function checkExistingActiveVisit(hostId: string, guestEmail: strin
   if (crossHostActiveVisit) {
     return {
       hasActiveVisit: true,
-      activeVisit: crossHostActiveVisit,
+      activeVisit: {
+        id: crossHostActiveVisit.id,
+        checkedInAt: crossHostActiveVisit.checkedInAt,
+        expiresAt: crossHostActiveVisit.expiresAt,
+        guest: {
+          id: crossHostActiveVisit.guest.id,
+          name: crossHostActiveVisit.guest.name || '',
+          email: crossHostActiveVisit.guest.email
+        },
+        host: {
+          id: crossHostActiveVisit.host.id,
+          name: crossHostActiveVisit.host.name,
+          email: crossHostActiveVisit.host.email
+        }
+      },
       crossHostVisit: true,
     };
   }
@@ -423,7 +451,7 @@ export async function validateActivateQR(
   guestEmail: string
 ): Promise<ValidationResult> {
   // Check if guest has accepted terms (visit-scoped or general)
-  const acceptanceResult = await validateVisitScopedAcceptance(guestId, null, locationId);
+  const acceptanceResult = await validateVisitScopedAcceptance(guestId, null);
   if (!acceptanceResult.isValid) {
     // Try legacy validation as fallback
     const legacyResult = await validateGuestAcceptance(guestId);
@@ -492,7 +520,7 @@ export async function validateAdmitGuestWithRenewal(
   }
 
   // Check if guest has recent accepted terms (visit-scoped)
-  const acceptanceResult = await validateVisitScopedAcceptance(guestId, null, locationId);
+  const acceptanceResult = await validateVisitScopedAcceptance(guestId, null);
   if (!acceptanceResult.isValid) {
     // For returning guests, check if they had previous acceptance (expired)
     const hasAnyAcceptance = await prisma.acceptance.findFirst({

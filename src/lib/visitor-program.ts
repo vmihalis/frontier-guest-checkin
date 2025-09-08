@@ -210,12 +210,7 @@ export async function processTierProgression(guestId: string): Promise<{
       'SURVEY_COMPLETED',
       'tier_progression',
       'success',
-      {
-        oldTier: currentTier,
-        newTier,
-        totalVisits,
-        tierName: tierBenefits.name
-      }
+      undefined
     );
   }
 
@@ -358,9 +353,9 @@ function calculateDaysUntilNextReward(visits: Array<{ checkedInAt: Date | null }
   
   const now = nowInLA();
   const lastVisit = visits[0].checkedInAt;
-  const daysSinceLastVisit = Math.floor(
+  const daysSinceLastVisit = lastVisit ? Math.floor(
     (now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  ) : 999;
   
   // Monthly rewards cycle
   return Math.max(0, 30 - daysSinceLastVisit);
@@ -421,7 +416,7 @@ async function sendTierUpgradeEmail(guest: Guest, newTier: VisitorTier): Promise
       'OUTREACH_EMAIL_SENT',
       'tier_upgrade',
       'success',
-      { newTier, tierName: tierBenefits.name }
+      undefined
     );
   } catch (error) {
     console.error('Error sending tier upgrade email:', error);

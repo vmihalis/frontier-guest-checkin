@@ -18,7 +18,7 @@ export function useAdminStats() {
         const data = await response.json();
         setStats(data);
       }
-    } catch {
+    } catch (error) {
       console.error('Error loading stats:', error);
       toast({
         title: 'Error',
@@ -46,7 +46,7 @@ export function useAdminPolicies() {
         const data = await response.json();
         setPolicies(data.policies);
       }
-    } catch {
+    } catch (error) {
       console.error('Error loading policies:', error);
       toast({
         title: 'Error',
@@ -74,7 +74,7 @@ export function useAdminPolicies() {
         toast({ title: 'Error', description: data.error || 'Failed to update policies', variant: 'destructive' });
         return false;
       }
-    } catch {
+    } catch (error) {
       toast({ title: 'Error', description: 'Network error. Please try again.', variant: 'destructive' });
       return false;
     }
@@ -96,7 +96,7 @@ export function useAdminActivities() {
         const data = await response.json();
         setActivities(data.activities || []);
       }
-    } catch {
+    } catch (error) {
       console.error('Error loading activities:', error);
       toast({
         title: 'Error',
@@ -124,7 +124,7 @@ export function useExecutiveReport() {
         const data = await response.json();
         setReport(data);
       }
-    } catch {
+    } catch (error) {
       console.error('Error loading executive report:', error);
       toast({
         title: 'Error',
@@ -157,7 +157,7 @@ export function useGlobalSearch() {
         const data = await response.json();
         setSearchResults(data.results || []);
       }
-    } catch {
+    } catch (error) {
       console.error('Error performing search:', error);
       toast({
         title: 'Error',
@@ -185,7 +185,7 @@ export function useGuestJourney() {
         const data = await response.json();
         setSelectedGuest(data);
       }
-    } catch {
+    } catch (error) {
       console.error('Error loading guest journey:', error);
       toast({
         title: 'Error',
