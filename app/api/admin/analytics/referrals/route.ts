@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
 /**
  * Calculate pending referral rewards
  */
-async function calculatePendingRewards(locationFilter: any): Promise<number> {
+async function calculatePendingRewards(locationFilter: { locationId?: string } | undefined): Promise<number> {
   const pendingReferrals = await prisma.referralEvent.aggregate({
     where: {
       status: 'PENDING',

@@ -63,7 +63,7 @@ interface ReferralData {
 interface TierInfo {
   name: string;
   color: string;
-  icon: any;
+  icon: React.ComponentType;
   benefits: string[];
 }
 
@@ -100,7 +100,7 @@ export default function ReferralDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [recommendationDialog, setRecommendationDialog] = useState<{
     open: boolean;
-    guest?: any;
+    guest?: { id: string; name: string; email: string };
   }>({ open: false });
 
   useEffect(() => {

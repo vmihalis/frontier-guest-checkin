@@ -374,7 +374,7 @@ function AdminPageContent() {
                          handleLoadGuestJourney(result.id);
                        } else if (result.type === 'visit' && result.data) {
                          // For visit results, extract the guest ID from the data
-                         const visitData = result.data as any;
+                         const visitData = result.data as { guestId?: string; guest?: { id: string } };
                          // Check both guestId field and guest.id from the included relation
                          const guestId = visitData.guestId || visitData.guest?.id;
                          console.log('[Admin] Visit data guestId:', guestId);

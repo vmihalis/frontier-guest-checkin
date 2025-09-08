@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
           totalGuests,
           convertedGuests,
           conversionRate: Math.round(conversionRate * 100) / 100,
-          averageConversionTime: (averageConversionTime as any)?.[0]?.avg_days || 0
+          averageConversionTime: (averageConversionTime as { avg_days: number }[])?.[0]?.avg_days || 0
         },
         candidates: conversionCandidates,
         recentConversions,
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
 /**
  * Calculate conversion funnel metrics
  */
-async function calculateConversionFunnel(locationFilter: any, periodStart: Date) {
+async function calculateConversionFunnel(locationFilter: { locationId?: string } | undefined, periodStart: Date) {
   const [
     totalVisitors,
     returningVisitors, 

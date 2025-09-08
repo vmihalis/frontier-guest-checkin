@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     // Validate override if provided
     let isOverrideValid = false;
-    let overrideUser: any = null;
+    let overrideUser: { id: string; email: string; role: string } | null = null;
     if (override) {
       const overrideValidation = validateOverrideRequest(override);
       if (!overrideValidation.isValid) {
