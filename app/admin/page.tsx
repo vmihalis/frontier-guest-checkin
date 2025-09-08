@@ -96,7 +96,7 @@ function AdminPageContent() {
   
   // Track if we're waiting for search (user has typed but debounce hasn't fired yet)
   const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Define columns for guest table
   const guestColumns: Column<Guest>[] = [
