@@ -2,13 +2,6 @@ import type { NextConfig } from "next";
 import fs from "fs";
 import path from "path";
 
-// Production safety check: ensure DEMO_MODE is not enabled in production builds
-if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
-  if (process.env.DEMO_MODE === 'true') {
-    throw new Error('🚨 CRITICAL: Demo mode is enabled in production! Set DEMO_MODE=false or remove the environment variable.');
-  }
-}
-
 const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname

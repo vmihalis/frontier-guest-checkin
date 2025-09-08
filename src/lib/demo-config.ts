@@ -87,13 +87,12 @@ export function logDemo(message: string, data?: unknown): void {
 
 /**
  * Assert we're not accidentally in demo mode in production builds
- * Only checks during build-time, not runtime
+ * Note: Safety check disabled to allow intentional demo mode in production
  */
 export function assertNotDemoInProduction(): void {
-  // Only run this check if we're doing a production build
-  const isProductionBuild = process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build';
-  
-  if (isProductionBuild && isDemoMode()) {
-    throw new Error('🚨 CRITICAL: Demo mode is enabled in production! Set DEMO_MODE=false');
+  // Safety check removed - demo mode now allowed in production deployments
+  // This function is preserved for backward compatibility but no longer throws
+  if (isDemoMode() && (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build')) {
+    console.warn('⚠️  Demo mode is enabled in production deployment');
   }
 }
