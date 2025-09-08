@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Admin authentication check
@@ -26,7 +26,7 @@ export async function GET(
       );
     }
 
-    const guestId = params.id;
+    const { id: guestId } = await params;
     
     // Get comprehensive guest analytics
     const [guestAnalytics, conversionScore, recentEvents, visitHistory] = await Promise.all([
@@ -76,7 +76,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await getCurrentUserId(request);
@@ -92,7 +92,7 @@ export async function POST(
       );
     }
 
-    const guestId = params.id;
+    const { id: guestId } = await params;
     const body = await request.json();
     const { action, ...data } = body;
 
